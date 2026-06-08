@@ -146,14 +146,13 @@ footer{background:#0d0b09;color:rgba(245,240,232,.5);text-align:center;padding:6
   .about-grid,.works-grid,.id-grid,.books-grid{grid-template-columns:1fr}
   .ref-grid{grid-template-columns:1fr}
   nav{padding:16px 24px;background:rgba(245,240,232,.95);border-bottom:1px solid rgba(0,0,0,.07)}
-  .nav-links{display:none}.nav-stella{display:block!important}
+  .nav-links{display:none}
   .nav-logo{color:var(--ink)!important}
 }
 
-.nav-stella{font-size:.68rem;letter-spacing:.15em;color:rgba(245,240,232,.85);text-decoration:none;transition:color .3s;font-family:'Noto Serif KR',serif;cursor:pointer}
-nav.scrolled .nav-stella{color:var(--ink)}
-.nav-stella:hover{color:var(--gold)}
-
+/* STELLA FAB */
+#stella-fab{position:fixed;top:16px;right:24px;z-index:500;background:#1a1612;color:#f5f0e8;border:none;border-radius:50px;padding:10px 20px;font-size:.75rem;letter-spacing:.15em;font-family:'Noto Serif KR',serif;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:background .3s}
+#stella-fab:hover{background:#b89a5c}
 /* stella 채팅 오버레이 */
 #stella-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;flex-direction:column}
 #stella-overlay.active{display:flex}
@@ -186,7 +185,6 @@ nav.scrolled .nav-stella{color:var(--ink)}
     <li><a href="#gallery">사진첩</a></li>
     <li><a href="#contact">연락</a></li>
   </ul>
-  <span class="nav-stella" onclick="stellaOpen()">stella</span>
 </nav>
 
 <!-- HERO -->
@@ -484,6 +482,9 @@ nav.scrolled .nav-stella{color:var(--ink)}
     <button id="admin-btn" onclick="adminLogin()" style="background:transparent;border:1px solid rgba(0,0,0,.15);color:var(--ash);font-size:.65rem;padding:4px 12px;cursor:pointer;letter-spacing:.1em;border-radius:2px">관리자</button>
   </div>
 </section>
+
+<!-- STELLA FAB -->
+<button id="stella-fab" onclick="stellaOpen()">✦ stella</button>
 
 <!-- FOOTER -->
 <footer id="contact">
