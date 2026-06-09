@@ -106,12 +106,28 @@ tr:last-child td{border-bottom:none}
 .chat-top h3{font-size:1.1rem}
 .icon-btn{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.25rem}
 .messages{flex:1;overflow:auto;padding:28px 28px 20px;display:flex;flex-direction:column;gap:18px;background:#fff}
-.msg-row{display:flex;width:100%}
+.msg-row{display:flex;width:min(960px,100%);margin:0 auto}
 .msg-row.user{justify-content:flex-end}
 .avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#111827;color:#fff;margin-right:10px;font-weight:900;flex:0 0 auto}
-.bubble{max-width:min(760px,80vw);border-radius:20px;padding:14px 17px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
-.msg-row.ai .bubble{background:#f7f7f8;border-top-left-radius:6px}
-.msg-row.user .bubble{background:#111827;color:#fff;border-top-right-radius:6px}
+.bubble{max-width:min(820px,82vw);border-radius:20px;padding:14px 17px;line-height:1.75;word-break:break-word}
+.msg-row.ai .bubble{background:#fff;border:1px solid transparent;border-top-left-radius:6px}
+.msg-row.user .bubble{background:#111827;color:#fff;border-top-right-radius:6px;white-space:pre-wrap}
+.bubble p{margin:0 0 10px}
+.bubble p:last-child{margin-bottom:0}
+.answer-table-box{margin:12px 0;border:1px solid #d9dee7;border-radius:14px;overflow:hidden;background:#fff}
+.answer-table-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb}
+.answer-table-title{font-size:.82rem;font-weight:900;color:#374151}
+.excel-btn{border:1px solid #cbd5e1;background:#fff;color:#111827;border-radius:10px;padding:7px 10px;font-size:.78rem;font-weight:900}
+.excel-btn:hover{background:#111827;color:#fff}
+.answer-table-scroll{overflow:auto;max-width:100%}
+.answer-table{width:100%;border-collapse:collapse;font-size:.86rem;white-space:normal}
+.answer-table th{background:#f1f5f9;color:#111827;font-weight:900;text-align:left;padding:10px 12px;border-bottom:1px solid #d9dee7;border-right:1px solid #e5e7eb}
+.answer-table td{padding:10px 12px;border-bottom:1px solid #edf0f5;border-right:1px solid #edf0f5;color:#1f2937;vertical-align:top}
+.answer-table tr:last-child td{border-bottom:0}
+.answer-table th:last-child,.answer-table td:last-child{border-right:0}
+.attachment-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.attachment-card{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:7px 9px;background:rgba(255,255,255,.08);font-size:.82rem}
+.attachment-card img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#fff}
 .composer{border-top:1px solid var(--line);padding:12px 22px calc(20px + env(safe-area-inset-bottom));background:#fff;flex:0 0 auto}
 .chips{display:flex;gap:8px;flex-wrap:wrap;width:min(920px,100%);margin:0 auto 8px}
 .chip{border:1px solid #d1d5db;background:#f9fafb;border-radius:999px;padding:6px 9px;font-size:.76rem}
@@ -363,6 +379,7 @@ const STELLA_SYSTEM_PROMPT = [
   "방문자에게 한국어로 친절하고 간결하게 안내하세요.",
   "첨부 파일 텍스트가 제공되면 그 내용을 참고하세요.",
   "이미지 또는 캡처가 첨부되면 이미지 안의 글자, 표, 화면 내용을 읽고 요약하거나 사용자의 요청에 맞게 분석하세요.",
+  "표 형태의 결과가 있으면 반드시 마크다운 표로 정리하세요. 표 앞뒤 설명은 짧게 하고, 열 이름은 명확하게 쓰세요.",
   "이후의 작품, 전문저서, SAP 활동, 무도 활동, 음악 활동에 대해 답변하세요.",
   "확실하지 않은 사실은 단정하지 말고 홈페이지에 공개된 정보 기준으로 답하세요."
 ].join(" ");
@@ -378,6 +395,9 @@ let attachedFiles = [];
 function readJson(key, fallback){ try{return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));}catch{return fallback;} }
 function writeJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
 function escapeHtml(value){ return String(value).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" }[c])); }
+function stripAttachmentPlaceholders(text){
+  return String(text || "").replace(/\[붙여넣은 이미지\/파일(?: \d+개)? 첨부됨\]\s*/g, "").trim();
+}
 function stablePasswordHash(text){
   return btoa(unescape(encodeURIComponent(text)));
 }
@@ -486,7 +506,7 @@ function renderMessages(){
   room.messages.forEach(message => addMessage(message.role, message.text, false));
   $("#messages").scrollTop = $("#messages").scrollHeight;
 }
-function addMessage(role, text, persist = true){
+function addMessage(role, text, persist = true, meta = {}){
   const row = document.createElement("div");
   row.className = "msg-row " + role;
   if (role === "ai") {
@@ -497,7 +517,7 @@ function addMessage(role, text, persist = true){
   }
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  bubble.textContent = text;
+  renderBubbleContent(bubble, role, text, meta);
   row.appendChild(bubble);
   $("#messages").appendChild(row);
   $("#messages").scrollTop = $("#messages").scrollHeight;
@@ -510,6 +530,175 @@ function addMessage(role, text, persist = true){
     $("#activeTitle").textContent = room.name;
   }
   return bubble;
+}
+
+function renderBubbleContent(bubble, role, text, meta = {}){
+  bubble.innerHTML = "";
+  if (role === "ai") {
+    renderAssistantAnswer(bubble, text);
+  } else {
+    const cleanText = stripAttachmentPlaceholders(text);
+    if (cleanText) bubble.textContent = cleanText;
+    if (meta.attachments?.length) renderAttachmentPreview(bubble, meta.attachments);
+    if (!cleanText && !meta.attachments?.length) bubble.textContent = text;
+  }
+}
+function renderAttachmentPreview(container, attachments){
+  const wrap = document.createElement("div");
+  wrap.className = "attachment-preview";
+  attachments.forEach(file => {
+    const card = document.createElement("div");
+    card.className = "attachment-card";
+    if (file.dataUrl && file.type?.startsWith("image/")) {
+      const img = document.createElement("img");
+      img.src = file.dataUrl;
+      img.alt = file.name;
+      card.appendChild(img);
+    }
+    const label = document.createElement("span");
+    label.textContent = file.name || "첨부 이미지";
+    card.appendChild(label);
+    wrap.appendChild(card);
+  });
+  container.appendChild(wrap);
+}
+function renderAssistantAnswer(container, text){
+  const parts = parseAnswerParts(text);
+  parts.forEach(part => {
+    if (part.type === "table") {
+      container.appendChild(createAnswerTable(part.rows));
+      return;
+    }
+    part.text.split(/\n{2,}/).map(item => item.trim()).filter(Boolean).forEach(paragraph => {
+      const p = document.createElement("p");
+      p.textContent = paragraph;
+      container.appendChild(p);
+    });
+  });
+}
+function parseAnswerParts(text){
+  const lines = String(text || "").split(/\r?\n/);
+  const parts = [];
+  let buffer = [];
+  const flushText = () => {
+    const value = buffer.join("\n").trim();
+    if (value) parts.push({ type:"text", text:value });
+    buffer = [];
+  };
+  for (let index = 0; index < lines.length; index++) {
+    const markdownRows = [];
+    while (index < lines.length && isMarkdownTableLine(lines[index])) {
+      markdownRows.push(lines[index]);
+      index++;
+    }
+    if (markdownRows.length >= 2) {
+      const rows = markdownRows.filter(line => !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line)).map(parseMarkdownTableLine).filter(row => row.length);
+      if (rows.length >= 2) {
+        flushText();
+        parts.push({ type:"table", rows });
+        index--;
+        continue;
+      }
+    }
+    if (markdownRows.length) {
+      buffer.push(...markdownRows);
+      index--;
+      continue;
+    }
+    const tsvRows = [];
+    while (index < lines.length && lines[index].includes("\t")) {
+      tsvRows.push(lines[index].split("\t").map(cell => cell.trim()));
+      index++;
+    }
+    if (tsvRows.length >= 2) {
+      flushText();
+      parts.push({ type:"table", rows:normalizeRows(tsvRows) });
+      index--;
+      continue;
+    }
+    const spacedRows = [];
+    while (index < lines.length && /\S\s{2,}\S/.test(lines[index])) {
+      spacedRows.push(lines[index].trim().split(/\s{2,}/).map(cell => cell.trim()));
+      index++;
+    }
+    if (spacedRows.length >= 2 && Math.max(...spacedRows.map(row => row.length)) >= 2) {
+      flushText();
+      parts.push({ type:"table", rows:normalizeRows(spacedRows) });
+      index--;
+      continue;
+    }
+    buffer.push(lines[index]);
+  }
+  flushText();
+  return parts.length ? parts : [{ type:"text", text:String(text || "") }];
+}
+function isMarkdownTableLine(line){
+  return /^\s*\|.+\|\s*$/.test(line);
+}
+function parseMarkdownTableLine(line){
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(cell => cell.trim());
+}
+function normalizeRows(rows){
+  const maxCols = Math.max(...rows.map(row => row.length));
+  return rows.map(row => Array.from({ length:maxCols }, (_, index) => row[index] || ""));
+}
+function createAnswerTable(rows){
+  const normalized = normalizeRows(rows);
+  const box = document.createElement("div");
+  box.className = "answer-table-box";
+  const tools = document.createElement("div");
+  tools.className = "answer-table-tools";
+  const title = document.createElement("span");
+  title.className = "answer-table-title";
+  title.textContent = "표 결과";
+  const button = document.createElement("button");
+  button.className = "excel-btn";
+  button.type = "button";
+  button.textContent = "Excel 다운로드";
+  button.addEventListener("click", () => downloadTableAsExcel(normalized));
+  tools.append(title, button);
+  const scroll = document.createElement("div");
+  scroll.className = "answer-table-scroll";
+  const table = document.createElement("table");
+  table.className = "answer-table";
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+  const headRow = document.createElement("tr");
+  normalized[0].forEach(cell => {
+    const th = document.createElement("th");
+    th.textContent = cell;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  normalized.slice(1).forEach(row => {
+    const tr = document.createElement("tr");
+    row.forEach(cell => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.append(thead, tbody);
+  scroll.appendChild(table);
+  box.append(tools, scroll);
+  return box;
+}
+function downloadTableAsExcel(rows){
+  const tableRows = rows.map((row, rowIndex) => "<tr>" + row.map(cell => {
+    const tag = rowIndex === 0 ? "th" : "td";
+    return `<${tag}>${escapeHtml(cell)}</${tag}>`;
+  }).join("") + "</tr>").join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
+  const blob = new Blob(["\ufeff", html], { type:"application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `stella-table-${new Date().toISOString().slice(0, 10)}.xls`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function setLoading(isLoading){ $("#chatInput").disabled = isLoading; $("#sendBtn").disabled = isLoading; $("#sendBtn").textContent = isLoading ? "…" : "↑"; }
@@ -668,8 +857,8 @@ async function submitMessage(event){
   const fileParts = await Promise.all(attachedFiles.map(readFileForPrompt));
   const attachments = await prepareAttachments(attachedFiles);
   const fullMessage = [text, ...fileParts].filter(Boolean).join("\n\n");
-  const displayMessage = [text || "첨부 파일을 분석해 주세요.", ...attachedFiles.map(file => "첨부: " + file.name)].join("\n");
-  addMessage("user", displayMessage);
+  const displayMessage = stripAttachmentPlaceholders(text) || (attachments.length ? "첨부 이미지를 분석해 주세요." : "첨부 파일을 분석해 주세요.");
+  addMessage("user", displayMessage, true, { attachments });
   $("#chatInput").value = "";
   $("#chatInput").style.height = "auto";
   attachedFiles = [];
@@ -678,13 +867,13 @@ async function submitMessage(event){
   const thinking = addMessage("ai", "생각하고 있습니다...", false);
   try {
     const answer = await askStella(fullMessage, attachments);
-    thinking.textContent = answer;
+    renderBubbleContent(thinking, "ai", answer);
     activeRoom().messages.push({ role:"ai", text:answer });
     saveRooms();
     renderRooms();
   } catch (error) {
     console.error(error);
-    thinking.textContent = "OpenAI 연결 오류가 발생했습니다.\n\n상세: " + error.message;
+    renderBubbleContent(thinking, "ai", "OpenAI 연결 오류가 발생했습니다.\n\n상세: " + error.message);
   } finally {
     setLoading(false);
     $("#chatInput").focus();
