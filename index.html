@@ -23,7 +23,7 @@ a{color:inherit}
 .nav-links{display:flex;align-items:center;gap:22px;list-style:none}
 .nav-links a{text-decoration:none;color:#4b5563;font-size:.86rem}
 .nav-links a:hover{color:var(--ink)}
-#stellaButton{position:fixed;top:13px;right:28px;z-index:9999;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;min-width:166px;border:1px solid #111827;border-radius:999px;background:#111827;color:#fff;font-weight:900;letter-spacing:.06em;box-shadow:0 12px 32px rgba(17,24,39,.16);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#stellaButton{position:fixed;top:13px;right:28px;z-index:9999;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;min-width:166px;border:1px solid #111827;border-radius:999px;background:#111827;color:#fff;font-weight:900;letter-spacing:.04em;box-shadow:0 12px 32px rgba(17,24,39,.16);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #stellaButton:hover{background:#2f3745}
 .hero{min-height:calc(100vh - 74px);display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);border-bottom:1px solid var(--line)}
 .hero-left{display:flex;flex-direction:column;justify-content:center;padding:72px 72px 80px}
@@ -118,7 +118,6 @@ tr:last-child td{border-bottom:none}
 .answer-download-tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .answer-download-btn{border:1px solid #cbd5e1;background:#f8fafc;color:#111827;border-radius:10px;padding:7px 10px;font-size:.78rem;font-weight:900}
 .answer-download-btn:hover{background:#111827;color:#fff}
-.stella-top-download,#htmlDownloadBtn,#downloadHtmlBtn,.html-download-top{display:none!important}
 .code-preview-box{border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;margin:10px 0;padding:10px;max-height:260px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:.78rem;white-space:pre-wrap;color:#111827}
 .icon-btn{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.25rem}
 .messages{flex:1;overflow:auto;padding:28px 28px 20px;display:flex;flex-direction:column;gap:18px;background:#fff}
@@ -174,10 +173,9 @@ tr:last-child td{border-bottom:none}
 .post p{white-space:pre-wrap;color:#374151;line-height:1.75;margin-top:7px}
 .post small{display:block;color:#9ca3af;margin-top:8px}
 @media(max-width:1000px){
-  body{font-family:"Gowun Batang","Noto Serif KR",serif}
   .site-nav{padding:0 190px 0 22px}
   .nav-links{display:none}
-  #stellaButton{top:12px;right:12px;min-width:142px;height:48px;z-index:9999;font-size:.92rem}
+  #stellaButton{right:12px;min-width:142px;height:48px}
   .hero{grid-template-columns:1fr}
   .hero-left{padding:58px 24px 70px}
   .hero-right{min-height:260px;border-left:0;border-top:1px solid var(--line)}
@@ -240,7 +238,7 @@ tr:last-child td{border-bottom:none}
     <li><a href="#contact">연락</a></li>
   </ul>
 </nav>
-<button id="stellaButton" type="button" onclick="openStella()" aria-label="Stella AI 열기">✦ Stella</button>
+<button id="stellaButton" type="button" aria-label="Stella AI 열기">✦ Stella</button>
 
 <header id="top" class="hero">
   <div class="hero-left">
@@ -766,7 +764,7 @@ function renderAttachmentPreview(container, attachments){
   container.appendChild(wrap);
 }
 function renderAssistantAnswer(container, text){
-  if (shouldShowDownloadButtons(text)) addAnswerDownloadTools(container, text);
+  addAnswerDownloadTools(container, text);
   const parts = parseAnswerParts(text);
   parts.forEach(part => {
     if (part.type === "table") {
@@ -856,7 +854,7 @@ function createAnswerTable(rows){
   title.className = "answer-table-title";
   title.textContent = "표 결과";
   tools.appendChild(title);
-  if (shouldShowDownloadButtons("excel")) {
+  if (requestWantsDownload()) {
     const button = document.createElement("button");
     button.className = "excel-btn";
     button.type = "button";
@@ -911,9 +909,7 @@ function downloadTableAsExcel(rows){
   }
 
   const csv = normalized.map(row => row.map(cell => {
-    const value = String(cell ?? "").replace(/
-?
-/g, " ");
+    const value = String(cell ?? "").replace(/\r?\n/g, " ");
     return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
   }).join(",")).join("\n");
   downloadTextFile(filename.replace(/\.xlsx$/i, ".csv"), "\ufeff" + csv, "text/csv;charset=utf-8");
@@ -960,26 +956,21 @@ function guessFileFromAnswer(text){
   const jsonBlock = blocks.find(block => block.lang === "json");
   return { blocks, htmlBlock, jsBlock, cssBlock, jsonBlock };
 }
-
-function getLastUserRequestText(){
-  const room = activeRoom?.();
+function getLastUserMessageText(){
+  const room = activeRoom();
   if (!room || !Array.isArray(room.messages)) return "";
   for (let i = room.messages.length - 1; i >= 0; i--) {
-    const msg = room.messages[i];
-    if (msg && msg.role === "user") return String(msg.text || "");
+    if (room.messages[i]?.role === "user") return String(room.messages[i].text || "");
   }
   return "";
 }
-function hasDownloadIntent(value){
-  return /(다운로드|내려받|저장|파일로|파일을 만들어|파일 만들어|파일 생성|생성해|수정본|index\.html|worker\.js|html 파일|엑셀|xlsx|xls|csv|txt|json|코드블록)/i.test(String(value || ""));
+function requestWantsDownload(){
+  const text = getLastUserMessageText().toLowerCase();
+  return /(다운로드|저장|파일로|파일 생성|내려받|download|save|index\.html|worker\.js|html 파일|엑셀|excel|xlsx|xls|csv|txt|텍스트 파일|수정본)/i.test(text);
 }
-function shouldShowDownloadButtons(answerText = ""){
-  const requestText = getLastUserRequestText();
-  if (hasDownloadIntent(requestText)) return true;
-  return false;
-}
-
 function addAnswerDownloadTools(container, text){
+  if (!requestWantsDownload()) return;
+
   const { htmlBlock, jsBlock, cssBlock, jsonBlock } = guessFileFromAnswer(text);
   const hasGeneratedFile = Boolean(htmlBlock || jsBlock || cssBlock || jsonBlock);
   if (!hasGeneratedFile) return;
@@ -988,7 +979,7 @@ function addAnswerDownloadTools(container, text){
   tools.className = "answer-download-tools";
 
   if (htmlBlock) {
-    tools.appendChild(createDownloadButton("수정본 index.html 다운로드", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
+    tools.appendChild(createDownloadButton("index.html 다운로드", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
   }
   if (jsBlock) {
     tools.appendChild(createDownloadButton("worker.js 다운로드", "worker.js", jsBlock.code, "text/javascript;charset=utf-8"));
@@ -1001,11 +992,6 @@ function addAnswerDownloadTools(container, text){
   }
 
   container.appendChild(tools);
-
-  const note = document.createElement("p");
-  note.className = "muted";
-  note.textContent = "요청하신 파일을 다운로드할 수 있습니다.";
-  container.appendChild(note);
 }
 function makeAnswerHtmlDocument(text){
   const escaped = escapeHtml(String(text || ""));
@@ -1383,23 +1369,20 @@ function bind(selector, eventName, handler){
   const element = $(selector);
   if (element) element.addEventListener(eventName, handler);
 }
-bind("#stellaButton", "click", openStella);
-// 모바일 브라우저에서 fixed 버튼 터치가 씹히는 경우를 방지하는 보조 바인딩
-document.addEventListener("click", function(event){
-  const target = event.target.closest && event.target.closest("#stellaButton");
-  if (target) {
+function bindStellaOpenButton(){
+  const button = $("#stellaButton");
+  if (!button) return;
+  const handler = event => {
     event.preventDefault();
+    event.stopPropagation();
     openStella();
-  }
-}, true);
-document.addEventListener("touchend", function(event){
-  const target = event.target.closest && event.target.closest("#stellaButton");
-  if (target) {
-    event.preventDefault();
-    openStella();
-  }
-}, { passive:false, capture:true });
-
+  };
+  button.onclick = handler;
+  button.addEventListener("click", handler, { passive:false });
+  button.addEventListener("touchend", handler, { passive:false });
+  button.addEventListener("pointerup", handler, { passive:false });
+}
+bindStellaOpenButton();
 bind("#closeStellaBtn", "click", closeStella);
 bind("#sidebarToggleBtn", "click", toggleMobileSidebar);
 bind("#mobileSidebarBackdrop", "click", closeMobileSidebar);
