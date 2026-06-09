@@ -762,6 +762,11 @@ function plainTextToPasteText(text){
   const table = tabTextToMarkdown(text);
   return table || text;
 }
+function getClipboardItemString(clipboard, type){
+  const item = Array.from(clipboard.items || []).find(entry => entry.kind === "string" && entry.type === type);
+  if (!item) return Promise.resolve("");
+  return new Promise(resolve => item.getAsString(value => resolve(value || "")));
+}
 function tabTextToMarkdown(text){
   const lines = text.trim().split(/\r?\n/).filter(Boolean);
   if (!lines.length || !lines.some(line => line.includes("\t"))) return "";
@@ -771,11 +776,13 @@ function tabTextToMarkdown(text){
   const divider = Array.from({ length:maxCols }, () => "---");
   return [normalized[0], divider, ...normalized.slice(1)].map(row => "| " + row.map(cell => cell.replace(/\|/g, "\\|")).join(" | ") + " |").join("\n");
 }
-function handleChatPaste(event){
+async function handleChatPaste(event){
   const clipboard = event.clipboardData;
   if (!clipboard) return;
-  const html = clipboard.getData("text/html");
-  const plain = clipboard.getData("text/plain");
+  const hasClipboardContent = clipboard.files.length || clipboard.items.length || clipboard.getData("text/plain") || clipboard.getData("text/html");
+  if (hasClipboardContent) event.preventDefault();
+  const html = clipboard.getData("text/html") || await getClipboardItemString(clipboard, "text/html");
+  const plain = clipboard.getData("text/plain") || await getClipboardItemString(clipboard, "text/plain");
   const convertedText = html ? clipboardHtmlToText(html) : plainTextToPasteText(plain);
   const pastedFiles = Array.from(clipboard.files || []);
   if (!pastedFiles.length) {
@@ -791,6 +798,7 @@ function handleChatPaste(event){
     event.preventDefault();
     if (convertedText) {
       insertAtCursor($("#chatInput"), convertedText + (convertedText.endsWith("\n") ? "" : "\n"));
+      return;
     }
     if (pastedFiles.length) {
       attachedFiles.push(...pastedFiles.map((file, index) => {
@@ -799,6 +807,8 @@ function handleChatPaste(event){
         return new File([file], name, { type:file.type || "application/octet-stream" });
       }));
       renderFiles();
+      const textarea = $("#chatInput");
+      if (!textarea.value.trim()) insertAtCursor(textarea, "첨부된 이미지의 표와 글자를 읽고, 결과를 표로 정리해줘.\n");
     }
   }
 }
