@@ -113,6 +113,13 @@ tr:last-child td{border-bottom:none}
 #moveProjectSelect{border:1px solid #d1d5db;border-radius:11px;background:#fff;color:#111827;padding:8px 10px;max-width:190px}
 .chat-action-btn{border:1px solid #d1d5db;background:#fff;color:#111827;border-radius:11px;padding:8px 10px;font-size:.8rem;font-weight:900}
 .chat-action-btn:hover{background:#111827;color:#fff}
+
+.download-current-btn{display:inline-flex;align-items:center;gap:5px;border-color:#cbd5e1;background:#f8fafc;color:#111827}
+.download-current-btn:hover{background:#111827;color:#fff}
+.answer-download-tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.answer-download-btn{border:1px solid #cbd5e1;background:#f8fafc;color:#111827;border-radius:10px;padding:7px 10px;font-size:.78rem;font-weight:900}
+.answer-download-btn:hover{background:#111827;color:#fff}
+.code-preview-box{border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;margin:10px 0;padding:10px;max-height:260px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:.78rem;white-space:pre-wrap;color:#111827}
 .icon-btn{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.25rem}
 .messages{flex:1;overflow:auto;padding:28px 28px 20px;display:flex;flex-direction:column;gap:18px;background:#fff}
 .msg-row{display:flex;width:min(960px,100%);margin:0 auto}
@@ -197,6 +204,7 @@ tr:last-child td{border-bottom:none}
   .sidebar-toggle{display:grid;flex:0 0 auto;width:38px;height:38px}
   .chat-actions{gap:6px;flex-wrap:nowrap;justify-content:flex-end}
   .chat-action-btn{display:none}
+  #downloadHtmlBtn{display:inline-flex;padding:7px 9px;font-size:.72rem}
   #moveProjectSelect{display:none}
   .icon-btn{width:38px;height:38px}
   .messages{padding:14px 12px 14px;gap:14px;flex:1;min-height:0;overflow:auto}
@@ -379,7 +387,7 @@ tr:last-child td{border-bottom:none}
       <div id="roomList" class="rooms"></div>
     </aside>
     <main class="chat-main">
-      <div class="chat-top"><div><button id="sidebarToggleBtn" class="icon-btn sidebar-toggle" type="button" aria-label="채팅 목록 열기">☰</button><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div></div><div class="chat-actions"><button id="copyRoomBtn" class="chat-action-btn" type="button">복사</button><button id="duplicateRoomBtn" class="chat-action-btn" type="button">복제</button><button id="deleteRoomBtn" class="chat-action-btn" type="button">삭제</button><select id="moveProjectSelect" title="프로젝트로 이동"></select><button id="closeStellaBtn" class="icon-btn" type="button">×</button></div></div>
+      <div class="chat-top"><div><button id="sidebarToggleBtn" class="icon-btn sidebar-toggle" type="button" aria-label="채팅 목록 열기">☰</button><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div></div><div class="chat-actions"><button id="copyRoomBtn" class="chat-action-btn" type="button">복사</button><button id="duplicateRoomBtn" class="chat-action-btn" type="button">복제</button><button id="deleteRoomBtn" class="chat-action-btn" type="button">삭제</button><button id="downloadHtmlBtn" class="chat-action-btn download-current-btn" type="button">HTML 다운로드</button><select id="moveProjectSelect" title="프로젝트로 이동"></select><button id="closeStellaBtn" class="icon-btn" type="button">×</button></div></div>
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
@@ -387,8 +395,22 @@ tr:last-child td{border-bottom:none}
         <div class="model-row">
           <span>모델</span>
           <select id="modelSelect">
-            <optgroup label="OpenAI">
-              <option value="gpt-4o" selected>GPT-4o 최신</option>
+            <optgroup label="OpenAI 최신/고성능">
+              <option value="gpt-5.5" selected>GPT-5.5 최신</option>
+              <option value="gpt-5.5-pro">GPT-5.5 Pro</option>
+              <option value="gpt-5.4">GPT-5.4</option>
+              <option value="gpt-5.4-pro">GPT-5.4 Pro</option>
+              <option value="gpt-5.2">GPT-5.2</option>
+              <option value="gpt-5.1">GPT-5.1</option>
+              <option value="gpt-5">GPT-5</option>
+              <option value="gpt-5-pro">GPT-5 Pro</option>
+            </optgroup>
+            <optgroup label="OpenAI 빠른/저비용">
+              <option value="gpt-5.4-mini">GPT-5.4 Mini</option>
+              <option value="gpt-5.4-nano">GPT-5.4 Nano</option>
+              <option value="gpt-5-mini">GPT-5 Mini</option>
+              <option value="gpt-5-nano">GPT-5 Nano</option>
+              <option value="gpt-4o">GPT-4o</option>
               <option value="gpt-4o-mini">GPT-4o Mini</option>
               <option value="gpt-4.1">GPT-4.1</option>
               <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
@@ -425,7 +447,7 @@ if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 }
 const STELLA_API_URL = "https://stella-api.yesblue0342.workers.dev/api/stella";
-const DEFAULT_STELLA_MODEL = "gpt-4o";
+const DEFAULT_STELLA_MODEL = "gpt-5.5";
 const STELLA_SYSTEM_PROMPT = [
   "Stella GPT입니다.",
   "소설가 이후의 공식 홈페이지 AI 안내입니다.",
@@ -881,6 +903,67 @@ function downloadTableAsExcel(rows){
   URL.revokeObjectURL(url);
 }
 
+function sanitizeDownloadedHtml(html){
+  return String(html || "")
+    .replace(/<div id="mobileSidebarBackdrop"[^>]*class="[^"]*active[^"]*"/g, '<div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"')
+    .replace(/class="sidebar mobile-open"/g, 'class="sidebar"')
+    .replace(/<div id="stella" class="active">/g, '<div id="stella">');
+}
+function downloadTextFile(filename, content, mime = "text/plain;charset=utf-8"){
+  const blob = new Blob([content], { type:mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+function downloadCurrentIndexHtml(){
+  const html = "<!DOCTYPE html>\n" + sanitizeDownloadedHtml(document.documentElement.outerHTML);
+  downloadTextFile("index.html", html, "text/html;charset=utf-8");
+}
+function extractCodeBlocks(text){
+  const blocks = [];
+  const value = String(text || "");
+  const re = /```([a-zA-Z0-9_-]*)\s*\n([\s\S]*?)```/g;
+  let match;
+  while ((match = re.exec(value))) {
+    blocks.push({ lang:(match[1] || "text").toLowerCase(), code:match[2].trim() });
+  }
+  if (!blocks.length && /<!doctype html|<html[\s>]/i.test(value)) {
+    const start = value.search(/<!doctype html|<html[\s>]/i);
+    blocks.push({ lang:"html", code:value.slice(start).trim() });
+  }
+  return blocks;
+}
+function createDownloadButton(label, filename, content, mime){
+  const button = document.createElement("button");
+  button.className = "answer-download-btn";
+  button.type = "button";
+  button.textContent = label;
+  button.addEventListener("click", () => downloadTextFile(filename, content, mime));
+  return button;
+}
+function addAnswerDownloadTools(container, text){
+  const blocks = extractCodeBlocks(text);
+  const tools = document.createElement("div");
+  tools.className = "answer-download-tools";
+  tools.appendChild(createDownloadButton("응답 TXT 다운로드", `stella-answer-${new Date().toISOString().slice(0,10)}.txt`, String(text || ""), "text/plain;charset=utf-8"));
+  const htmlBlock = blocks.find(block => block.lang === "html" || /<!doctype html|<html[\s>]/i.test(block.code));
+  const jsBlock = blocks.find(block => ["js","javascript"].includes(block.lang));
+  if (htmlBlock) tools.appendChild(createDownloadButton("HTML 파일 다운로드", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
+  if (jsBlock) tools.appendChild(createDownloadButton("worker.js 다운로드", "worker.js", jsBlock.code, "text/javascript;charset=utf-8"));
+  container.appendChild(tools);
+  if (htmlBlock || jsBlock) {
+    const preview = document.createElement("pre");
+    preview.className = "code-preview-box";
+    preview.textContent = (htmlBlock || jsBlock).code.slice(0, 4000);
+    container.appendChild(preview);
+  }
+}
+
 function setLoading(isLoading){ $("#chatInput").disabled = isLoading; $("#sendBtn").disabled = isLoading; $("#sendBtn").textContent = isLoading ? "…" : "↑"; }
 function fileToDataUrl(file){
   return new Promise((resolve, reject) => {
@@ -1265,6 +1348,7 @@ bind("#newProjectBtn", "click", createProject);
 bind("#copyRoomBtn", "click", copyActiveRoom);
 bind("#duplicateRoomBtn", "click", duplicateActiveRoom);
 bind("#deleteRoomBtn", "click", deleteActiveRoom);
+bind("#downloadHtmlBtn", "click", downloadCurrentIndexHtml);
 $("#moveProjectSelect").addEventListener("change", event => moveActiveRoom(event.target.value));
 bind("#chatForm", "submit", submitMessage);
 bind("#attachBtn", "click", () => $("#fileInput").click());
