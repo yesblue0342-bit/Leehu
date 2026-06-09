@@ -9,11 +9,12 @@
 <meta name="robots" content="index, follow">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#fff;--panel:#f7f7f8;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b89a5c;--blue:#2f66b1;--red:#8b1a1a}
 html{scroll-behavior:smooth;height:100%}
-body{font-family:"Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
+body{font-family:"Gowun Batang","Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 a{color:inherit}
@@ -22,7 +23,7 @@ a{color:inherit}
 .nav-links{display:flex;align-items:center;gap:22px;list-style:none}
 .nav-links a{text-decoration:none;color:#4b5563;font-size:.86rem}
 .nav-links a:hover{color:var(--ink)}
-#stellaButton{position:fixed;top:13px;right:28px;z-index:50;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;min-width:166px;border:1px solid #111827;border-radius:999px;background:#111827;color:#fff;font-weight:900;letter-spacing:.06em;box-shadow:0 12px 32px rgba(17,24,39,.16)}
+#stellaButton{position:fixed;top:13px;right:28px;z-index:9999;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;min-width:166px;border:1px solid #111827;border-radius:999px;background:#111827;color:#fff;font-weight:900;letter-spacing:.04em;box-shadow:0 12px 32px rgba(17,24,39,.16);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #stellaButton:hover{background:#2f3745}
 .hero{min-height:calc(100vh - 74px);display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);border-bottom:1px solid var(--line)}
 .hero-left{display:flex;flex-direction:column;justify-content:center;padding:72px 72px 80px}
@@ -172,7 +173,6 @@ tr:last-child td{border-bottom:none}
 .post p{white-space:pre-wrap;color:#374151;line-height:1.75;margin-top:7px}
 .post small{display:block;color:#9ca3af;margin-top:8px}
 @media(max-width:1000px){
-  body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
   .site-nav{padding:0 190px 0 22px}
   .nav-links{display:none}
   #stellaButton{right:12px;min-width:142px;height:48px}
@@ -238,7 +238,7 @@ tr:last-child td{border-bottom:none}
     <li><a href="#contact">연락</a></li>
   </ul>
 </nav>
-<button id="stellaButton" type="button">✦ stella</button>
+<button id="stellaButton" type="button" aria-label="Stella AI 열기">✦ Stella</button>
 
 <header id="top" class="hero">
   <div class="hero-left">
@@ -853,12 +853,15 @@ function createAnswerTable(rows){
   const title = document.createElement("span");
   title.className = "answer-table-title";
   title.textContent = "표 결과";
-  const button = document.createElement("button");
-  button.className = "excel-btn";
-  button.type = "button";
-  button.textContent = "Excel 다운로드";
-  button.addEventListener("click", () => downloadTableAsExcel(normalized));
-  tools.append(title, button);
+  tools.appendChild(title);
+  if (requestWantsDownload()) {
+    const button = document.createElement("button");
+    button.className = "excel-btn";
+    button.type = "button";
+    button.textContent = "Excel 다운로드";
+    button.addEventListener("click", () => downloadTableAsExcel(normalized));
+    tools.appendChild(button);
+  }
   const scroll = document.createElement("div");
   scroll.className = "answer-table-scroll";
   const table = document.createElement("table");
@@ -887,28 +890,31 @@ function createAnswerTable(rows){
   return box;
 }
 function downloadTableAsExcel(rows){
-  const tableRows = rows.map((row, rowIndex) => "<tr>" + row.map(cell => {
-    const tag = rowIndex === 0 ? "th" : "td";
-    return `<${tag}>${escapeHtml(cell)}</${tag}>`;
-  }).join("") + "</tr>").join("");
-  const htmlText = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
-  const blob = new Blob(["\ufeff", htmlText], { type:"application/vnd.ms-excel;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `stella-table-${new Date().toISOString().slice(0, 10)}.xls`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  const normalized = normalizeRows(rows || []);
+  const filename = `stella-table-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+  if (window.XLSX) {
+    const worksheet = XLSX.utils.aoa_to_sheet(normalized);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Stella Table");
+
+    const columnWidths = normalized[0]?.map((_, colIndex) => {
+      const maxLength = Math.min(40, Math.max(10, ...normalized.map(row => String(row[colIndex] || "").length)));
+      return { wch:maxLength + 2 };
+    }) || [];
+    worksheet["!cols"] = columnWidths;
+
+    XLSX.writeFile(workbook, filename);
+    return;
+  }
+
+  const csv = normalized.map(row => row.map(cell => {
+    const value = String(cell ?? "").replace(/\r?\n/g, " ");
+    return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  }).join(",")).join("\n");
+  downloadTextFile(filename.replace(/\.xlsx$/i, ".csv"), "\ufeff" + csv, "text/csv;charset=utf-8");
 }
 
-function sanitizeDownloadedHtml(html){
-  return String(html || "")
-    .replace(/<div id="mobileSidebarBackdrop"[^>]*class="[^"]*active[^"]*"/g, '<div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"')
-    .replace(/class="sidebar mobile-open"/g, 'class="sidebar"')
-    .replace(/<div id="stella" class="active">/g, '<div id="stella">');
-}
 function downloadTextFile(filename, content, mime = "text/plain;charset=utf-8"){
   const blob = new Blob([content], { type:mime });
   const url = URL.createObjectURL(blob);
@@ -919,10 +925,6 @@ function downloadTextFile(filename, content, mime = "text/plain;charset=utf-8"){
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-}
-function downloadCurrentIndexHtml(){
-  const html = "<!DOCTYPE html>\n" + sanitizeDownloadedHtml(document.documentElement.outerHTML);
-  downloadTextFile("index.html", html, "text/html;charset=utf-8");
 }
 function extractCodeBlocks(text){
   const blocks = [];
@@ -954,7 +956,21 @@ function guessFileFromAnswer(text){
   const jsonBlock = blocks.find(block => block.lang === "json");
   return { blocks, htmlBlock, jsBlock, cssBlock, jsonBlock };
 }
+function getLastUserMessageText(){
+  const room = activeRoom();
+  if (!room || !Array.isArray(room.messages)) return "";
+  for (let i = room.messages.length - 1; i >= 0; i--) {
+    if (room.messages[i]?.role === "user") return String(room.messages[i].text || "");
+  }
+  return "";
+}
+function requestWantsDownload(){
+  const text = getLastUserMessageText().toLowerCase();
+  return /(다운로드|저장|파일로|파일 생성|내려받|download|save|index\.html|worker\.js|html 파일|엑셀|excel|xlsx|xls|csv|txt|텍스트 파일|수정본)/i.test(text);
+}
 function addAnswerDownloadTools(container, text){
+  if (!requestWantsDownload()) return;
+
   const { htmlBlock, jsBlock, cssBlock, jsonBlock } = guessFileFromAnswer(text);
   const hasGeneratedFile = Boolean(htmlBlock || jsBlock || cssBlock || jsonBlock);
   if (!hasGeneratedFile) return;
@@ -963,7 +979,7 @@ function addAnswerDownloadTools(container, text){
   tools.className = "answer-download-tools";
 
   if (htmlBlock) {
-    tools.appendChild(createDownloadButton("수정본 index.html 다운로드", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
+    tools.appendChild(createDownloadButton("index.html 다운로드", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
   }
   if (jsBlock) {
     tools.appendChild(createDownloadButton("worker.js 다운로드", "worker.js", jsBlock.code, "text/javascript;charset=utf-8"));
@@ -976,17 +992,6 @@ function addAnswerDownloadTools(container, text){
   }
 
   container.appendChild(tools);
-
-  const note = document.createElement("p");
-  note.className = "muted";
-  note.textContent = "AI 답변 안의 코드블록을 파일로 변환했습니다. 버튼을 눌러 다운로드하세요.";
-  container.appendChild(note);
-
-  const previewBlock = htmlBlock || jsBlock || cssBlock || jsonBlock;
-  const preview = document.createElement("pre");
-  preview.className = "code-preview-box";
-  preview.textContent = previewBlock.code.slice(0, 4000);
-  container.appendChild(preview);
 }
 function makeAnswerHtmlDocument(text){
   const escaped = escapeHtml(String(text || ""));
@@ -1364,7 +1369,20 @@ function bind(selector, eventName, handler){
   const element = $(selector);
   if (element) element.addEventListener(eventName, handler);
 }
-bind("#stellaButton", "click", openStella);
+function bindStellaOpenButton(){
+  const button = $("#stellaButton");
+  if (!button) return;
+  const handler = event => {
+    event.preventDefault();
+    event.stopPropagation();
+    openStella();
+  };
+  button.onclick = handler;
+  button.addEventListener("click", handler, { passive:false });
+  button.addEventListener("touchend", handler, { passive:false });
+  button.addEventListener("pointerup", handler, { passive:false });
+}
+bindStellaOpenButton();
 bind("#closeStellaBtn", "click", closeStella);
 bind("#sidebarToggleBtn", "click", toggleMobileSidebar);
 bind("#mobileSidebarBackdrop", "click", closeMobileSidebar);
