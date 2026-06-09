@@ -506,11 +506,12 @@ function setAuthMode(mode){
 
 function openStella(){
   $("#stella").classList.add("active");
+  const btn=document.getElementById("stellaButton"); if(btn) btn.style.display="none";
   document.body.style.overflow = "hidden";
   currentUser = readJson(storeKeys.current, null);
   currentUser ? showApp() : showAuth();
 }
-function closeStella(){ closeMobileSidebar(); $("#stella").classList.remove("active"); document.body.style.overflow = ""; }
+function closeStella(){ closeMobileSidebar(); $("#stella").classList.remove("active"); const btn=document.getElementById("stellaButton"); if(btn) btn.style.display="inline-flex"; document.body.style.overflow = ""; }
 function isMobileStella(){ return window.matchMedia("(max-width:1000px)").matches; }
 function openMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); const backdrop = $("#mobileSidebarBackdrop"); if (sidebar) sidebar.classList.add("mobile-open"); if (backdrop) backdrop.classList.add("active"); }
 function closeMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); const backdrop = $("#mobileSidebarBackdrop"); if (sidebar) sidebar.classList.remove("mobile-open"); if (backdrop) backdrop.classList.remove("active"); }
