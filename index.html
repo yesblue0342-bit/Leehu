@@ -455,6 +455,7 @@ const STELLA_SYSTEM_PROMPT = [
   "첨부 파일 텍스트가 제공되면 그 내용을 참고하세요.",
   "이미지 또는 캡처가 첨부되면 이미지 안의 글자, 표, 화면 내용을 읽고 요약하거나 사용자의 요청에 맞게 분석하세요.",
   "표 형태의 결과가 있으면 반드시 마크다운 표로 정리하세요. 표 앞뒤 설명은 짧게 하고, 열 이름은 명확하게 쓰세요.",
+  "사용자가 HTML, worker.js, index.html 같은 파일 수정을 요청하면 반드시 완성된 전체 코드를 해당 언어 코드블록으로 제공하세요. 예: ```html, ```javascript.",
   "이후의 작품, 전문저서, SAP 활동, 무도 활동, 음악 활동에 대해 답변하세요.",
   "확실하지 않은 사실은 단정하지 말고 홈페이지에 공개된 정보 기준으로 답하세요."
 ].join(" ");
@@ -765,6 +766,7 @@ function renderAttachmentPreview(container, attachments){
   container.appendChild(wrap);
 }
 function renderAssistantAnswer(container, text){
+  addAnswerDownloadTools(container, text);
   const parts = parseAnswerParts(text);
   parts.forEach(part => {
     if (part.type === "table") {
@@ -946,22 +948,59 @@ function createDownloadButton(label, filename, content, mime){
   button.addEventListener("click", () => downloadTextFile(filename, content, mime));
   return button;
 }
-function addAnswerDownloadTools(container, text){
+function guessFileFromAnswer(text){
   const blocks = extractCodeBlocks(text);
+  const htmlBlock = blocks.find(block => block.lang === "html" || /<!doctype html|<html[\s>]/i.test(block.code));
+  const jsBlock = blocks.find(block => ["js","javascript"].includes(block.lang) || /export default\s*\{|async fetch\s*\(/.test(block.code));
+  const cssBlock = blocks.find(block => block.lang === "css");
+  const jsonBlock = blocks.find(block => block.lang === "json");
+  return { blocks, htmlBlock, jsBlock, cssBlock, jsonBlock };
+}
+function addAnswerDownloadTools(container, text){
+  const { htmlBlock, jsBlock, cssBlock, jsonBlock } = guessFileFromAnswer(text);
   const tools = document.createElement("div");
   tools.className = "answer-download-tools";
-  tools.appendChild(createDownloadButton("응답 TXT 다운로드", `stella-answer-${new Date().toISOString().slice(0,10)}.txt`, String(text || ""), "text/plain;charset=utf-8"));
-  const htmlBlock = blocks.find(block => block.lang === "html" || /<!doctype html|<html[\s>]/i.test(block.code));
-  const jsBlock = blocks.find(block => ["js","javascript"].includes(block.lang));
-  if (htmlBlock) tools.appendChild(createDownloadButton("HTML 파일 다운로드", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
-  if (jsBlock) tools.appendChild(createDownloadButton("worker.js 다운로드", "worker.js", jsBlock.code, "text/javascript;charset=utf-8"));
+
+  tools.appendChild(createDownloadButton("응답 TXT", `stella-answer-${new Date().toISOString().slice(0,10)}.txt`, String(text || ""), "text/plain;charset=utf-8"));
+
+  if (htmlBlock) {
+    tools.appendChild(createDownloadButton("수정본 index.html", "index.html", htmlBlock.code, "text/html;charset=utf-8"));
+  }
+  if (jsBlock) {
+    tools.appendChild(createDownloadButton("worker.js", "worker.js", jsBlock.code, "text/javascript;charset=utf-8"));
+  }
+  if (cssBlock) {
+    tools.appendChild(createDownloadButton("style.css", "style.css", cssBlock.code, "text/css;charset=utf-8"));
+  }
+  if (jsonBlock) {
+    tools.appendChild(createDownloadButton("data.json", "data.json", jsonBlock.code, "application/json;charset=utf-8"));
+  }
+
+  const hasGeneratedFile = Boolean(htmlBlock || jsBlock || cssBlock || jsonBlock);
+  if (!hasGeneratedFile) {
+    tools.appendChild(createDownloadButton("답변을 HTML로 저장", `stella-answer-${new Date().toISOString().slice(0,10)}.html`, makeAnswerHtmlDocument(text), "text/html;charset=utf-8"));
+  }
+
   container.appendChild(tools);
-  if (htmlBlock || jsBlock) {
+
+  if (hasGeneratedFile) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = "AI 답변 안의 코드블록을 파일로 변환했습니다. 버튼을 눌러 다운로드하세요.";
+    container.appendChild(note);
+  }
+
+  const previewBlock = htmlBlock || jsBlock || cssBlock || jsonBlock;
+  if (previewBlock) {
     const preview = document.createElement("pre");
     preview.className = "code-preview-box";
-    preview.textContent = (htmlBlock || jsBlock).code.slice(0, 4000);
+    preview.textContent = previewBlock.code.slice(0, 4000);
     container.appendChild(preview);
   }
+}
+function makeAnswerHtmlDocument(text){
+  const escaped = escapeHtml(String(text || ""));
+  return `<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Stella Answer</title>\n<style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.8;padding:24px;max-width:900px;margin:auto;color:#111827}pre{white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px}</style>\n</head>\n<body>\n<h1>Stella Answer</h1>\n<pre>${escaped}</pre>\n</body>\n</html>`;
 }
 
 function setLoading(isLoading){ $("#chatInput").disabled = isLoading; $("#sendBtn").disabled = isLoading; $("#sendBtn").textContent = isLoading ? "…" : "↑"; }
