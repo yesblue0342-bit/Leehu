@@ -196,6 +196,9 @@ tr:last-child td{border-bottom:none}
   .attach-btn,.send-btn{width:36px;height:36px}
 }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -364,9 +367,7 @@ tr:last-child td{border-bottom:none}
         <div class="model-row">
           <span>모델</span>
           <select id="modelSelect">
-            <option value="gpt-5.5" selected>GPT-5.5 최신</option>
-            <option value="gpt-5-mini">GPT-5 Mini</option>
-            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o" selected>GPT-4o 최신</option>
             <option value="gpt-4o-mini">GPT-4o Mini</option>
             <option value="gpt-4.1">GPT-4.1</option>
             <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
@@ -393,8 +394,11 @@ tr:last-child td{border-bottom:none}
 </section>
 
 <script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
 const STELLA_API_URL = "https://stella-api.yesblue0342.workers.dev/api/stella";
-const DEFAULT_STELLA_MODEL = "gpt-5.5";
+const DEFAULT_STELLA_MODEL = "gpt-4o";
 const STELLA_SYSTEM_PROMPT = [
   "Stella GPT입니다.",
   "소설가 이후의 공식 홈페이지 AI 안내입니다.",
@@ -833,7 +837,10 @@ function downloadTableAsExcel(rows){
     const tag = rowIndex === 0 ? "th" : "td";
     return `<${tag}>${escapeHtml(cell)}</${tag}>`;
   }).join("") + "</tr>").join("");
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head><body><table>${tableRows}</table></body></html>`;
   const blob = new Blob(["\ufeff", html], { type:"application/vnd.ms-excel;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -866,11 +873,67 @@ function normalizeAttachmentFile(file, index = 0){
     lastModified:Date.now()
   });
 }
+function limitText(text, max = 24000){
+  const value = String(text || "").trim();
+  if (value.length <= max) return value;
+  return value.slice(0, max) + "\n\n[이하 내용은 길이 제한으로 생략되었습니다.]";
+}
+function arrayBufferToBase64(buffer){
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+async function readPdfForPrompt(file){
+  if (!window.pdfjsLib) return `[PDF 첨부: ${file.name}] PDF.js 라이브러리를 불러오지 못해 텍스트 추출 불가`;
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data:new Uint8Array(buffer) }).promise;
+  const pages = [];
+  const maxPages = Math.min(pdf.numPages, 30);
+  for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+    const page = await pdf.getPage(pageNo);
+    const textContent = await page.getTextContent();
+    const text = textContent.items.map(item => item.str || "").join(" ").replace(/\s+/g, " ").trim();
+    pages.push(`--- PDF Page ${pageNo} ---\n${text}`);
+  }
+  if (pdf.numPages > maxPages) pages.push(`[PDF 총 ${pdf.numPages}페이지 중 ${maxPages}페이지까지만 추출]`);
+  return `[PDF 첨부 파일: ${file.name}]\n${limitText(pages.join("\n\n"))}`;
+}
+async function readExcelForPrompt(file){
+  if (!window.XLSX) return `[엑셀 첨부: ${file.name}] SheetJS 라이브러리를 불러오지 못해 텍스트 추출 불가`;
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type:"array", cellDates:true });
+  const sections = [];
+  for (const sheetName of workbook.SheetNames.slice(0, 10)) {
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, raw:false, defval:"" });
+    const cleaned = rows.filter(row => row.some(cell => String(cell).trim() !== "")).slice(0, 250);
+    const csv = cleaned.map(row => row.map(cell => {
+      const value = String(cell ?? "").replace(/\r?\n/g, " ").trim();
+      return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+    }).join(",")).join("\n");
+    sections.push(`--- Sheet: ${sheetName} ---\n${csv || "빈 시트"}`);
+  }
+  if (workbook.SheetNames.length > 10) sections.push(`[총 ${workbook.SheetNames.length}개 시트 중 10개 시트까지만 추출]`);
+  return `[엑셀 첨부 파일: ${file.name}]\n${limitText(sections.join("\n\n"))}`;
+}
 async function readFileForPrompt(file){
-  if (file.type.startsWith("image/")) return `[이미지 첨부: ${file.name}, ${Math.round(file.size / 1024)}KB]`;
-  const canRead = file.type.startsWith("text/") || /\.(txt|md|csv|json|xml|html|css|js)$/i.test(file.name);
-  if (!canRead) return `[첨부 파일: ${file.name}, ${Math.round(file.size / 1024)}KB, 텍스트 미리보기 불가]`;
-  return `[첨부 파일: ${file.name}]\n${(await file.text()).slice(0, 5000)}`;
+  const name = file.name || "attached-file";
+  const lower = name.toLowerCase();
+  const sizeKb = Math.round(file.size / 1024);
+  try {
+    if (file.type.startsWith("image/")) return `[이미지 첨부: ${name}, ${sizeKb}KB]`;
+    if (/\.pdf$/i.test(lower) || file.type === "application/pdf") return await readPdfForPrompt(file);
+    if (/\.(xlsx|xls|xlsm|xlsb)$/i.test(lower)) return await readExcelForPrompt(file);
+    const canRead = file.type.startsWith("text/") || /\.(txt|md|csv|tsv|json|xml|html|css|js|abap|sql|log)$/i.test(lower);
+    if (canRead) return `[첨부 파일: ${name}]\n${limitText(await file.text())}`;
+    return `[첨부 파일: ${name}, ${sizeKb}KB] 현재 형식은 브라우저에서 텍스트 추출이 어렵습니다. PDF, XLSX, CSV, TXT 형식을 권장합니다.`;
+  } catch (error) {
+    return `[첨부 파일: ${name}, ${sizeKb}KB] 파일 내용을 읽는 중 오류 발생: ${error.message || error}`;
+  }
 }
 async function prepareAttachments(files){
   const result = [];
