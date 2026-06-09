@@ -438,7 +438,7 @@ function logout(){ localStorage.removeItem(storeKeys.current); currentUser = nul
 function saveRooms(){ const others = readJson(storeKeys.rooms, []).filter(room => room.owner !== currentUser.email); writeJson(storeKeys.rooms, [...rooms, ...others]); }
 function createRoom(name){
   const room = { id:"room_" + Date.now(), owner:currentUser.email, name:name || "새 채팅", messages:[
-    { role:"ai", text:"안녕하세요. Stella입니다. 이후의 작품, 전문저서, SAP 활동, 무도 활동, 음악 활동에 대해 무엇이든 물어보세요." }
+    { role:"ai", text:"안녕하세요. Stella입니다. 무엇이든 물어보세요." }
   ]};
   rooms.unshift(room);
   activeRoomId = room.id;
