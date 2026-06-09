@@ -757,6 +757,11 @@ function clipboardHtmlToText(html){
   if (table) return tableToMarkdown(table);
   return doc.body.textContent.trim();
 }
+function plainTextToPasteText(text){
+  if (!text) return "";
+  const table = tabTextToMarkdown(text);
+  return table || text;
+}
 function tabTextToMarkdown(text){
   const lines = text.trim().split(/\r?\n/).filter(Boolean);
   if (!lines.length || !lines.some(line => line.includes("\t"))) return "";
@@ -769,6 +774,9 @@ function tabTextToMarkdown(text){
 function handleChatPaste(event){
   const clipboard = event.clipboardData;
   if (!clipboard) return;
+  const html = clipboard.getData("text/html");
+  const plain = clipboard.getData("text/plain");
+  const convertedText = html ? clipboardHtmlToText(html) : plainTextToPasteText(plain);
   const pastedFiles = Array.from(clipboard.files || []);
   if (!pastedFiles.length) {
     Array.from(clipboard.items || []).forEach(item => {
@@ -778,23 +786,20 @@ function handleChatPaste(event){
       }
     });
   }
-  if (pastedFiles.length) {
+
+  if (convertedText || pastedFiles.length) {
     event.preventDefault();
-    attachedFiles.push(...pastedFiles.map((file, index) => {
-      const extension = file.type.split("/")[1] || "png";
-      const name = file.name || `clipboard-${new Date().toISOString().replace(/[:.]/g, "-")}-${index + 1}.${extension}`;
-      return new File([file], name, { type:file.type || "application/octet-stream" });
-    }));
-    renderFiles();
-    insertAtCursor($("#chatInput"), pastedFiles.length === 1 ? "[붙여넣은 이미지/파일 첨부됨]\n" : `[붙여넣은 이미지/파일 ${pastedFiles.length}개 첨부됨]\n`);
-    return;
-  }
-  const html = clipboard.getData("text/html");
-  const plain = clipboard.getData("text/plain");
-  const converted = html ? clipboardHtmlToText(html) : tabTextToMarkdown(plain);
-  if (converted && converted !== plain) {
-    event.preventDefault();
-    insertAtCursor($("#chatInput"), converted + "\n");
+    if (convertedText) {
+      insertAtCursor($("#chatInput"), convertedText + (convertedText.endsWith("\n") ? "" : "\n"));
+    }
+    if (pastedFiles.length) {
+      attachedFiles.push(...pastedFiles.map((file, index) => {
+        const extension = file.type.split("/")[1] || "png";
+        const name = file.name || `clipboard-${new Date().toISOString().replace(/[:.]/g, "-")}-${index + 1}.${extension}`;
+        return new File([file], name, { type:file.type || "application/octet-stream" });
+      }));
+      renderFiles();
+    }
   }
 }
 function resizeChatInput(){
