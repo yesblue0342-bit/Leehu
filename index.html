@@ -9,11 +9,12 @@
 <meta name="robots" content="index, follow">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#fff;--panel:#f7f7f8;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b89a5c;--blue:#2f66b1;--red:#8b1a1a}
 html{scroll-behavior:smooth;height:100%}
-body{font-family:"Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
+body{font-family:"Gowun Batang","Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 a{color:inherit}
@@ -22,7 +23,7 @@ a{color:inherit}
 .nav-links{display:flex;align-items:center;gap:22px;list-style:none}
 .nav-links a{text-decoration:none;color:#4b5563;font-size:.86rem}
 .nav-links a:hover{color:var(--ink)}
-#stellaButton{position:fixed;top:13px;right:28px;z-index:50;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;min-width:166px;border:1px solid #111827;border-radius:999px;background:#111827;color:#fff;font-weight:900;letter-spacing:.06em;box-shadow:0 12px 32px rgba(17,24,39,.16)}
+#stellaButton{position:fixed;top:13px;right:28px;z-index:9999;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;min-width:166px;border:1px solid #111827;border-radius:999px;background:#111827;color:#fff;font-weight:900;letter-spacing:.06em;box-shadow:0 12px 32px rgba(17,24,39,.16);pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #stellaButton:hover{background:#2f3745}
 .hero{min-height:calc(100vh - 74px);display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);border-bottom:1px solid var(--line)}
 .hero-left{display:flex;flex-direction:column;justify-content:center;padding:72px 72px 80px}
@@ -117,6 +118,7 @@ tr:last-child td{border-bottom:none}
 .answer-download-tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .answer-download-btn{border:1px solid #cbd5e1;background:#f8fafc;color:#111827;border-radius:10px;padding:7px 10px;font-size:.78rem;font-weight:900}
 .answer-download-btn:hover{background:#111827;color:#fff}
+.stella-top-download,#htmlDownloadBtn,#downloadHtmlBtn,.html-download-top{display:none!important}
 .code-preview-box{border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;margin:10px 0;padding:10px;max-height:260px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:.78rem;white-space:pre-wrap;color:#111827}
 .icon-btn{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.25rem}
 .messages{flex:1;overflow:auto;padding:28px 28px 20px;display:flex;flex-direction:column;gap:18px;background:#fff}
@@ -172,10 +174,10 @@ tr:last-child td{border-bottom:none}
 .post p{white-space:pre-wrap;color:#374151;line-height:1.75;margin-top:7px}
 .post small{display:block;color:#9ca3af;margin-top:8px}
 @media(max-width:1000px){
-  body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{font-family:"Gowun Batang","Noto Serif KR",serif}
   .site-nav{padding:0 190px 0 22px}
   .nav-links{display:none}
-  #stellaButton{right:12px;min-width:142px;height:48px}
+  #stellaButton{top:12px;right:12px;min-width:142px;height:48px;z-index:9999;font-size:.92rem}
   .hero{grid-template-columns:1fr}
   .hero-left{padding:58px 24px 70px}
   .hero-right{min-height:260px;border-left:0;border-top:1px solid var(--line)}
@@ -238,7 +240,7 @@ tr:last-child td{border-bottom:none}
     <li><a href="#contact">연락</a></li>
   </ul>
 </nav>
-<button id="stellaButton" type="button">✦ stella</button>
+<button id="stellaButton" type="button" onclick="openStella()" aria-label="Stella AI 열기">✦ Stella</button>
 
 <header id="top" class="hero">
   <div class="hero-left">
@@ -764,7 +766,7 @@ function renderAttachmentPreview(container, attachments){
   container.appendChild(wrap);
 }
 function renderAssistantAnswer(container, text){
-  addAnswerDownloadTools(container, text);
+  if (shouldShowDownloadButtons(text)) addAnswerDownloadTools(container, text);
   const parts = parseAnswerParts(text);
   parts.forEach(part => {
     if (part.type === "table") {
@@ -853,12 +855,15 @@ function createAnswerTable(rows){
   const title = document.createElement("span");
   title.className = "answer-table-title";
   title.textContent = "표 결과";
-  const button = document.createElement("button");
-  button.className = "excel-btn";
-  button.type = "button";
-  button.textContent = "Excel 다운로드";
-  button.addEventListener("click", () => downloadTableAsExcel(normalized));
-  tools.append(title, button);
+  tools.appendChild(title);
+  if (shouldShowDownloadButtons("excel")) {
+    const button = document.createElement("button");
+    button.className = "excel-btn";
+    button.type = "button";
+    button.textContent = "Excel 다운로드";
+    button.addEventListener("click", () => downloadTableAsExcel(normalized));
+    tools.appendChild(button);
+  }
   const scroll = document.createElement("div");
   scroll.className = "answer-table-scroll";
   const table = document.createElement("table");
@@ -906,7 +911,8 @@ function downloadTableAsExcel(rows){
   }
 
   const csv = normalized.map(row => row.map(cell => {
-    const value = String(cell ?? "").replace(/?
+    const value = String(cell ?? "").replace(/
+?
 /g, " ");
     return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
   }).join(",")).join("\n");
@@ -954,6 +960,25 @@ function guessFileFromAnswer(text){
   const jsonBlock = blocks.find(block => block.lang === "json");
   return { blocks, htmlBlock, jsBlock, cssBlock, jsonBlock };
 }
+
+function getLastUserRequestText(){
+  const room = activeRoom?.();
+  if (!room || !Array.isArray(room.messages)) return "";
+  for (let i = room.messages.length - 1; i >= 0; i--) {
+    const msg = room.messages[i];
+    if (msg && msg.role === "user") return String(msg.text || "");
+  }
+  return "";
+}
+function hasDownloadIntent(value){
+  return /(다운로드|내려받|저장|파일로|파일을 만들어|파일 만들어|파일 생성|생성해|수정본|index\.html|worker\.js|html 파일|엑셀|xlsx|xls|csv|txt|json|코드블록)/i.test(String(value || ""));
+}
+function shouldShowDownloadButtons(answerText = ""){
+  const requestText = getLastUserRequestText();
+  if (hasDownloadIntent(requestText)) return true;
+  return false;
+}
+
 function addAnswerDownloadTools(container, text){
   const { htmlBlock, jsBlock, cssBlock, jsonBlock } = guessFileFromAnswer(text);
   const hasGeneratedFile = Boolean(htmlBlock || jsBlock || cssBlock || jsonBlock);
@@ -979,14 +1004,8 @@ function addAnswerDownloadTools(container, text){
 
   const note = document.createElement("p");
   note.className = "muted";
-  note.textContent = "AI 답변 안의 코드블록을 파일로 변환했습니다. 다운로드가 필요할 때만 아래 버튼을 누르세요.";
+  note.textContent = "요청하신 파일을 다운로드할 수 있습니다.";
   container.appendChild(note);
-
-  const previewBlock = htmlBlock || jsBlock || cssBlock || jsonBlock;
-  const preview = document.createElement("pre");
-  preview.className = "code-preview-box";
-  preview.textContent = previewBlock.code.slice(0, 4000);
-  container.appendChild(preview);
 }
 function makeAnswerHtmlDocument(text){
   const escaped = escapeHtml(String(text || ""));
@@ -1365,6 +1384,22 @@ function bind(selector, eventName, handler){
   if (element) element.addEventListener(eventName, handler);
 }
 bind("#stellaButton", "click", openStella);
+// 모바일 브라우저에서 fixed 버튼 터치가 씹히는 경우를 방지하는 보조 바인딩
+document.addEventListener("click", function(event){
+  const target = event.target.closest && event.target.closest("#stellaButton");
+  if (target) {
+    event.preventDefault();
+    openStella();
+  }
+}, true);
+document.addEventListener("touchend", function(event){
+  const target = event.target.closest && event.target.closest("#stellaButton");
+  if (target) {
+    event.preventDefault();
+    openStella();
+  }
+}, { passive:false, capture:true });
+
 bind("#closeStellaBtn", "click", closeStella);
 bind("#sidebarToggleBtn", "click", toggleMobileSidebar);
 bind("#mobileSidebarBackdrop", "click", closeMobileSidebar);
