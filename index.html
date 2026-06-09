@@ -982,6 +982,8 @@ function localReply(message){
   const text = message.toLowerCase();
   if (text.includes("파일") || text.includes("첨부")) return "파일 첨부 기능이 켜져 있습니다. 텍스트 파일은 내용 일부를 Stella에게 함께 전달합니다.";
   if (text.includes("게시판")) return "오른쪽 게시판에서 회원별 게시글을 작성하고 볼 수 있습니다.";
+  if (text.includes("unit test") || text.includes("유닛") || text.includes("단위 테스트")) return "SAP QM 모듈 Unit Test 중이라면 우선 테스트 시나리오, 선행 마스터 데이터, 권한, 주요 T-code, 정상/오류 케이스, 결과 증빙 캡처, 결함 로그를 정리하세요. 특히 QA32, QA11, QA12, QA03, QE51N, QP01/QP02, QS21/QS22 등 관련 흐름에서 검사 로트 생성부터 사용 결정까지 데이터가 일관되는지 확인하는 것이 좋습니다.";
+  if (text.includes("qm")) return "SAP QM 컨설턴트 관점에서는 검사 계획, 검사 특성, 샘플링 절차, 검사 로트, 결과 기록, 사용 결정, 품질 통지, 재고 전기까지 end-to-end 흐름을 확인해야 합니다. 테스트 중 발견한 이슈는 재현 조건, 입력값, 기대 결과, 실제 결과, 관련 T-code, 스크린샷으로 정리하면 빠르게 원인을 좁힐 수 있습니다.";
   if (text.includes("작품") || text.includes("소설") || text.includes("시집")) return "이후의 문학 작품으로는 소설 『연』, 『데자뷔』, 『소나기』와 시집 『Fantasy』 등이 소개되어 있습니다.";
   if (text.includes("음악") || text.includes("래퍼") || text.includes("유튜브")) return "이후는 YouTube Music에서 래퍼로 활동 중이며, 2025년 여러 곡을 발매했습니다.";
   if (text.includes("sap") || text.includes("전문") || text.includes("저서")) return "전문저서 영역에는 SAP ERP, ABAP, 생산관리, 품질기획, MRP, Lean 혁신 관련 저서가 정리되어 있습니다.";
@@ -1012,6 +1014,7 @@ async function askStella(message, attachments = []){
     model:selectedModel
   };
   let lastError = "";
+  let lastCode = "";
   for (let attempt = 1; attempt <= 3; attempt++) {
     const response = await fetch(STELLA_API_URL + "?rid=" + encodeURIComponent(requestId) + "&attempt=" + attempt, {
       method:"POST",
@@ -1022,12 +1025,18 @@ async function askStella(message, attachments = []){
       const data = await response.json();
       return data.text || localReply(message);
     }
-    try { lastError = (await response.json()).error || ""; } catch { lastError = response.statusText || ""; }
-    if (!/country|region|territory|supported/i.test(lastError)) break;
+    try {
+      const errorData = await response.json();
+      lastError = errorData.error || "";
+      lastCode = errorData.code || "";
+    } catch { lastError = response.statusText || ""; }
+    if (lastCode !== "REGION_UNSUPPORTED" && !/country|region|territory|supported|연결 위치/i.test(lastError)) break;
     await new Promise(resolve => setTimeout(resolve, attempt * 900));
   }
-  if (/country|region|territory|supported/i.test(lastError)) {
-    throw new Error("OpenAI 리전 제한 오류가 발생했습니다. 자동 재시도 3회 후에도 실패했습니다. Cloudflare Worker가 OpenAI 지원 지역에서 호출되도록 서버 배포 리전/프록시 설정을 확인해야 합니다.");
+  if (lastCode === "REGION_UNSUPPORTED" || /country|region|territory|supported|연결 위치/i.test(lastError)) {
+    const error = new Error("Stella 서버 연결 위치 문제로 실시간 AI 응답을 받지 못했습니다.");
+    error.code = "REGION_UNSUPPORTED";
+    throw error;
   }
   throw new Error(lastError || "Stella API proxy error");
 }
@@ -1055,7 +1064,16 @@ async function submitMessage(event){
     renderRooms();
   } catch (error) {
     console.error(error);
-    renderBubbleContent(thinking, "ai", "OpenAI 연결 오류가 발생했습니다.\n\n상세: " + error.message);
+    const fallback = localReply(fullMessage);
+    const message = error.code === "REGION_UNSUPPORTED"
+      ? "Stella 실시간 서버 연결이 잠시 불안정합니다.\n\n임시 안내:\n" + fallback + "\n\n서버 연결이 복구되면 같은 질문을 다시 보내 주세요."
+      : "OpenAI 연결 오류가 발생했습니다.\n\n상세: " + error.message;
+    renderBubbleContent(thinking, "ai", message);
+    if (error.code === "REGION_UNSUPPORTED") {
+      activeRoom().messages.push({ role:"ai", text:message });
+      saveRooms();
+      renderRooms();
+    }
   } finally {
     setLoading(false);
     $("#chatInput").focus();
