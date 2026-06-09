@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0119)file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html -->
-<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>이후 | 소설가 · 시인 · 공학박사</title>
 <meta name="description" content="소설가, 시인, 공학박사 이후의 공식 홈페이지와 Stella AI 작업공간입니다.">
@@ -9,23 +9,12 @@
 <meta name="robots" content="index, follow">
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./index_files/css2" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#fff;
-  --panel:#f7f7f8;
-  --panel2:#f3f4f6;
-  --ink:#111827;
-  --muted:#6b7280;
-  --line:#e5e7eb;
-  --gold:#b89a5c;
-  --blue:#2f66b1;
-  --red:#8b1a1a;
-}
+:root{--bg:#fff;--panel:#f7f7f8;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b89a5c;--blue:#2f66b1;--red:#8b1a1a}
 html{scroll-behavior:smooth}
 body{font-family:"Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
-button,input,textarea{font:inherit}
+button,input,textarea,select{font:inherit}
 button{cursor:pointer}
 a{color:inherit}
 .site-nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;height:74px;padding:0 240px 0 56px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line);backdrop-filter:blur(16px)}
@@ -37,26 +26,26 @@ a{color:inherit}
 #stellaButton:hover{background:#2f3745}
 .hero{min-height:calc(100vh - 74px);display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);border-bottom:1px solid var(--line)}
 .hero-left{display:flex;flex-direction:column;justify-content:center;padding:72px 72px 80px}
-.eyebrow{font-family:"Cormorant Garamond",serif;font-style:italic;letter-spacing:.16em;color:var(--muted);font-size:1.1rem;margin-bottom:26px}
+.eyebrow{font-style:italic;letter-spacing:.16em;color:var(--muted);font-size:1.1rem;margin-bottom:26px}
 .hero h1{font-size:clamp(4.5rem,9vw,8.2rem);line-height:.95;letter-spacing:-.04em}
-.cn{font-family:"Cormorant Garamond",serif;color:var(--blue);font-size:1.7rem;letter-spacing:.32em;margin-top:12px}
+.cn{color:var(--blue);font-size:1.7rem;letter-spacing:.32em;margin-top:12px}
 .gold-line{width:82px;height:1px;background:var(--gold);margin:34px 0}
 .tagline{font-size:1.08rem;color:#4b5563;line-height:2;max-width:520px}
 .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:34px}
 .tag{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;color:#374151;font-size:.84rem}
 .hero-right{display:flex;align-items:center;justify-content:center;background:#fafafa;border-left:1px solid var(--line);position:relative;overflow:hidden}
-.hero-right::before{content:"後";position:absolute;font-family:"Cormorant Garamond",serif;font-size:20rem;color:#eef0f3;line-height:1}
-.quote{position:relative;text-align:center;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(2rem,4vw,3.1rem);line-height:1.45;color:#111827}
+.hero-right::before{content:"後";position:absolute;font-size:20rem;color:#eef0f3;line-height:1}
+.quote{position:relative;text-align:center;font-style:italic;font-size:clamp(2rem,4vw,3.1rem);line-height:1.45;color:#111827}
 .quote small{display:block;margin-top:22px;color:var(--gold);font-size:1rem;font-style:normal;letter-spacing:.16em}
 .sec{padding:84px 64px;max-width:1220px;margin:0 auto}
 .sec.wide{max-width:none}
-.sec-title{font-family:"Cormorant Garamond",serif;font-size:1rem;font-style:italic;color:var(--red);letter-spacing:.22em;margin-bottom:34px}
+.sec-title{font-size:1rem;font-style:italic;color:var(--red);letter-spacing:.22em;margin-bottom:34px}
 .about-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:46px;align-items:start}
 .about h2{font-size:clamp(2rem,3.2vw,3rem);line-height:1.2;margin-bottom:24px}
 .about p{line-height:2.05;color:#374151;margin-bottom:16px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px}
-.stat strong{display:block;font-family:"Cormorant Garamond",serif;font-size:2.4rem;line-height:1}
+.stat strong{display:block;font-size:2.4rem;line-height:1}
 .stat span{display:block;color:var(--muted);font-size:.8rem;margin-top:8px}
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;min-height:190px;display:flex;flex-direction:column}
@@ -76,7 +65,7 @@ th{background:#f9fafb;color:#374151;text-align:left;padding:13px 16px;border-bot
 td{padding:13px 16px;border-bottom:1px solid var(--line);color:#374151}
 tr:last-child td{border-bottom:none}
 .footer{padding:62px 24px;text-align:center;border-top:1px solid var(--line);background:#fafafa;color:#4b5563}
-.footer h2{font-family:"Cormorant Garamond",serif;font-size:2.6rem;color:#111827;margin-bottom:10px}
+.footer h2{font-size:2.6rem;color:#111827;margin-bottom:10px}
 .footer-links{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:22px}
 .footer-links a{color:#4b5563;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:#fff}
 .footer-links a:hover{background:#111827;color:#fff}
@@ -128,6 +117,8 @@ tr:last-child td{border-bottom:none}
 .chip{border:1px solid #d1d5db;background:#f9fafb;border-radius:999px;padding:6px 9px;font-size:.76rem}
 .chip button{border:0;background:transparent;color:#6b7280;margin-left:4px}
 .notice{text-align:center;color:#6b7280;font-size:.76rem;margin-bottom:10px}
+.model-row{display:flex;align-items:center;gap:8px;width:min(920px,100%);margin:0 auto 8px;color:#6b7280;font-size:.8rem}
+#modelSelect{border:1px solid #d1d5db;border-radius:10px;padding:6px 10px;background:#fff;color:#111827}
 .inputbar{display:flex;align-items:flex-end;gap:10px;width:min(920px,100%);margin:auto;padding:12px;border:1px solid #d1d5db;border-radius:22px;box-shadow:0 12px 32px rgba(17,24,39,.08)}
 .inputbar textarea{flex:1;border:0;outline:0;resize:none;min-height:30px;max-height:140px;line-height:1.6}
 .attach-btn,.send-btn{width:40px;height:40px;border:0;border-radius:50%;display:grid;place-items:center}
@@ -163,15 +154,15 @@ tr:last-child td{border-bottom:none}
 <body>
 
 <nav class="site-nav">
-  <a class="nav-logo" href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#top">이후</a>
+  <a class="nav-logo" href="#top">이후</a>
   <ul class="nav-links">
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#about">소개</a></li>
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#works">작품</a></li>
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#identity">활동</a></li>
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#martial">무도</a></li>
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#books">전문저서</a></li>
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#music">음악</a></li>
-    <li><a href="file:///C:/Users/User/Documents/Codex/2026-06-09/files-mentioned-by-the-user-txt/outputs/leehoo_white_stella_index.html#contact">연락</a></li>
+    <li><a href="#about">소개</a></li>
+    <li><a href="#works">작품</a></li>
+    <li><a href="#identity">활동</a></li>
+    <li><a href="#martial">무도</a></li>
+    <li><a href="#books">전문저서</a></li>
+    <li><a href="#music">음악</a></li>
+    <li><a href="#contact">연락</a></li>
   </ul>
 </nav>
 <button id="stellaButton" type="button">✦ stella</button>
@@ -184,17 +175,10 @@ tr:last-child td{border-bottom:none}
     <div class="gold-line"></div>
     <p class="tagline">문학과 무도, 공학과 음악 사이에서<br>하나의 이름으로 여러 세계를 건너는 사람.</p>
     <div class="hero-tags">
-      <span class="tag">소설가</span>
-      <span class="tag">시인</span>
-      <span class="tag">공학박사</span>
-      <span class="tag">SAP 전문가</span>
-      <span class="tag">래퍼</span>
-      <span class="tag">무도인</span>
+      <span class="tag">소설가</span><span class="tag">시인</span><span class="tag">공학박사</span><span class="tag">SAP 전문가</span><span class="tag">래퍼</span><span class="tag">무도인</span>
     </div>
   </div>
-  <div class="hero-right">
-    <div class="quote">"쓰는 것은<br>살아내는 것이다."<small>— 이후 李後</small></div>
-  </div>
+  <div class="hero-right"><div class="quote">"쓰는 것은<br>살아내는 것이다."<small>— 이후 李後</small></div></div>
 </header>
 
 <section id="about" class="sec about">
@@ -290,7 +274,7 @@ tr:last-child td{border-bottom:none}
     <a href="https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">위키백과</a>
     <a href="https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">나무위키</a>
     <a href="https://store.kyobobook.co.kr/person/detail/1000809404" target="_blank" rel="noopener">교보문고</a>
-    <a href="https://www.yes24.com/Product/Search?domain=BOOK&amp;query=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">YES24</a>
+    <a href="https://www.yes24.com/Product/Search?domain=BOOK&query=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">YES24</a>
   </div>
 </footer>
 
@@ -305,8 +289,8 @@ tr:last-child td{border-bottom:none}
       </div>
       <form id="authForm">
         <div id="nameField" class="field" style="display:none"><label for="authName">이름</label><input id="authName" type="text" placeholder="이름을 입력하세요"></div>
-        <div class="field"><label for="authEmail">이메일</label><input id="authEmail" type="email" placeholder="email@example.com" required=""></div>
-        <div class="field"><label for="authPassword">비밀번호</label><input id="authPassword" type="password" placeholder="비밀번호" required=""></div>
+        <div class="field"><label for="authEmail">이메일</label><input id="authEmail" type="email" placeholder="email@example.com" required></div>
+        <div class="field"><label for="authPassword">비밀번호</label><input id="authPassword" type="password" placeholder="비밀번호" required></div>
         <button id="authSubmit" class="primary" type="submit">로그인</button>
         <div id="authMsg" class="auth-msg"></div>
       </form>
@@ -328,10 +312,21 @@ tr:last-child td{border-bottom:none}
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
-        <p class="notice">OpenAI 응답은 서버 프록시 <code>/api/stella</code>를 통해 연결됩니다. HTML에서 API Key를 직접 호출하지 않습니다.</p>
+        <p class="notice">OpenAI 응답은 Cloudflare Worker 서버 프록시를 통해 연결됩니다. HTML에서 API Key를 직접 호출하지 않습니다.</p>
+        <div class="model-row">
+          <span>모델</span>
+          <select id="modelSelect">
+            <option value="gpt-5.5" selected>GPT-5.5 최신</option>
+            <option value="gpt-5-mini">GPT-5 Mini</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="gpt-4.1">GPT-4.1</option>
+            <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+          </select>
+        </div>
         <form id="chatForm" class="inputbar">
           <button id="attachBtn" class="attach-btn" type="button">+</button>
-          <input id="fileInput" type="file" multiple="" style="display:none">
+          <input id="fileInput" type="file" multiple style="display:none">
           <textarea id="chatInput" rows="1" placeholder="무엇이든 물어보세요."></textarea>
           <button id="sendBtn" class="send-btn" type="submit">↑</button>
         </form>
@@ -344,17 +339,20 @@ tr:last-child td{border-bottom:none}
 <section id="board" class="board">
   <div class="board-head"><h3>Stella 게시판</h3><button id="boardCloseBtn" class="icon-btn" type="button">×</button></div>
   <div class="board-body">
-    <form id="boardForm" class="board-form"><input id="postTitle" placeholder="제목" required=""><textarea id="postBody" placeholder="게시글 내용을 입력하세요." required=""></textarea><button class="primary" type="submit">게시글 등록</button></form>
+    <form id="boardForm" class="board-form"><input id="postTitle" placeholder="제목" required><textarea id="postBody" placeholder="게시글 내용을 입력하세요." required></textarea><button class="primary" type="submit">게시글 등록</button></form>
     <div id="postList"></div>
   </div>
 </section>
 
 <script>
 const STELLA_API_URL = "https://stella-api.yesblue0342.workers.dev/api/stella";
+const DEFAULT_STELLA_MODEL = "gpt-5.5";
 const STELLA_SYSTEM_PROMPT = [
   "Stella GPT입니다.",
+  "소설가 이후의 공식 홈페이지 AI 안내입니다.",
   "방문자에게 한국어로 친절하고 간결하게 안내하세요.",
   "첨부 파일 텍스트가 제공되면 그 내용을 참고하세요.",
+  "이후의 작품, 전문저서, SAP 활동, 무도 활동, 음악 활동에 대해 답변하세요.",
   "확실하지 않은 사실은 단정하지 말고 홈페이지에 공개된 정보 기준으로 답하세요."
 ].join(" ");
 
@@ -503,12 +501,13 @@ function localReply(message){
   if (text.includes("작품") || text.includes("소설") || text.includes("시집")) return "이후의 문학 작품으로는 소설 『연』, 『데자뷔』, 『소나기』와 시집 『Fantasy』 등이 소개되어 있습니다.";
   if (text.includes("음악") || text.includes("래퍼") || text.includes("유튜브")) return "이후는 YouTube Music에서 래퍼로 활동 중이며, 2025년 여러 곡을 발매했습니다.";
   if (text.includes("sap") || text.includes("전문") || text.includes("저서")) return "전문저서 영역에는 SAP ERP, ABAP, 생산관리, 품질기획, MRP, Lean 혁신 관련 저서가 정리되어 있습니다.";
-  return "Stella 서버 프록시가 아직 연결되지 않았거나 응답을 받지 못했습니다. `/api/stella` 서버 파일을 함께 배포하면 OpenAI 응답으로 연결됩니다.";
+  return "Stella 서버 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
 async function askStella(message){
   const room = activeRoom();
   const history = room.messages.slice(-12).map(item => ({ role:item.role === "ai" ? "assistant" : "user", content:item.text }));
-  const payload = { system: STELLA_SYSTEM_PROMPT, history, message };
+  const selectedModel = $("#modelSelect")?.value || DEFAULT_STELLA_MODEL;
+  const payload = { system: STELLA_SYSTEM_PROMPT, history, message, model:selectedModel };
   const response = await fetch(STELLA_API_URL, {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
@@ -544,7 +543,7 @@ async function submitMessage(event){
     renderRooms();
   } catch (error) {
     console.error(error);
-    thinking.textContent = "OpenAI 연결은 브라우저 직접 호출이 아니라 서버 프록시가 필요합니다. `stella_api_proxy_node.js`를 서버에 올리고 OPENAI_API_KEY를 설정해 주세요.\n\n상세: " + error.message;
+    thinking.textContent = "OpenAI 연결 오류가 발생했습니다.\n\n상세: " + error.message;
   } finally {
     setLoading(false);
     $("#chatInput").focus();
@@ -584,6 +583,5 @@ $("#boardBackdrop").addEventListener("click", closeBoard);
 $("#boardForm").addEventListener("submit", addPost);
 document.addEventListener("keydown", event => { if (event.key === "Escape") { if ($("#board").classList.contains("active")) closeBoard(); else if ($("#stella").classList.contains("active")) closeStella(); } });
 </script>
-
-
-</body></html>
+</body>
+</html>
