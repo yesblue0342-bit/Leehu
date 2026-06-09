@@ -363,14 +363,21 @@ tr:last-child td{border-bottom:none}
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
-        <p class="notice">Stella는 서버 프록시를 통해 AI 응답을 시도하고, 연결 오류 시 기본 안내 답변으로 전환됩니다. HTML에서 API Key를 직접 호출하지 않습니다.</p>
+        <p class="notice">Stella는 서버 프록시를 통해 AI 응답을 시도합니다. PDF·엑셀은 브라우저에서 텍스트를 추출해 함께 전달합니다.</p>
         <div class="model-row">
           <span>모델</span>
           <select id="modelSelect">
-            <option value="gpt-4o" selected>GPT-4o 최신</option>
-            <option value="gpt-4o-mini">GPT-4o Mini</option>
-            <option value="gpt-4.1">GPT-4.1</option>
-            <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o" selected>GPT-4o 최신</option>
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+              <option value="gpt-4.1">GPT-4.1</option>
+              <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+            </optgroup>
+            <optgroup label="Claude">
+              <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+              <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+              <option value="claude-opus-4-1">Claude Opus 4.1</option>
+            </optgroup>
           </select>
         </div>
         <form id="chatForm" class="inputbar">
@@ -837,11 +844,8 @@ function downloadTableAsExcel(rows){
     const tag = rowIndex === 0 ? "th" : "td";
     return `<${tag}>${escapeHtml(cell)}</${tag}>`;
   }).join("") + "</tr>").join("");
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-</head><body><table>${tableRows}</table></body></html>`;
-  const blob = new Blob(["\ufeff", html], { type:"application/vnd.ms-excel;charset=utf-8" });
+  const htmlText = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>${tableRows}</table></body></html>`;
+  const blob = new Blob(["\ufeff", htmlText], { type:"application/vnd.ms-excel;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -902,6 +906,36 @@ async function readPdfForPrompt(file){
   if (pdf.numPages > maxPages) pages.push(`[PDF 총 ${pdf.numPages}페이지 중 ${maxPages}페이지까지만 추출]`);
   return `[PDF 첨부 파일: ${file.name}]\n${limitText(pages.join("\n\n"))}`;
 }
+
+async function renderPdfPagesForVision(file, maxPages = 3){
+  const images = [];
+  if (!window.pdfjsLib) return images;
+  try {
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data:new Uint8Array(buffer) }).promise;
+    const pages = Math.min(pdf.numPages, maxPages);
+    for (let pageNo = 1; pageNo <= pages; pageNo++) {
+      const page = await pdf.getPage(pageNo);
+      const viewport = page.getViewport({ scale:1.35 });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvasContext:context, viewport }).promise;
+      images.push({
+        kind:"image",
+        imageId:"pdf_" + Date.now() + "_" + pageNo + "_" + Math.random().toString(36).slice(2, 8),
+        name:(file.name || "pdf") + " - page " + pageNo,
+        type:"image/png",
+        size:0,
+        dataUrl:canvas.toDataURL("image/png", 0.85)
+      });
+    }
+  } catch (error) {
+    console.warn("PDF vision render failed", error);
+  }
+  return images;
+}
 async function readExcelForPrompt(file){
   if (!window.XLSX) return `[엑셀 첨부: ${file.name}] SheetJS 라이브러리를 불러오지 못해 텍스트 추출 불가`;
   const buffer = await file.arrayBuffer();
@@ -938,6 +972,7 @@ async function readFileForPrompt(file){
 async function prepareAttachments(files){
   const result = [];
   for (const file of files) {
+    const lower = (file.name || "").toLowerCase();
     if (file.type.startsWith("image/")) {
       const imageId = "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
       result.push({
@@ -948,6 +983,9 @@ async function prepareAttachments(files){
         size:file.size,
         dataUrl:await fileToDataUrl(file)
       });
+    } else if (/\.pdf$/i.test(lower) || file.type === "application/pdf") {
+      const pdfImages = await renderPdfPagesForVision(file, 3);
+      result.push(...pdfImages);
     }
   }
   return result;
@@ -1082,6 +1120,7 @@ async function askStella(message, attachments = []){
   const hasImageAttachment = attachments.some(file => file.kind === "image");
   const history = hasImageAttachment ? [] : room.messages.slice(-12).map(item => ({ role:item.role === "ai" ? "assistant" : "user", content:item.text }));
   const selectedModel = $("#modelSelect")?.value || DEFAULT_STELLA_MODEL;
+  const selectedProvider = selectedModel.startsWith("claude-") ? "anthropic" : "openai";
   const imageParts = attachments.filter(file => file.kind === "image").map(file => ({
     type:"input_image",
     image_url:file.dataUrl,
@@ -1099,7 +1138,8 @@ async function askStella(message, attachments = []){
     content,
     attachments,
     files:attachments,
-    model:selectedModel
+    model:selectedModel,
+    provider:selectedProvider
   };
   let lastError = "";
   let lastCode = "";
@@ -1183,29 +1223,33 @@ function addPost(event){
   renderPosts();
 }
 
-$("#stellaButton").addEventListener("click", openStella);
-$("#closeStellaBtn").addEventListener("click", closeStella);
-$("#loginTab").addEventListener("click", () => setAuthMode("login"));
-$("#signupTab").addEventListener("click", () => setAuthMode("signup"));
-$("#authForm").addEventListener("submit", handleAuth);
-$("#logoutBtn").addEventListener("click", logout);
-$("#newRoomBtn").addEventListener("click", () => createRoom("새 채팅"));
-$("#newProjectBtn").addEventListener("click", createProject);
-$("#copyRoomBtn").addEventListener("click", copyActiveRoom);
-$("#duplicateRoomBtn").addEventListener("click", duplicateActiveRoom);
-$("#deleteRoomBtn").addEventListener("click", deleteActiveRoom);
+function bind(selector, eventName, handler){
+  const element = $(selector);
+  if (element) element.addEventListener(eventName, handler);
+}
+bind("#stellaButton", "click", openStella);
+bind("#closeStellaBtn", "click", closeStella);
+bind("#loginTab", "click", () => setAuthMode("login"));
+bind("#signupTab", "click", () => setAuthMode("signup"));
+bind("#authForm", "submit", handleAuth);
+bind("#logoutBtn", "click", logout);
+bind("#newRoomBtn", "click", () => createRoom("새 채팅"));
+bind("#newProjectBtn", "click", createProject);
+bind("#copyRoomBtn", "click", copyActiveRoom);
+bind("#duplicateRoomBtn", "click", duplicateActiveRoom);
+bind("#deleteRoomBtn", "click", deleteActiveRoom);
 $("#moveProjectSelect").addEventListener("change", event => moveActiveRoom(event.target.value));
-$("#chatForm").addEventListener("submit", submitMessage);
-$("#attachBtn").addEventListener("click", () => $("#fileInput").click());
+bind("#chatForm", "submit", submitMessage);
+bind("#attachBtn", "click", () => $("#fileInput").click());
 $("#fileInput").addEventListener("change", () => { attachedFiles.push(...Array.from($("#fileInput").files || []).map(normalizeAttachmentFile)); $("#fileInput").value = ""; renderFiles(); });
-$("#chatInput").addEventListener("input", resizeChatInput);
-$("#chatInput").addEventListener("paste", handleChatPaste);
-$("#chatInput").addEventListener("focus", keepComposerVisible);
+bind("#chatInput", "input", resizeChatInput);
+bind("#chatInput", "paste", handleChatPaste);
+bind("#chatInput", "focus", keepComposerVisible);
 $("#chatInput").addEventListener("keydown", event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); $("#chatForm").requestSubmit(); } });
-$("#boardOpenBtn").addEventListener("click", openBoard);
-$("#boardCloseBtn").addEventListener("click", closeBoard);
-$("#boardBackdrop").addEventListener("click", closeBoard);
-$("#boardForm").addEventListener("submit", addPost);
+bind("#boardOpenBtn", "click", openBoard);
+bind("#boardCloseBtn", "click", closeBoard);
+bind("#boardBackdrop", "click", closeBoard);
+bind("#boardForm", "submit", addPost);
 document.addEventListener("keydown", event => { if (event.key === "Escape") { if ($("#board").classList.contains("active")) closeBoard(); else if ($("#stella").classList.contains("active")) closeStella(); } });
 document.addEventListener("paste", event => {
   if (!$("#stella").classList.contains("active")) return;
