@@ -97,6 +97,11 @@ tr:last-child td{border-bottom:none}
 .tool-btn{border:1px solid #d1d5db;background:#fff;border-radius:13px;padding:11px;text-align:left}
 .tool-btn:hover{background:#f3f4f6}
 .side-label{padding:2px 20px 8px;color:#6b7280;font-size:.76rem;font-weight:900}
+.project-list{padding:0 12px 12px}
+.project-btn{width:100%;border:0;background:transparent;text-align:left;border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.project-btn:hover,.project-btn.active{background:#eef2ff}
+.project-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-btn small{color:#6b7280;flex:0 0 auto}
 .rooms{padding:0 12px 20px;overflow:auto;flex:1}
 .room-btn{width:100%;border:0;background:transparent;text-align:left;border-radius:12px;padding:11px 12px}
 .room-btn:hover,.room-btn.active{background:#eef2ff}
@@ -104,6 +109,8 @@ tr:last-child td{border-bottom:none}
 .chat-main{display:flex;flex-direction:column;min-width:0;min-height:0;height:100dvh}
 .chat-top{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line)}
 .chat-top h3{font-size:1.1rem}
+.chat-actions{display:flex;align-items:center;gap:8px}
+#moveProjectSelect{border:1px solid #d1d5db;border-radius:11px;background:#fff;color:#111827;padding:8px 10px;max-width:190px}
 .icon-btn{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.25rem}
 .messages{flex:1;overflow:auto;padding:28px 28px 20px;display:flex;flex-direction:column;gap:18px;background:#fff}
 .msg-row{display:flex;width:min(960px,100%);margin:0 auto}
@@ -329,12 +336,14 @@ tr:last-child td{border-bottom:none}
         <div class="brand"><div class="mark">S</div><div><div class="brand-title">Stella</div><p class="muted">이후 홈페이지 AI 안내</p></div></div>
         <div class="user-box"><div><strong id="userName">회원</strong><span id="userEmail"></span></div><button id="logoutBtn" class="small-btn" type="button">로그아웃</button></div>
       </div>
-      <div class="tools"><button id="newRoomBtn" class="tool-btn" type="button">＋ 새 채팅</button><button id="boardOpenBtn" class="tool-btn" type="button">게시판</button></div>
-      <div class="side-label">프로젝트 / 채팅방</div>
+      <div class="tools"><button id="newRoomBtn" class="tool-btn" type="button">＋ 새 채팅</button><button id="newProjectBtn" class="tool-btn" type="button">▱ 새 프로젝트</button><button id="boardOpenBtn" class="tool-btn" type="button">게시판</button></div>
+      <div class="side-label">프로젝트</div>
+      <div id="projectList" class="project-list"></div>
+      <div class="side-label">채팅방</div>
       <div id="roomList" class="rooms"></div>
     </aside>
     <main class="chat-main">
-      <div class="chat-top"><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div><button id="closeStellaBtn" class="icon-btn" type="button">×</button></div>
+      <div class="chat-top"><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div><div class="chat-actions"><select id="moveProjectSelect" title="프로젝트로 이동"></select><button id="closeStellaBtn" class="icon-btn" type="button">×</button></div></div>
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
@@ -385,10 +394,12 @@ const STELLA_SYSTEM_PROMPT = [
 ].join(" ");
 
 const $ = selector => document.querySelector(selector);
-const storeKeys = { users:"stella_users_v3", current:"stella_current_user_v3", rooms:"stella_rooms_v3", posts:"stella_posts_v3" };
+const storeKeys = { users:"stella_users_v3", current:"stella_current_user_v3", rooms:"stella_rooms_v3", projects:"stella_projects_v1", posts:"stella_posts_v3" };
 let authMode = "login";
 let currentUser = null;
 let rooms = [];
+let projects = [];
+let activeProjectId = "all";
 let activeRoomId = null;
 let attachedFiles = [];
 
@@ -442,6 +453,8 @@ function showApp(){
   $("#userName").textContent = currentUser.name;
   $("#userEmail").textContent = currentUser.email;
   rooms = readJson(storeKeys.rooms, []).filter(room => room.owner === currentUser.email);
+  projects = readJson(storeKeys.projects, []).filter(project => project.owner === currentUser.email);
+  renderProjects();
   rooms.length ? selectRoom(rooms[0].id) : createRoom("새 채팅");
   renderPosts();
   setTimeout(() => $("#chatInput").focus(), 50);
@@ -480,27 +493,89 @@ async function handleAuth(event){
   showApp();
 }
 
-function logout(){ localStorage.removeItem(storeKeys.current); currentUser = null; rooms = []; activeRoomId = null; $("#messages").innerHTML = ""; showAuth(); }
+function logout(){ localStorage.removeItem(storeKeys.current); currentUser = null; rooms = []; projects = []; activeProjectId = "all"; activeRoomId = null; $("#messages").innerHTML = ""; showAuth(); }
 function saveRooms(){ const others = readJson(storeKeys.rooms, []).filter(room => room.owner !== currentUser.email); writeJson(storeKeys.rooms, [...rooms, ...others]); }
+function saveProjects(){ const others = readJson(storeKeys.projects, []).filter(project => project.owner !== currentUser.email); writeJson(storeKeys.projects, [...projects, ...others]); }
 function createRoom(name){
-  const room = { id:"room_" + Date.now(), owner:currentUser.email, name:name || "새 채팅", messages:[
+  const projectId = projects.some(project => project.id === activeProjectId) ? activeProjectId : null;
+  const room = { id:"room_" + Date.now(), owner:currentUser.email, projectId, name:name || "새 채팅", messages:[
     { role:"ai", text:"안녕하세요. Stella입니다. 무엇이든 물어보세요." }
   ]};
   rooms.unshift(room);
   activeRoomId = room.id;
   saveRooms();
+  renderProjects();
   renderRooms();
   renderMessages();
 }
 function activeRoom(){ return rooms.find(room => room.id === activeRoomId); }
-function selectRoom(id){ activeRoomId = id; renderRooms(); renderMessages(); }
+function filteredRooms(){
+  if (activeProjectId === "all") return rooms;
+  if (activeProjectId === "none") return rooms.filter(room => !room.projectId);
+  return rooms.filter(room => room.projectId === activeProjectId);
+}
+function selectProject(id){
+  activeProjectId = id;
+  renderProjects();
+  const list = filteredRooms();
+  if (!list.some(room => room.id === activeRoomId) && list.length) activeRoomId = list[0].id;
+  if (!list.length) activeRoomId = null;
+  renderRooms();
+  renderMessages();
+}
+function createProject(){
+  const name = prompt("새 프로젝트 이름을 입력하세요.");
+  if (!name || !name.trim()) return;
+  const project = { id:"project_" + Date.now(), owner:currentUser.email, name:name.trim(), createdAt:new Date().toISOString() };
+  projects.unshift(project);
+  activeProjectId = project.id;
+  saveProjects();
+  renderProjects();
+  renderRooms();
+}
+function moveActiveRoom(projectId){
+  const room = activeRoom();
+  if (!room) return;
+  room.projectId = projectId || null;
+  saveRooms();
+  activeProjectId = projectId || "none";
+  renderProjects();
+  renderRooms();
+  updateProjectMoveSelect();
+}
+function selectRoom(id){ activeRoomId = id; renderRooms(); renderMessages(); updateProjectMoveSelect(); }
+function renderProjects(){
+  const rows = [
+    { id:"all", name:"전체 채팅", count:rooms.length },
+    { id:"none", name:"미분류", count:rooms.filter(room => !room.projectId).length },
+    ...projects.map(project => ({ id:project.id, name:"▱ " + project.name, count:rooms.filter(room => room.projectId === project.id).length }))
+  ];
+  $("#projectList").innerHTML = rows.map(project => `<button class="project-btn ${project.id === activeProjectId ? "active" : ""}" type="button" data-id="${project.id}"><span>${escapeHtml(project.name)}</span><small>${project.count}</small></button>`).join("");
+  document.querySelectorAll(".project-btn").forEach(btn => btn.addEventListener("click", () => selectProject(btn.dataset.id)));
+  updateProjectMoveSelect();
+}
 function renderRooms(){
-  $("#roomList").innerHTML = rooms.map(room => `<button class="room-btn ${room.id === activeRoomId ? "active" : ""}" type="button" data-id="${room.id}"><span>${escapeHtml(room.name)}</span><small>${room.messages.length}개 메시지</small></button>`).join("");
+  const list = filteredRooms();
+  $("#roomList").innerHTML = list.length ? list.map(room => `<button class="room-btn ${room.id === activeRoomId ? "active" : ""}" type="button" data-id="${room.id}"><span>${escapeHtml(room.name)}</span><small>${room.messages.length}개 메시지</small></button>`).join("") : '<p style="color:#6b7280;padding:12px">채팅방이 없습니다.</p>';
   document.querySelectorAll(".room-btn").forEach(btn => btn.addEventListener("click", () => selectRoom(btn.dataset.id)));
+  updateProjectMoveSelect();
+}
+function updateProjectMoveSelect(){
+  const select = $("#moveProjectSelect");
+  if (!select) return;
+  const room = activeRoom();
+  select.innerHTML = [`<option value="">미분류로 이동</option>`, ...projects.map(project => `<option value="${project.id}">${escapeHtml(project.name)}</option>`)].join("");
+  select.value = room?.projectId || "";
+  select.disabled = !room;
 }
 function renderMessages(){
   const room = activeRoom();
-  if (!room) return;
+  if (!room) {
+    $("#activeTitle").textContent = "채팅방 없음";
+    $("#messages").innerHTML = "";
+    updateProjectMoveSelect();
+    return;
+  }
   $("#activeTitle").textContent = room.name;
   $("#messages").innerHTML = "";
   room.messages.forEach(message => addMessage(message.role, message.text, false));
@@ -710,6 +785,18 @@ function fileToDataUrl(file){
     reader.readAsDataURL(file);
   });
 }
+function uniqueAttachmentName(file, index = 0){
+  const extension = (file.name?.match(/\.([a-z0-9]+)$/i)?.[1]) || file.type.split("/")[1] || "png";
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const random = Math.random().toString(36).slice(2, 8);
+  return `stella-capture-${stamp}-${index + 1}-${random}.${extension}`;
+}
+function normalizeAttachmentFile(file, index = 0){
+  return new File([file], uniqueAttachmentName(file, index), {
+    type:file.type || "application/octet-stream",
+    lastModified:Date.now()
+  });
+}
 async function readFileForPrompt(file){
   if (file.type.startsWith("image/")) return `[이미지 첨부: ${file.name}, ${Math.round(file.size / 1024)}KB]`;
   const canRead = file.type.startsWith("text/") || /\.(txt|md|csv|json|xml|html|css|js)$/i.test(file.name);
@@ -720,8 +807,10 @@ async function prepareAttachments(files){
   const result = [];
   for (const file of files) {
     if (file.type.startsWith("image/")) {
+      const imageId = "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
       result.push({
         kind:"image",
+        imageId,
         name:file.name,
         type:file.type,
         size:file.size,
@@ -801,11 +890,7 @@ async function handleChatPaste(event){
       return;
     }
     if (pastedFiles.length) {
-      attachedFiles.push(...pastedFiles.map((file, index) => {
-        const extension = file.type.split("/")[1] || "png";
-        const name = file.name || `clipboard-${new Date().toISOString().replace(/[:.]/g, "-")}-${index + 1}.${extension}`;
-        return new File([file], name, { type:file.type || "application/octet-stream" });
-      }));
+      attachedFiles.push(...pastedFiles.map(normalizeAttachmentFile));
       renderFiles();
       const textarea = $("#chatInput");
       if (!textarea.value.trim()) insertAtCursor(textarea, "첨부된 이미지의 표와 글자를 읽고, 결과를 표로 정리해줘.\n");
@@ -835,18 +920,23 @@ function localReply(message){
 }
 async function askStella(message, attachments = []){
   const room = activeRoom();
-  const history = room.messages.slice(-12).map(item => ({ role:item.role === "ai" ? "assistant" : "user", content:item.text }));
+  const hasImageAttachment = attachments.some(file => file.kind === "image");
+  const history = hasImageAttachment ? [] : room.messages.slice(-12).map(item => ({ role:item.role === "ai" ? "assistant" : "user", content:item.text }));
   const selectedModel = $("#modelSelect")?.value || DEFAULT_STELLA_MODEL;
   const imageParts = attachments.filter(file => file.kind === "image").map(file => ({
     type:"input_image",
     image_url:file.dataUrl,
     detail:"auto"
   }));
-  const content = [{ type:"input_text", text:message }, ...imageParts];
+  const requestId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+  const imageNotice = hasImageAttachment ? "\n\n[중요] 이번 요청 ID: " + requestId + "\n현재 요청에 첨부된 이미지 ID/파일명만 분석하세요. 이전 대화의 이미지나 같은 이름의 과거 image.png는 절대 참고하지 마세요.\n" + attachments.map(file => `- ${file.imageId}: ${file.name}`).join("\n") : "";
+  const currentMessage = message + imageNotice;
+  const content = [{ type:"input_text", text:currentMessage }, ...imageParts];
   const payload = {
+    requestId,
     system:STELLA_SYSTEM_PROMPT,
     history,
-    message,
+    message:currentMessage,
     content,
     attachments,
     files:attachments,
@@ -867,6 +957,7 @@ async function askStella(message, attachments = []){
 }
 async function submitMessage(event){
   event.preventDefault();
+  if (!activeRoom()) createRoom("새 채팅");
   const text = $("#chatInput").value.trim();
   if (!text && !attachedFiles.length) return;
   const fileParts = await Promise.all(attachedFiles.map(readFileForPrompt));
@@ -917,9 +1008,11 @@ $("#signupTab").addEventListener("click", () => setAuthMode("signup"));
 $("#authForm").addEventListener("submit", handleAuth);
 $("#logoutBtn").addEventListener("click", logout);
 $("#newRoomBtn").addEventListener("click", () => createRoom("새 채팅"));
+$("#newProjectBtn").addEventListener("click", createProject);
+$("#moveProjectSelect").addEventListener("change", event => moveActiveRoom(event.target.value));
 $("#chatForm").addEventListener("submit", submitMessage);
 $("#attachBtn").addEventListener("click", () => $("#fileInput").click());
-$("#fileInput").addEventListener("change", () => { attachedFiles.push(...Array.from($("#fileInput").files || [])); $("#fileInput").value = ""; renderFiles(); });
+$("#fileInput").addEventListener("change", () => { attachedFiles.push(...Array.from($("#fileInput").files || []).map(normalizeAttachmentFile)); $("#fileInput").value = ""; renderFiles(); });
 $("#chatInput").addEventListener("input", resizeChatInput);
 $("#chatInput").addEventListener("paste", handleChatPaste);
 $("#chatInput").addEventListener("focus", keepComposerVisible);
