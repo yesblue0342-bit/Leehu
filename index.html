@@ -150,6 +150,10 @@ tr:last-child td{border-bottom:none}
 .attach-btn{background:#f3f4f6;font-size:1.35rem}
 .send-btn{background:#111827;color:#fff;font-size:1.1rem}
 .send-btn:disabled{background:#d1d5db}
+.mobile-sidebar-backdrop{display:none;position:fixed;inset:0;z-index:104;background:rgba(17,24,39,.32);backdrop-filter:blur(2px)}
+.mobile-sidebar-backdrop.active{display:block}
+.sidebar-toggle{display:none}
+
 .board-backdrop{display:none;position:fixed;inset:0;z-index:110;background:rgba(17,24,39,.18)}
 .board-backdrop.active{display:block}
 .board{display:none;position:fixed;top:0;right:0;bottom:0;z-index:111;width:min(540px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 60px rgba(17,24,39,.12);flex-direction:column}
@@ -163,6 +167,7 @@ tr:last-child td{border-bottom:none}
 .post p{white-space:pre-wrap;color:#374151;line-height:1.75;margin-top:7px}
 .post small{display:block;color:#9ca3af;margin-top:8px}
 @media(max-width:1000px){
+  body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
   .site-nav{padding:0 190px 0 22px}
   .nav-links{display:none}
   #stellaButton{right:12px;min-width:142px;height:48px}
@@ -171,29 +176,43 @@ tr:last-child td{border-bottom:none}
   .hero-right{min-height:260px;border-left:0;border-top:1px solid var(--line)}
   .about-grid,.cards,.identity-grid{grid-template-columns:1fr}
   .sec{padding:58px 24px}
-  .stella-app{grid-template-columns:1fr;grid-template-rows:minmax(240px,38dvh) minmax(0,1fr)}
-  .sidebar{display:flex;border-right:0;border-bottom:1px solid var(--line);min-height:0;overflow:hidden}
-  .side-head{display:none}
-  .tools{padding:10px 12px;grid-template-columns:1fr 1fr 1fr}
-  .tool-btn{padding:9px;font-size:.86rem}
-  .project-list{padding:0 8px 8px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
-  .project-btn{padding:8px 9px}
-  .rooms{padding:0 8px 10px}
-  .room-btn{padding:9px}
-  .chat-main{height:auto;min-height:0}
-  .chat-top{height:auto;min-height:58px;padding:8px 10px;gap:8px;align-items:flex-start}
+  #stella.active{overflow:hidden}
+  .stella-app{grid-template-columns:1fr;height:100dvh;position:relative}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:105;width:min(86vw,340px);max-width:340px;transform:translateX(-105%);transition:transform .22s ease;border-right:1px solid var(--line);border-bottom:0;box-shadow:18px 0 50px rgba(17,24,39,.15);overflow:auto}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .side-head{display:block;padding:16px}
+  .brand-title{font-size:1.35rem}
+  .mark{width:38px;height:38px}
+  .tools{padding:10px 12px;grid-template-columns:1fr}
+  .tool-btn{padding:10px 12px;font-size:.9rem}
+  .project-list{padding:0 8px 8px;display:block}
+  .project-btn{padding:10px 12px}
+  .rooms{padding:0 8px 20px;max-height:none}
+  .room-btn{padding:11px 12px}
+  .chat-main{height:100dvh;min-height:0;display:flex}
+  .chat-top{height:auto;min-height:56px;padding:8px 10px;gap:8px;align-items:center;position:sticky;top:0;background:#fff;z-index:5}
+  .chat-top>div:first-child{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+  .chat-top h3{font-size:1rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .chat-top p{display:none}
-  .chat-actions{flex-wrap:wrap;justify-content:flex-end}
-  .chat-action-btn,#moveProjectSelect{padding:7px 8px;font-size:.74rem;max-width:150px}
-  .icon-btn{width:36px;height:36px}
-  .messages{padding:18px 14px 14px;gap:12px}
-  .bubble{max-width:88vw}
-  .composer{padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+  .sidebar-toggle{display:grid;flex:0 0 auto;width:38px;height:38px}
+  .chat-actions{gap:6px;flex-wrap:nowrap;justify-content:flex-end}
+  .chat-action-btn{display:none}
+  #moveProjectSelect{display:none}
+  .icon-btn{width:38px;height:38px}
+  .messages{padding:14px 12px 14px;gap:14px;flex:1;min-height:0;overflow:auto}
+  .msg-row{width:100%;margin:0}
+  .avatar{width:30px;height:30px;margin-right:8px}
+  .bubble{max-width:calc(100vw - 66px);font-size:1rem;line-height:1.62;padding:12px 14px;border-radius:16px}
+  .msg-row.user .bubble{max-width:82vw}
+  .composer{padding:8px 10px calc(10px + env(safe-area-inset-bottom));background:#fff}
   .notice{display:none}
-  .model-row{font-size:.74rem;margin-bottom:6px}
-  .inputbar{gap:7px;padding:9px;border-radius:18px}
-  .inputbar textarea{max-height:96px}
-  .attach-btn,.send-btn{width:36px;height:36px}
+  .model-row{font-size:.8rem;margin-bottom:7px;gap:7px}
+  #modelSelect{max-width:78vw;padding:7px 10px;font-size:.95rem}
+  .inputbar{gap:8px;padding:9px;border-radius:20px;box-shadow:none}
+  .inputbar textarea{max-height:110px;font-size:1rem}
+  .attach-btn,.send-btn{width:38px;height:38px;flex:0 0 auto}
+  .chips{margin-bottom:7px;max-height:72px;overflow:auto}
+  .chip{font-size:.78rem}
 }
 </style>
 
@@ -328,6 +347,7 @@ tr:last-child td{border-bottom:none}
 </footer>
 
 <div id="stella">
+  <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"></div>
   <div id="authScreen" class="auth-screen">
     <div class="auth-card">
       <div class="brand"><div class="mark">S</div><div><div class="brand-title">Stella</div><p class="muted">회원 전용 AI 작업공간</p></div></div>
@@ -359,7 +379,7 @@ tr:last-child td{border-bottom:none}
       <div id="roomList" class="rooms"></div>
     </aside>
     <main class="chat-main">
-      <div class="chat-top"><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div><div class="chat-actions"><button id="copyRoomBtn" class="chat-action-btn" type="button">복사</button><button id="duplicateRoomBtn" class="chat-action-btn" type="button">복제</button><button id="deleteRoomBtn" class="chat-action-btn" type="button">삭제</button><select id="moveProjectSelect" title="프로젝트로 이동"></select><button id="closeStellaBtn" class="icon-btn" type="button">×</button></div></div>
+      <div class="chat-top"><div><button id="sidebarToggleBtn" class="icon-btn sidebar-toggle" type="button" aria-label="채팅 목록 열기">☰</button><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div></div><div class="chat-actions"><button id="copyRoomBtn" class="chat-action-btn" type="button">복사</button><button id="duplicateRoomBtn" class="chat-action-btn" type="button">복제</button><button id="deleteRoomBtn" class="chat-action-btn" type="button">삭제</button><select id="moveProjectSelect" title="프로젝트로 이동"></select><button id="closeStellaBtn" class="icon-btn" type="button">×</button></div></div>
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
@@ -469,7 +489,11 @@ function openStella(){
   currentUser = readJson(storeKeys.current, null);
   currentUser ? showApp() : showAuth();
 }
-function closeStella(){ $("#stella").classList.remove("active"); document.body.style.overflow = ""; }
+function closeStella(){ closeMobileSidebar(); $("#stella").classList.remove("active"); document.body.style.overflow = ""; }
+function isMobileStella(){ return window.matchMedia("(max-width:1000px)").matches; }
+function openMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); const backdrop = $("#mobileSidebarBackdrop"); if (sidebar) sidebar.classList.add("mobile-open"); if (backdrop) backdrop.classList.add("active"); }
+function closeMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); const backdrop = $("#mobileSidebarBackdrop"); if (sidebar) sidebar.classList.remove("mobile-open"); if (backdrop) backdrop.classList.remove("active"); }
+function toggleMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); if (!sidebar) return; sidebar.classList.contains("mobile-open") ? closeMobileSidebar() : openMobileSidebar(); }
 function showAuth(){ $("#authScreen").style.display = "grid"; $("#stellaApp").style.display = "none"; setTimeout(() => $("#authEmail").focus(), 50); }
 function showApp(){
   $("#authScreen").style.display = "none";
@@ -539,6 +563,7 @@ function filteredRooms(){
   return rooms.filter(room => room.projectId === activeProjectId);
 }
 function selectProject(id){
+  if (isMobileStella()) closeMobileSidebar();
   activeProjectId = id;
   renderProjects();
   const list = filteredRooms();
@@ -619,7 +644,7 @@ function deleteActiveRoom(){
   renderRooms();
   renderMessages();
 }
-function selectRoom(id){ activeRoomId = id; renderRooms(); renderMessages(); updateProjectMoveSelect(); }
+function selectRoom(id){ if (isMobileStella()) closeMobileSidebar(); activeRoomId = id; renderRooms(); renderMessages(); updateProjectMoveSelect(); }
 function renderProjects(){
   const rows = [
     { id:"all", name:"전체 채팅", count:rooms.length },
@@ -1229,6 +1254,8 @@ function bind(selector, eventName, handler){
 }
 bind("#stellaButton", "click", openStella);
 bind("#closeStellaBtn", "click", closeStella);
+bind("#sidebarToggleBtn", "click", toggleMobileSidebar);
+bind("#mobileSidebarBackdrop", "click", closeMobileSidebar);
 bind("#loginTab", "click", () => setAuthMode("login"));
 bind("#signupTab", "click", () => setAuthMode("signup"));
 bind("#authForm", "submit", handleAuth);
@@ -1243,6 +1270,7 @@ bind("#chatForm", "submit", submitMessage);
 bind("#attachBtn", "click", () => $("#fileInput").click());
 $("#fileInput").addEventListener("change", () => { attachedFiles.push(...Array.from($("#fileInput").files || []).map(normalizeAttachmentFile)); $("#fileInput").value = ""; renderFiles(); });
 bind("#chatInput", "input", resizeChatInput);
+window.addEventListener("resize", () => { if (!isMobileStella()) closeMobileSidebar(); });
 bind("#chatInput", "paste", handleChatPaste);
 bind("#chatInput", "focus", keepComposerVisible);
 $("#chatInput").addEventListener("keydown", event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); $("#chatForm").requestSubmit(); } });
