@@ -1,827 +1,103 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>이후 | Stella AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&family=Cormorant+Garamond:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--ink:#15110d;--paper:#f5f0e8;--gold:#b89a5c;--muted:#8c8278;--line:#e5e7eb;--chat:#111827}
-body{font-family:"Noto Serif KR",serif;background:var(--paper);color:var(--ink);overflow-x:hidden}
-button,input,textarea{font:inherit}
-button{cursor:pointer}
-nav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:18px 320px 18px 60px}
-.nav-logo{color:#fff;text-decoration:none;font-size:1.35rem;font-weight:700}
-.nav-links{display:flex;gap:24px;list-style:none}
-.nav-links a{color:rgba(255,255,255,.86);text-decoration:none;font-size:.78rem;letter-spacing:.08em}
+:root{--ink:#17130f;--paper:#f5f0e8;--gold:#b89a5c;--line:#e5e7eb;--chat:#111827}
+body{font-family:Georgia,"Noto Serif KR",serif;background:var(--paper);color:var(--ink)}
+button,input,textarea{font:inherit}button{cursor:pointer}
+nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 250px 20px 54px;background:rgba(23,19,15,.92)}
+nav a{color:#fff;text-decoration:none}nav ul{display:flex;gap:22px;list-style:none}nav li a{font-size:14px;color:rgba(255,255,255,.78)}
 .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
-.hero-left{display:flex;flex-direction:column;justify-content:center;padding:90px 70px}
-.eyebrow{font-family:"Cormorant Garamond",serif;font-style:italic;color:var(--muted);letter-spacing:.18em;margin-bottom:26px}
-h1{font-size:clamp(4.5rem,8vw,7rem);line-height:1}
-.cn{font-family:"Cormorant Garamond",serif;color:#3a6ea8;font-size:1.55rem;letter-spacing:.3em;margin-top:10px}
-.divider{width:70px;height:1px;background:var(--gold);margin:34px 0}
-.tagline{color:var(--muted);line-height:2;font-size:1.05rem}
-.roles{display:flex;gap:9px;flex-wrap:wrap;margin-top:34px}
-.role{border:1px solid var(--gold);color:var(--gold);padding:7px 15px;font-size:.78rem;letter-spacing:.12em}
-.hero-right{position:relative;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2a1f0e,#15110d 60%,#080808);overflow:hidden}
-.kanji{position:absolute;font-size:16vw;color:rgba(255,255,255,.06);font-family:"Cormorant Garamond",serif}
-.quote{position:relative;text-align:center;color:rgba(255,255,255,.9);font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(1.6rem,3vw,2.3rem);line-height:1.7}
-.quote small{display:block;margin-top:24px;color:var(--gold);font-size:.9rem;font-style:normal}
-section{padding:80px;max-width:1180px;margin:0 auto}
-.section-title{font-family:"Cormorant Garamond",serif;color:#8b1a1a;letter-spacing:.2em;font-style:italic;margin-bottom:34px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
-.card{background:#211c17;color:#fff;padding:28px;min-height:150px}
-.card small{display:block;color:var(--gold);letter-spacing:.15em;margin-bottom:10px}
-.card p{color:rgba(255,255,255,.62);line-height:1.8;font-size:.9rem;margin-top:8px}
-footer{background:#0d0b09;color:rgba(255,255,255,.5);text-align:center;padding:55px 24px}
-#stella-fab{position:fixed;top:18px;right:28px;z-index:40;min-width:178px;height:62px;border-radius:999px;border:2px solid #f4f13d;background:rgba(20,16,8,.95);color:#f4f13d;font-family:"Cormorant Garamond",serif;font-size:1.1rem;font-weight:700;letter-spacing:.15em;box-shadow:0 12px 32px rgba(0,0,0,.28)}
-#stella-fab:hover{transform:translateY(-1px)}
-#stella-overlay{display:none;position:fixed;inset:0;z-index:100;background:#fff;color:var(--chat)}
-#stella-overlay.active{display:block}
-.auth-screen{height:100vh;display:grid;place-items:center;padding:24px;background:#fff}
-.auth-card{width:min(430px,100%);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 20px 60px rgba(17,24,39,.1)}
-.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-.mark{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--chat);color:#fff;font-weight:700}
-.brand h2{font-size:1.5rem}
-.brand p,.auth-card>p{color:#6b7280;line-height:1.7;font-size:.9rem}
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f3f4f6;border-radius:14px;padding:4px;margin:18px 0}
-.tab{border:0;border-radius:11px;background:transparent;padding:10px;color:#6b7280;font-weight:700}
-.tab.active{background:#fff;color:var(--chat);box-shadow:0 1px 5px rgba(0,0,0,.08)}
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.field label{font-size:.8rem;font-weight:700;color:#374151}
-.field input{border:1px solid #d1d5db;border-radius:12px;padding:12px;outline:0}
-.primary{width:100%;border:0;border-radius:13px;background:var(--chat);color:#fff;padding:13px;font-weight:700}
-.msg{min-height:20px;margin-top:12px;color:#8b1a1a;font-size:.8rem}
-.app{display:none;grid-template-columns:310px 1fr;height:100vh;background:#fff}
-.sidebar{display:flex;flex-direction:column;border-right:1px solid var(--line);background:#f9fafb;min-height:0}
-.side-head{padding:18px;border-bottom:1px solid var(--line)}
-.userbox{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff}
-.userbox strong{font-size:.9rem}
-.userbox span{display:block;font-size:.72rem;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.small{border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:7px 10px;font-size:.75rem}
-.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 18px}
-.tool{border:1px solid #d1d5db;background:#fff;border-radius:12px;padding:10px;text-align:left;font-size:.84rem}
-.panel-title{padding:8px 18px;color:#6b7280;font-size:.72rem;font-weight:700;letter-spacing:.08em}
-.rooms{padding:0 12px 18px;overflow:auto;flex:1}
-.room{width:100%;border:0;background:transparent;text-align:left;border-radius:10px;padding:10px;color:var(--chat)}
-.room:hover,.room.active{background:#eef2ff}
-.room small{display:block;color:#6b7280;margin-top:3px}
-.main{display:flex;flex-direction:column;min-width:0;min-height:0}
-.topbar{height:64px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;border-bottom:1px solid var(--line)}
-.topbar h3{font-size:1.05rem}
-.topbar p{font-size:.72rem;color:#6b7280;margin-top:2px}
-.icon{width:38px;height:38px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.1rem}
-.messages{flex:1;overflow:auto;padding:28px 20px;display:flex;flex-direction:column;gap:18px;background:#fff}
-.row{display:flex;width:100%}
-.row.user{justify-content:flex-end}
-.avatar{width:32px;height:32px;border-radius:50%;background:var(--chat);color:#fff;display:grid;place-items:center;margin-right:10px;font-weight:700}
-.bubble{max-width:min(720px,78vw);padding:13px 16px;border-radius:18px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
-.row.ai .bubble{background:#f7f7f8;border-top-left-radius:6px}
-.row.user .bubble{background:var(--chat);color:#fff;border-top-right-radius:6px}
-.composer{border-top:1px solid var(--line);padding:10px 18px 18px;background:#fff}
-.attachments{width:min(900px,100%);margin:0 auto 8px;display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid #d1d5db;background:#f9fafb;border-radius:999px;padding:6px 9px;font-size:.74rem}
-.chip button{border:0;background:transparent;color:#6b7280}
-.notice{width:min(900px,100%);margin:0 auto 10px;color:#6b7280;font-size:.72rem;text-align:center}
-.inputbar{display:flex;align-items:flex-end;gap:10px;width:min(900px,100%);margin:0 auto;padding:12px;border:1px solid #d1d5db;border-radius:20px;background:#fff;box-shadow:0 12px 30px rgba(0,0,0,.08)}
-.inputbar textarea{flex:1;min-height:28px;max-height:140px;border:0;resize:none;outline:0;line-height:1.6}
-.attach,.send{width:38px;height:38px;border:0;border-radius:50%;display:grid;place-items:center}
-.attach{background:#f3f4f6;font-size:1.35rem}
-.send{background:var(--chat);color:#fff}
-.send:disabled{background:#d1d5db}
-.board-backdrop{display:none;position:fixed;inset:0;z-index:110;background:rgba(17,24,39,.18)}
-.board-backdrop.active{display:block}
-.board{display:none;position:fixed;top:0;right:0;bottom:0;z-index:111;width:min(520px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 50px rgba(17,24,39,.12);flex-direction:column}
-.board.active{display:flex}
-.board-head{height:64px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;border-bottom:1px solid var(--line)}
-.board-body{padding:16px;overflow:auto}
-.board-form{display:grid;gap:8px;margin-bottom:18px}
-.board-form input,.board-form textarea{border:1px solid #d1d5db;border-radius:12px;padding:11px;outline:0}
-.board-form textarea{min-height:88px;resize:vertical}
-.post{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:10px}
-.post strong{display:block;margin-bottom:6px}
-.post p{font-size:.86rem;color:#374151;line-height:1.7;white-space:pre-wrap}
-.post small{display:block;color:#9ca3af;margin-top:8px}
-@media(max-width:900px){
-  nav{padding:14px 180px 14px 24px;background:rgba(245,240,232,.96)}
-  .nav-logo{color:var(--ink)}
-  .nav-links{display:none}
-  #stella-fab{top:10px;right:12px;min-width:136px;height:48px;font-size:.9rem}
-  .hero{grid-template-columns:1fr}
-  .hero-left{padding:110px 28px 60px}
-  .hero-right{min-height:260px}
-  section{padding:60px 24px}
-  .grid,.app{grid-template-columns:1fr}
-  .sidebar{display:none}
-}
+.left{display:flex;flex-direction:column;justify-content:center;padding:110px 70px}
+.eyebrow{color:#8c8278;letter-spacing:.16em;margin-bottom:24px}
+h1{font-size:104px;line-height:1}.cn{color:#3a6ea8;font-size:28px;letter-spacing:.28em;margin-top:8px}
+.bar{width:78px;height:1px;background:var(--gold);margin:32px 0}.tagline{color:#8c8278;line-height:2;font-size:20px}
+.tags{display:flex;gap:9px;flex-wrap:wrap;margin-top:34px}.tag{border:1px solid var(--gold);color:var(--gold);padding:7px 14px;font-size:14px}
+.right{display:flex;align-items:center;justify-content:center;position:relative;background:linear-gradient(135deg,#2b210f,#17130f 60%,#080808);color:#fff}
+.right:before{content:"後";position:absolute;font-size:260px;color:rgba(255,255,255,.06)}
+.quote{position:relative;text-align:center;font-size:38px;font-style:italic;line-height:1.7}.quote small{display:block;color:var(--gold);font-size:16px;margin-top:22px;font-style:normal}
+section{padding:76px 70px;max-width:1180px;margin:auto}.title{color:#8b1a1a;letter-spacing:.18em;margin-bottom:28px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}.card{background:#211c17;color:#fff;padding:28px;min-height:148px}.card small{color:var(--gold)}.card p{color:rgba(255,255,255,.62);line-height:1.8;margin-top:10px}
+footer{background:#0d0b09;color:rgba(255,255,255,.6);text-align:center;padding:54px 24px}
+#stellaBtn{position:fixed;top:16px;right:28px;z-index:20;height:62px;min-width:176px;border-radius:999px;border:2px solid #f4f13d;background:#151008;color:#f4f13d;font-size:19px;font-weight:700;letter-spacing:.14em}
+#stella{display:none;position:fixed;inset:0;z-index:100;background:#fff;color:var(--chat)}#stella.on{display:block}
+.auth{height:100vh;display:grid;place-items:center;padding:24px}.authCard{width:min(430px,100%);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 20px 60px rgba(17,24,39,.1)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}.mark{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--chat);color:#fff;font-weight:700}
+.muted{color:#6b7280;line-height:1.7;font-size:14px}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f3f4f6;border-radius:14px;padding:4px;margin:18px 0}
+.tab{border:0;border-radius:11px;background:transparent;padding:10px;color:#6b7280;font-weight:700}.tab.active{background:#fff;color:var(--chat)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.field label{font-size:13px;font-weight:700}.field input{border:1px solid #d1d5db;border-radius:12px;padding:12px}
+.primary{width:100%;border:0;border-radius:13px;background:var(--chat);color:#fff;padding:13px;font-weight:700}.err{min-height:20px;color:#8b1a1a;font-size:13px;margin-top:10px}
+.app{display:none;grid-template-columns:310px 1fr;height:100vh}.side{background:#f9fafb;border-right:1px solid var(--line);display:flex;flex-direction:column}.sideTop{padding:18px;border-bottom:1px solid var(--line)}
+.user{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px}.user span{display:block;color:#6b7280;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 18px}.tool{border:1px solid #d1d5db;background:#fff;border-radius:12px;padding:10px;text-align:left}.roomList{padding:0 12px 18px;overflow:auto;flex:1}
+.room{width:100%;border:0;background:transparent;text-align:left;border-radius:10px;padding:10px}.room.active,.room:hover{background:#eef2ff}.room small{display:block;color:#6b7280;margin-top:3px}
+.main{display:flex;flex-direction:column;min-width:0}.top{height:64px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;border-bottom:1px solid var(--line)}.close{width:38px;height:38px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:20px}
+.msgs{flex:1;overflow:auto;padding:28px 20px;display:flex;flex-direction:column;gap:18px}.row{display:flex}.row.user{justify-content:flex-end}.avatar{width:32px;height:32px;border-radius:50%;background:var(--chat);color:#fff;display:grid;place-items:center;margin-right:10px}
+.bubble{max-width:min(720px,78vw);padding:13px 16px;border-radius:18px;line-height:1.75;white-space:pre-wrap;word-break:break-word}.ai .bubble{background:#f7f7f8;border-top-left-radius:6px}.user .bubble{background:var(--chat);color:#fff;border-top-right-radius:6px}
+.composer{border-top:1px solid var(--line);padding:10px 18px 18px}.chips{width:min(900px,100%);margin:0 auto 8px;display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid #d1d5db;background:#f9fafb;border-radius:999px;padding:6px 9px;font-size:12px}
+.notice{text-align:center;color:#6b7280;font-size:12px;margin-bottom:10px}.inputbar{display:flex;align-items:flex-end;gap:10px;width:min(900px,100%);margin:auto;padding:12px;border:1px solid #d1d5db;border-radius:20px;box-shadow:0 12px 30px rgba(0,0,0,.08)}
+.inputbar textarea{flex:1;border:0;outline:0;resize:none;min-height:28px;max-height:140px}.attach,.send{width:38px;height:38px;border:0;border-radius:50%}.attach{background:#f3f4f6;font-size:22px}.send{background:var(--chat);color:#fff}.send:disabled{background:#d1d5db}
+.back{display:none;position:fixed;inset:0;z-index:110;background:rgba(17,24,39,.18)}.back.on{display:block}.board{display:none;position:fixed;top:0;right:0;bottom:0;z-index:111;width:min(520px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 50px rgba(17,24,39,.12)}.board.on{display:flex;flex-direction:column}
+.boardHead{height:64px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;border-bottom:1px solid var(--line)}.boardBody{padding:16px;overflow:auto}.boardForm{display:grid;gap:8px;margin-bottom:18px}.boardForm input,.boardForm textarea{border:1px solid #d1d5db;border-radius:12px;padding:11px}.boardForm textarea{min-height:88px}.post{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:10px}.post p{white-space:pre-wrap;color:#374151;line-height:1.7;margin-top:6px}
+@media(max-width:900px){nav{padding:14px 170px 14px 24px}.nav-logo{color:#fff}nav ul{display:none}#stellaBtn{top:10px;right:12px;height:48px;min-width:132px;font-size:16px}.hero{grid-template-columns:1fr}.left{padding:105px 28px 60px}.right{min-height:260px}.cards,.app{grid-template-columns:1fr}.side{display:none}}
 </style>
 </head>
 <body>
+<nav><a class="nav-logo" href="#top">이후</a><ul><li><a href="#about">소개</a></li><li><a href="#works">작품</a></li><li><a href="#identity">활동</a></li><li><a href="#contact">연락</a></li></ul></nav>
+<button id="stellaBtn">✦ stella</button>
+<header id="top" class="hero"><div class="left"><p class="eyebrow">소설가 · 시인 · 공학박사 · 주식회사 소설가이후 대표</p><h1>이후</h1><p class="cn">李 後</p><div class="bar"></div><p class="tagline">문학과 무도, 공학과 음악 사이에서<br>하나의 이름으로 여러 세계를 건너는 사람.</p><div class="tags"><span class="tag">소설가</span><span class="tag">시인</span><span class="tag">공학박사</span><span class="tag">SAP 전문가</span><span class="tag">래퍼</span><span class="tag">무도인</span></div></div><div class="right"><div class="quote">"쓰는 것은<br>살아내는 것이다."<small>— 이후 李後</small></div></div></header>
+<section id="about"><h2 class="title">About</h2><p style="line-height:2;color:#3d3530">이후는 소설가, 시인, 공학박사, SAP 전문가, 무도인, 음악인으로 활동하고 있습니다. 문학과 공학, 무도와 음악 사이를 오가며 하나의 이름으로 여러 세계를 건너는 사람입니다.</p></section>
+<section id="works" style="max-width:100%;background:#15110d"><h2 class="title" style="color:var(--gold)">Works</h2><div class="cards"><article class="card"><small>소설</small><h3>덫</h3><p>사랑의 깊이와 결을 탐구하는 장편소설.</p></article><article class="card"><small>소설</small><h3>여자비</h3><p>욕망과 감각, 기억의 경계를 탐색하는 작품.</p></article><article class="card"><small>시집</small><h3>Fantasy</h3><p>꿈과 현실의 경계를 하나로 엮는 시집.</p></article></div></section>
+<section id="identity"><h2 class="title">Identity</h2><div class="cards"><article class="card"><small>문학</small><h3>소설가 · 시인</h3><p>소설과 시집을 발표하며 문학 활동을 이어갑니다.</p></article><article class="card"><small>공학</small><h3>SAP 전문가</h3><p>SAP ERP, ABAP, 생산관리 분야 전문저서를 집필했습니다.</p></article><article class="card"><small>무도</small><h3>무도인</h3><p>여러 무도를 수련하며 활동합니다.</p></article></div></section>
+<footer id="contact"><h2>이후 李後</h2><p style="margin-top:12px">yesblue0342@naver.com</p></footer>
 
-<nav id="nav">
-  <a class="nav-logo" href="#top">이후</a>
-  <ul class="nav-links">
-    <li><a href="#about">소개</a></li>
-    <li><a href="#works">작품</a></li>
-    <li><a href="#identity">활동</a></li>
-    <li><a href="#books">전문저서</a></li>
-    <li><a href="#contact">연락</a></li>
-  </ul>
-</nav>
-
-<button id="stella-fab" type="button">✦ stella</button>
-
-<header id="top" class="hero">
-  <div class="hero-left">
-    <p class="eyebrow">소설가 · 시인 · 공학박사 · 주식회사 소설가이후 대표</p>
-    <h1>이후</h1>
-    <p class="cn">李 後</p>
-    <div class="divider"></div>
-    <p class="tagline">문학과 무도, 공학과 음악 사이에서<br>하나의 이름으로 여러 세계를 건너는 사람.</p>
-    <div class="roles">
-      <span class="role">소설가</span>
-      <span class="role">시인</span>
-      <span class="role">공학박사</span>
-      <span class="role">SAP 전문가</span>
-      <span class="role">래퍼</span>
-      <span class="role">무도인</span>
-    </div>
-  </div>
-  <div class="hero-right">
-    <div class="kanji">後</div>
-    <div class="quote">"쓰는 것은<br>살아내는 것이다."<small>— 이후 李後</small></div>
-  </div>
-</header>
-
-<section id="about">
-  <p class="section-title">About</p>
-  <p style="line-height:2.1;color:#3d3530;max-width:760px">
-    이후는 소설가, 시인, 공학박사, SAP 전문가, 무도인, 음악인으로 활동하고 있습니다.
-    문학과 공학, 무도와 음악 사이를 오가며 하나의 이름으로 여러 세계를 건너는 사람입니다.
-  </p>
-</section>
-
-<section id="works" style="max-width:100%;background:#15110d">
-  <p class="section-title" style="color:var(--gold)">Works · 문학 작품</p>
-  <div class="grid">
-    <article class="card"><small>소설</small><h3>덫</h3><p>사랑의 깊이와 결을 탐구하는 장편소설.</p></article>
-    <article class="card"><small>소설</small><h3>여자비</h3><p>욕망과 감각, 기억의 경계를 탐색하는 작품.</p></article>
-    <article class="card"><small>소설</small><h3>떠나기</h3><p>짙고 강렬한 감정의 시간을 포착한 이야기.</p></article>
-    <article class="card"><small>시집</small><h3>어느 날 문득</h3><p>일상의 틈에서 찾아오는 시적 시간의 기록.</p></article>
-    <article class="card"><small>시집</small><h3>Fantasy</h3><p>꿈과 현실의 경계를 하나로 엮는 시집.</p></article>
-  </div>
-</section>
-
-<section id="identity">
-  <p class="section-title">Identity</p>
-  <div class="grid">
-    <article class="card"><small>문학</small><h3>소설가 · 시인</h3><p>소설과 시집을 발표하며 문학 활동을 이어갑니다.</p></article>
-    <article class="card"><small>공학</small><h3>공학박사 · SAP</h3><p>SAP ERP, ABAP, 생산관리 분야 전문저서를 집필했습니다.</p></article>
-    <article class="card"><small>무도</small><h3>무도인</h3><p>태권도, 검도, 킥복싱, 주짓수, 삼보, MMA 등 다양한 무도를 수련했습니다.</p></article>
-  </div>
-</section>
-
-<section id="books" style="max-width:100%;background:#15110d">
-  <p class="section-title" style="color:var(--gold)">Professional Books</p>
-  <div class="grid">
-    <article class="card"><small>SAP · ABAP</small><h3>SAP ERP ABAP 프로그램 오류 개선 사례</h3></article>
-    <article class="card"><small>SAP · 유지보수</small><h3>SAP ERP Super User 양성을 위한 유지보수 매뉴얼</h3></article>
-    <article class="card"><small>생산관리</small><h3>실전 생산 Capacity 분석 및 생산 전략 수립</h3></article>
-  </div>
-</section>
-
-<footer id="contact">
-  <div class="ft-name">이후 李後</div>
-  <div class="ft-sub">소설가 · 시인 · 공학박사 · SAP 전문가 · 래퍼 · 무도인</div>
-  <p><a href="mailto:yesblue0342@naver.com" style="color:var(--gold)">yesblue0342@naver.com</a></p>
-</footer>
-
-<div id="stella-overlay">
-  <div id="auth-screen" class="auth-screen">
-    <div class="auth-card">
-      <div class="brand">
-        <div class="mark">S</div>
-        <div>
-          <h2>Stella</h2>
-          <p>회원 전용 AI 작업공간</p>
-        </div>
-      </div>
-      <p>회원가입 또는 로그인 후 Stella를 사용할 수 있습니다. 단일 HTML 버전이므로 회원 정보, 채팅방, 게시판은 현재 브라우저에 저장됩니다.</p>
-      <div class="tabs">
-        <button id="login-tab" class="tab active" type="button">로그인</button>
-        <button id="signup-tab" class="tab" type="button">회원가입</button>
-      </div>
-      <form id="auth-form">
-        <div id="name-field" class="field" style="display:none">
-          <label for="auth-name">이름</label>
-          <input id="auth-name" type="text" placeholder="이름을 입력하세요" />
-        </div>
-        <div class="field">
-          <label for="auth-email">이메일</label>
-          <input id="auth-email" type="email" placeholder="email@example.com" required />
-        </div>
-        <div class="field">
-          <label for="auth-password">비밀번호</label>
-          <input id="auth-password" type="password" placeholder="비밀번호" required />
-        </div>
-        <button id="auth-submit" class="primary" type="submit">로그인</button>
-        <div id="auth-msg" class="msg"></div>
-      </form>
-    </div>
-  </div>
-
-  <div id="stella-app" class="app">
-    <aside class="sidebar">
-      <div class="side-head">
-        <div class="brand">
-          <div class="mark">S</div>
-          <div>
-            <h2>Stella</h2>
-            <p>이후 홈페이지 AI 안내</p>
-          </div>
-        </div>
-        <div class="userbox">
-          <div>
-            <strong id="user-name">회원</strong>
-            <span id="user-email"></span>
-          </div>
-          <button id="logout" class="small" type="button">로그아웃</button>
-        </div>
-      </div>
-      <div class="tools">
-        <button id="new-room" class="tool" type="button">＋ 새 채팅</button>
-        <button id="board-open" class="tool" type="button">게시판</button>
-      </div>
-      <div class="panel-title">프로젝트 / 채팅방</div>
-      <div id="room-list" class="rooms"></div>
-    </aside>
-
-    <main class="main">
-      <div class="topbar">
-        <div>
-          <h3 id="active-title">새 채팅</h3>
-          <p>파일 첨부와 게시판을 함께 사용할 수 있습니다.</p>
-        </div>
-        <button id="stella-close" class="icon" type="button">×</button>
-      </div>
-      <div id="messages" class="messages"></div>
-      <div class="composer">
-        <div id="attachments" class="attachments"></div>
-        <p class="notice">Enter로 전송, Shift+Enter로 줄바꿈. OpenAI API Key는 아래 JS의 STELLA_API_KEY에 직접 넣으세요.</p>
-        <form id="chat-form" class="inputbar">
-          <button id="attach-btn" class="attach" type="button">+</button>
-          <input id="file-input" type="file" multiple style="display:none" />
-          <textarea id="chat-input" rows="1" placeholder="무엇이든 물어보세요."></textarea>
-          <button id="send-btn" class="send" type="submit">↑</button>
-        </form>
-      </div>
-    </main>
-  </div>
+<div id="stella">
+  <div id="auth" class="auth"><div class="authCard"><div class="brand"><div class="mark">S</div><div><h2>Stella</h2><p class="muted">회원 전용 AI 작업공간</p></div></div><p class="muted">회원가입 또는 로그인 후 사용할 수 있습니다. 단일 HTML 버전이라 회원 정보, 채팅방, 게시판은 현재 브라우저에 저장됩니다.</p><div class="tabs"><button id="loginTab" class="tab active" type="button">로그인</button><button id="signupTab" class="tab" type="button">회원가입</button></div><form id="authForm"><div id="nameField" class="field" style="display:none"><label>이름</label><input id="authName" type="text" placeholder="이름"></div><div class="field"><label>이메일</label><input id="authEmail" type="email" placeholder="email@example.com" required></div><div class="field"><label>비밀번호</label><input id="authPw" type="password" placeholder="비밀번호" required></div><button id="authSubmit" class="primary" type="submit">로그인</button><div id="authMsg" class="err"></div></form></div></div>
+  <div id="app" class="app"><aside class="side"><div class="sideTop"><div class="brand"><div class="mark">S</div><div><h2>Stella</h2><p class="muted">이후 홈페이지 AI 안내</p></div></div><div class="user"><div><strong id="userName">회원</strong><span id="userEmail"></span></div><button id="logout" class="small" type="button">로그아웃</button></div></div><div class="tools"><button id="newRoom" class="tool" type="button">＋ 새 채팅</button><button id="boardOpen" class="tool" type="button">게시판</button></div><div style="padding:8px 18px;color:#6b7280;font-size:12px;font-weight:700">프로젝트 / 채팅방</div><div id="rooms" class="roomList"></div></aside><main class="main"><div class="top"><div><h3 id="roomTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div><button id="closeStella" class="close" type="button">×</button></div><div id="msgs" class="msgs"></div><div class="composer"><div id="chips" class="chips"></div><p class="notice">OPEN AI KEY는 아래 JS의 STELLA_API_KEY에 넣으세요.</p><form id="chatForm" class="inputbar"><button id="attachBtn" class="attach" type="button">+</button><input id="fileInput" type="file" multiple style="display:none"><textarea id="chatInput" rows="1" placeholder="무엇이든 물어보세요."></textarea><button id="sendBtn" class="send" type="submit">↑</button></form></div></main></div>
 </div>
-
-<div id="board-backdrop" class="board-backdrop"></div>
-<section id="board" class="board">
-  <div class="board-head">
-    <h3>Stella 게시판</h3>
-    <button id="board-close" class="icon" type="button">×</button>
-  </div>
-  <div class="board-body">
-    <form id="board-form" class="board-form">
-      <input id="post-title" type="text" placeholder="제목" required />
-      <textarea id="post-body" placeholder="게시글 내용을 입력하세요." required></textarea>
-      <button class="primary" type="submit">게시글 등록</button>
-    </form>
-    <div id="post-list"></div>
-  </div>
-</section>
+<div id="back" class="back"></div>
+<section id="board" class="board"><div class="boardHead"><h3>Stella 게시판</h3><button id="boardClose" class="close" type="button">×</button></div><div class="boardBody"><form id="boardForm" class="boardForm"><input id="postTitle" placeholder="제목" required><textarea id="postBody" placeholder="게시글 내용을 입력하세요." required></textarea><button class="primary" type="submit">게시글 등록</button></form><div id="postList"></div></div></section>
 
 <script>
 const STELLA_API_KEY = "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";
 const STELLA_MODEL = "gpt-4.1-mini";
-const STELLA_SYSTEM_PROMPT = [
-  "Stella GPT입니다.",
-  "방문자에게 한국어로 친절하고 간결하게 안내하세요.",
-  "사용자가 첨부 파일 내용을 제공하면 그 내용을 참고해 답하세요.",
-  "확실하지 않은 사실은 단정하지 말고 홈페이지에 공개된 정보 기준으로 답하세요."
-].join(" ");
-
-const $ = selector => document.querySelector(selector);
-
-const nav = $("#nav");
-const stellaFab = $("#stella-fab");
-const overlay = $("#stella-overlay");
-const authScreen = $("#auth-screen");
-const appScreen = $("#stella-app");
-const loginTab = $("#login-tab");
-const signupTab = $("#signup-tab");
-const authForm = $("#auth-form");
-const authName = $("#auth-name");
-const authEmail = $("#auth-email");
-const authPassword = $("#auth-password");
-const authSubmit = $("#auth-submit");
-const authMsg = $("#auth-msg");
-const nameField = $("#name-field");
-const userName = $("#user-name");
-const userEmail = $("#user-email");
-const logoutBtn = $("#logout");
-const closeBtn = $("#stella-close");
-const newRoomBtn = $("#new-room");
-const roomList = $("#room-list");
-const activeTitle = $("#active-title");
-const messagesEl = $("#messages");
-const chatForm = $("#chat-form");
-const chatInput = $("#chat-input");
-const sendBtn = $("#send-btn");
-const attachBtn = $("#attach-btn");
-const fileInput = $("#file-input");
-const attachmentsEl = $("#attachments");
-const boardOpen = $("#board-open");
-const board = $("#board");
-const boardBackdrop = $("#board-backdrop");
-const boardClose = $("#board-close");
-const boardForm = $("#board-form");
-const postTitle = $("#post-title");
-const postBody = $("#post-body");
-const postList = $("#post-list");
-
-const KEYS = {
-  users: "stella_users_v1",
-  currentUser: "stella_current_user_v1",
-  rooms: "stella_rooms_v1",
-  posts: "stella_posts_v1"
-};
-
-let authMode = "login";
-let currentUser = null;
-let rooms = [];
-let activeRoomId = null;
-let attachedFiles = [];
-
-window.addEventListener("scroll", () => {
-  nav.classList.toggle("scrolled", window.scrollY > 60);
-});
-
-function readJson(key, fallback) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-async function hashPassword(text) {
-  if (window.crypto && crypto.subtle) {
-    const data = new TextEncoder().encode(text);
-    const hash = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hash)).map(byte => byte.toString(16).padStart(2, "0")).join("");
-  }
-  return btoa(unescape(encodeURIComponent(text)));
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[char]));
-}
-
-function nowText() {
-  return new Date().toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
-}
-
-function setAuthMode(mode) {
-  authMode = mode;
-  loginTab.classList.toggle("active", mode === "login");
-  signupTab.classList.toggle("active", mode === "signup");
-  nameField.style.display = mode === "signup" ? "flex" : "none";
-  authSubmit.textContent = mode === "signup" ? "회원가입" : "로그인";
-  authMsg.textContent = "";
-}
-
-function openStella() {
-  overlay.classList.add("active");
-  document.body.style.overflow = "hidden";
-  currentUser = readJson(KEYS.currentUser, null);
-  if (currentUser) showWorkspace();
-  else showAuth();
-}
-
-function closeStella() {
-  overlay.classList.remove("active");
-  document.body.style.overflow = "";
-}
-
-function showAuth() {
-  authScreen.style.display = "grid";
-  appScreen.style.display = "none";
-  setTimeout(() => authEmail.focus(), 50);
-}
-
-function showWorkspace() {
-  authScreen.style.display = "none";
-  appScreen.style.display = "grid";
-  userName.textContent = currentUser.name;
-  userEmail.textContent = currentUser.email;
-  rooms = readJson(KEYS.rooms, []).filter(room => room.owner === currentUser.email);
-
-  if (!rooms.length) createRoom("새 채팅");
-  else {
-    activeRoomId = rooms[0].id;
-    renderRooms();
-    renderMessages();
-  }
-
-  renderPosts();
-  setTimeout(() => chatInput.focus(), 50);
-}
-
-async function handleAuth(event) {
-  event.preventDefault();
-
-  const email = authEmail.value.trim().toLowerCase();
-  const password = authPassword.value;
-  const name = authName.value.trim();
-  const users = readJson(KEYS.users, []);
-
-  if (!email || !password) return;
-
-  if (authMode === "signup") {
-    if (!name) {
-      authMsg.textContent = "이름을 입력해 주세요.";
-      return;
-    }
-
-    if (users.some(user => user.email === email)) {
-      authMsg.textContent = "이미 가입된 이메일입니다.";
-      return;
-    }
-
-    const passwordHash = await hashPassword(password);
-    const user = { name, email, passwordHash, createdAt: new Date().toISOString() };
-    users.push(user);
-    writeJson(KEYS.users, users);
-
-    currentUser = { name, email };
-    writeJson(KEYS.currentUser, currentUser);
-    authForm.reset();
-    showWorkspace();
-    return;
-  }
-
-  const passwordHash = await hashPassword(password);
-  const user = users.find(item => item.email === email && item.passwordHash === passwordHash);
-
-  if (!user) {
-    authMsg.textContent = "이메일 또는 비밀번호가 맞지 않습니다.";
-    return;
-  }
-
-  currentUser = { name: user.name, email: user.email };
-  writeJson(KEYS.currentUser, currentUser);
-  authForm.reset();
-  showWorkspace();
-}
-
-function logout() {
-  localStorage.removeItem(KEYS.currentUser);
-  currentUser = null;
-  activeRoomId = null;
-  rooms = [];
-  messagesEl.innerHTML = "";
-  showAuth();
-}
-
-function saveRooms() {
-  const allRooms = readJson(KEYS.rooms, []).filter(room => room.owner !== currentUser.email);
-  writeJson(KEYS.rooms, [...rooms, ...allRooms]);
-}
-
-function createRoom(name) {
-  const room = {
-    id: `room_${Date.now()}`,
-    owner: currentUser.email,
-    name: name || "새 채팅",
-    createdAt: new Date().toISOString(),
-    messages: [
-      {
-        role: "ai",
-        text: "안녕하세요. Stella입니다. 이후의 작품, 전문저서, SAP 활동, 무도 활동에 대해 무엇이든 물어보세요.",
-        createdAt: new Date().toISOString()
-      }
-    ]
-  };
-
-  rooms.unshift(room);
-  activeRoomId = room.id;
-  saveRooms();
-  renderRooms();
-  renderMessages();
-}
-
-function getActiveRoom() {
-  return rooms.find(room => room.id === activeRoomId);
-}
-
-function renderRooms() {
-  roomList.innerHTML = rooms.map(room => `
-    <button class="room ${room.id === activeRoomId ? "active" : ""}" type="button" data-room-id="${room.id}">
-      <span>${escapeHtml(room.name)}</span>
-      <small>${room.messages.length}개 메시지</small>
-    </button>
-  `).join("");
-
-  roomList.querySelectorAll("[data-room-id]").forEach(button => {
-    button.addEventListener("click", () => {
-      activeRoomId = button.dataset.roomId;
-      renderRooms();
-      renderMessages();
-    });
-  });
-}
-
-function renderMessages() {
-  const room = getActiveRoom();
-  if (!room) return;
-
-  activeTitle.textContent = room.name;
-  messagesEl.innerHTML = "";
-  room.messages.forEach(message => addMessage(message.role, message.text, false));
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-function addMessage(role, text, persist = true) {
-  const row = document.createElement("div");
-  row.className = `row ${role}`;
-
-  if (role === "ai") {
-    const avatar = document.createElement("div");
-    avatar.className = "avatar";
-    avatar.textContent = "S";
-    row.appendChild(avatar);
-  }
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.textContent = text;
-  row.appendChild(bubble);
-
-  messagesEl.appendChild(row);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-
-  if (persist) {
-    const room = getActiveRoom();
-    room.messages.push({ role, text, createdAt: new Date().toISOString() });
-
-    if (role === "user" && room.name === "새 채팅") {
-      room.name = text.slice(0, 24) || "새 채팅";
-    }
-
-    saveRooms();
-    renderRooms();
-    activeTitle.textContent = room.name;
-  }
-
-  return bubble;
-}
-
-function setLoading(isLoading) {
-  chatInput.disabled = isLoading;
-  sendBtn.disabled = isLoading;
-  sendBtn.textContent = isLoading ? "…" : "↑";
-}
-
-async function readFileForPrompt(file) {
-  const textTypes = ["text/", "application/json", "application/xml", "application/javascript"];
-  const canReadText =
-    textTypes.some(type => file.type.startsWith(type)) ||
-    /\.(txt|md|csv|json|xml|html|css|js)$/i.test(file.name);
-
-  if (!canReadText) {
-    return `[첨부 파일: ${file.name}, ${Math.round(file.size / 1024)}KB, 텍스트 미리보기 불가]`;
-  }
-
-  const text = await file.text();
-  return `[첨부 파일: ${file.name}]\n${text.slice(0, 5000)}`;
-}
-
-function renderAttachments() {
-  attachmentsEl.innerHTML = attachedFiles.map((file, index) => `
-    <span class="chip">
-      ${escapeHtml(file.name)}
-      <button type="button" data-file-index="${index}" aria-label="첨부 삭제">×</button>
-    </span>
-  `).join("");
-
-  attachmentsEl.querySelectorAll("[data-file-index]").forEach(button => {
-    button.addEventListener("click", () => {
-      attachedFiles.splice(Number(button.dataset.fileIndex), 1);
-      renderAttachments();
-    });
-  });
-}
-
-async function askStella(message) {
-  const room = getActiveRoom();
-  const history = room.messages.slice(-12).map(item => ({
-    role: item.role === "ai" ? "assistant" : "user",
-    content: item.text
-  }));
-
-  const inputMessages = [
-    { role: "system", content: STELLA_SYSTEM_PROMPT },
-    ...history,
-    { role: "user", content: message }
-  ];
-
-  if (!STELLA_API_KEY || STELLA_API_KEY === "YOUR_OPENAI_API_KEY") {
-    return getLocalReply(message);
-  }
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${STELLA_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: STELLA_MODEL,
-      input: inputMessages
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `OpenAI API 오류: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  if (data.output_text) return data.output_text.trim();
-
-  const textParts = [];
-  (data.output || []).forEach(item => {
-    (item.content || []).forEach(content => {
-      if (content.type === "output_text" && content.text) {
-        textParts.push(content.text);
-      }
-    });
-  });
-
-  return textParts.join("\n").trim() || "응답을 가져왔지만 표시할 텍스트가 없습니다.";
-}
-
-function getLocalReply(message) {
-  const lower = message.toLowerCase();
-
-  if (lower.includes("파일") || lower.includes("첨부")) {
-    return "파일 첨부 기능이 켜져 있습니다. 텍스트 파일은 내용 일부를 Stella에게 함께 전달합니다.";
-  }
-
-  if (lower.includes("게시판")) {
-    return "오른쪽 게시판에서 회원별 게시글을 작성하고 볼 수 있습니다. 현재 버전은 브라우저 저장 방식입니다.";
-  }
-
-  if (lower.includes("작품") || lower.includes("소설") || lower.includes("시집")) {
-    return "이후의 문학 작품으로는 소설 「덫」, 「여자비」, 「떠나기」와 시집 「Fantasy」 등이 소개되어 있습니다.";
-  }
-
-  if (lower.includes("sap") || lower.includes("전문") || lower.includes("저서")) {
-    return "전문저서 영역에는 SAP ERP, ABAP, 생산관리, 린 혁신 관련 책들이 정리되어 있습니다.";
-  }
-
-  return "현재 API 키가 설정되지 않아 홈페이지 정보 기준의 임시 응답을 표시합니다. `STELLA_API_KEY`에 키를 넣으면 OpenAI 응답으로 연결됩니다.";
-}
-
-async function submitMessage(event) {
-  event.preventDefault();
-
-  const text = chatInput.value.trim();
-  if (!text && !attachedFiles.length) return;
-
-  const filePrompts = await Promise.all(attachedFiles.map(readFileForPrompt));
-  const fullMessage = [text, ...filePrompts].filter(Boolean).join("\n\n");
-  const displayMessage = [
-    text || "첨부 파일을 분석해 주세요.",
-    ...attachedFiles.map(file => `첨부: ${file.name}`)
-  ].join("\n");
-
-  addMessage("user", displayMessage);
-  chatInput.value = "";
-  chatInput.style.height = "auto";
-  attachedFiles = [];
-  renderAttachments();
-
-  setLoading(true);
-  const thinking = addMessage("ai", "생각하고 있습니다...", false);
-
-  try {
-    const answer = await askStella(fullMessage);
-    thinking.textContent = answer;
-
-    const room = getActiveRoom();
-    room.messages.push({ role: "ai", text: answer, createdAt: new Date().toISOString() });
-    saveRooms();
-    renderRooms();
-  } catch (error) {
-    console.error(error);
-    thinking.textContent = "API 연결 중 오류가 발생했습니다. API 키, 결제 상태, 도메인/CORS 정책을 확인해 주세요.";
-  } finally {
-    setLoading(false);
-    chatInput.focus();
-  }
-}
-
-function openBoard() {
-  board.classList.add("active");
-  boardBackdrop.classList.add("active");
-  renderPosts();
-}
-
-function closeBoard() {
-  board.classList.remove("active");
-  boardBackdrop.classList.remove("active");
-}
-
-function renderPosts() {
-  const posts = readJson(KEYS.posts, []).filter(post => post.owner === currentUser?.email);
-
-  postList.innerHTML = posts.length
-    ? posts.map(post => `
-      <article class="post">
-        <strong>${escapeHtml(post.title)}</strong>
-        <p>${escapeHtml(post.body)}</p>
-        <small>${escapeHtml(post.author)} · ${escapeHtml(post.createdText)}</small>
-      </article>
-    `).join("")
-    : '<p style="color:#6b7280;font-size:.86rem;line-height:1.7">등록된 게시글이 없습니다.</p>';
-}
-
-function addPost(event) {
-  event.preventDefault();
-
-  const posts = readJson(KEYS.posts, []);
-  posts.unshift({
-    id: `post_${Date.now()}`,
-    owner: currentUser.email,
-    author: currentUser.name,
-    title: postTitle.value.trim(),
-    body: postBody.value.trim(),
-    createdText: nowText()
-  });
-
-  writeJson(KEYS.posts, posts);
-  boardForm.reset();
-  renderPosts();
-}
-
-stellaFab.addEventListener("click", openStella);
-closeBtn.addEventListener("click", closeStella);
-loginTab.addEventListener("click", () => setAuthMode("login"));
-signupTab.addEventListener("click", () => setAuthMode("signup"));
-authForm.addEventListener("submit", handleAuth);
-logoutBtn.addEventListener("click", logout);
-newRoomBtn.addEventListener("click", () => createRoom("새 채팅"));
-chatForm.addEventListener("submit", submitMessage);
-attachBtn.addEventListener("click", () => fileInput.click());
-
-fileInput.addEventListener("change", () => {
-  attachedFiles.push(...Array.from(fileInput.files || []));
-  fileInput.value = "";
-  renderAttachments();
-});
-
-chatInput.addEventListener("input", () => {
-  chatInput.style.height = "auto";
-  chatInput.style.height = `${Math.min(chatInput.scrollHeight, 140)}px`;
-});
-
-chatInput.addEventListener("keydown", event => {
-  if (event.key === "Enter" && !event.shiftKey) {
-    event.preventDefault();
-    chatForm.requestSubmit();
-  }
-});
-
-boardOpen.addEventListener("click", openBoard);
-boardClose.addEventListener("click", closeBoard);
-boardBackdrop.addEventListener("click", closeBoard);
-boardForm.addEventListener("submit", addPost);
-
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    if (board.classList.contains("active")) closeBoard();
-    else if (overlay.classList.contains("active")) closeStella();
-  }
-});
+const STELLA_SYSTEM_PROMPT = "당신은 이후 공식 홈페이지의 회원 전용 AI 작업공간 Stella입니다. 한국어로 친절하고 간결하게 답하세요.";
+const $=s=>document.querySelector(s);
+const keys={users:"stella_users_v2",current:"stella_current_user_v2",rooms:"stella_rooms_v2",posts:"stella_posts_v2"};
+let mode="login", user=null, rooms=[], active=null, files=[];
+function read(k,f){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(f))}catch{return f}}
+function write(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+async function hash(t){if(crypto&&crypto.subtle){const d=new TextEncoder().encode(t);const h=await crypto.subtle.digest("SHA-256",d);return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("")}return btoa(t)}
+function setMode(m){mode=m;$("#loginTab").classList.toggle("active",m==="login");$("#signupTab").classList.toggle("active",m==="signup");$("#nameField").style.display=m==="signup"?"flex":"none";$("#authSubmit").textContent=m==="signup"?"회원가입":"로그인";$("#authMsg").textContent=""}
+function openStella(){ $("#stella").classList.add("on"); document.body.style.overflow="hidden"; user=read(keys.current,null); user?showApp():showAuth() }
+function closeStella(){ $("#stella").classList.remove("on"); document.body.style.overflow="" }
+function showAuth(){ $("#auth").style.display="grid"; $("#app").style.display="none"; setTimeout(()=>$("#authEmail").focus(),50) }
+function showApp(){ $("#auth").style.display="none"; $("#app").style.display="grid"; $("#userName").textContent=user.name; $("#userEmail").textContent=user.email; rooms=read(keys.rooms,[]).filter(r=>r.owner===user.email); rooms.length?selectRoom(rooms[0].id):newRoom(); renderPosts(); setTimeout(()=>$("#chatInput").focus(),50) }
+async function authSubmit(e){e.preventDefault();const email=$("#authEmail").value.trim().toLowerCase(), pw=$("#authPw").value, name=$("#authName").value.trim(), users=read(keys.users,[]);if(!email||!pw)return;if(mode==="signup"){if(!name)return $("#authMsg").textContent="이름을 입력해 주세요.";if(users.some(u=>u.email===email))return $("#authMsg").textContent="이미 가입된 이메일입니다.";const u={name,email,passwordHash:await hash(pw)};users.push(u);write(keys.users,users);user={name,email};write(keys.current,user);$("#authForm").reset();showApp();return}const passwordHash=await hash(pw);const found=users.find(u=>u.email===email&&u.passwordHash===passwordHash);if(!found)return $("#authMsg").textContent="이메일 또는 비밀번호가 맞지 않습니다.";user={name:found.name,email:found.email};write(keys.current,user);$("#authForm").reset();showApp()}
+function logout(){localStorage.removeItem(keys.current);user=null;rooms=[];active=null;$("#msgs").innerHTML="";showAuth()}
+function saveRooms(){const others=read(keys.rooms,[]).filter(r=>r.owner!==user.email);write(keys.rooms,[...rooms,...others])}
+function newRoom(){const r={id:"room_"+Date.now(),owner:user.email,name:"새 채팅",messages:[{role:"ai",text:"안녕하세요. Stella입니다. 이후의 작품, 전문저서, SAP 활동, 무도 활동에 대해 무엇이든 물어보세요."}]};rooms.unshift(r);active=r.id;saveRooms();renderRooms();renderMsgs()}
+function room(){return rooms.find(r=>r.id===active)}
+function selectRoom(id){active=id;renderRooms();renderMsgs()}
+function renderRooms(){$("#rooms").innerHTML=rooms.map(r=>`<button class="room ${r.id===active?"active":""}" data-id="${r.id}" type="button"><span>${esc(r.name)}</span><small>${r.messages.length}개 메시지</small></button>`).join("");document.querySelectorAll(".room").forEach(b=>b.onclick=()=>selectRoom(b.dataset.id))}
+function renderMsgs(){const r=room();if(!r)return;$("#roomTitle").textContent=r.name;$("#msgs").innerHTML="";r.messages.forEach(m=>addMsg(m.role,m.text,false));$("#msgs").scrollTop=$("#msgs").scrollHeight}
+function addMsg(role,text,persist=true){const row=document.createElement("div");row.className="row "+role;if(role==="ai"){const av=document.createElement("div");av.className="avatar";av.textContent="S";row.appendChild(av)}const b=document.createElement("div");b.className="bubble";b.textContent=text;row.appendChild(b);$("#msgs").appendChild(row);$("#msgs").scrollTop=$("#msgs").scrollHeight;if(persist){const r=room();r.messages.push({role,text});if(role==="user"&&r.name==="새 채팅")r.name=text.slice(0,24)||"새 채팅";saveRooms();renderRooms();$("#roomTitle").textContent=r.name}return b}
+function setLoad(v){$("#chatInput").disabled=v;$("#sendBtn").disabled=v;$("#sendBtn").textContent=v?"…":"↑"}
+async function fileText(f){const ok=f.type.startsWith("text/")||/\.(txt|md|csv|json|xml|html|css|js)$/i.test(f.name);if(!ok)return `[첨부 파일: ${f.name}, 텍스트 미리보기 불가]`;return `[첨부 파일: ${f.name}]\n${(await f.text()).slice(0,5000)}`}
+function renderFiles(){$("#chips").innerHTML=files.map((f,i)=>`<span class="chip">${esc(f.name)} <button type="button" data-i="${i}">×</button></span>`).join("");document.querySelectorAll(".chip button").forEach(b=>b.onclick=()=>{files.splice(+b.dataset.i,1);renderFiles()})}
+async function ask(message){const hist=room().messages.slice(-12).map(m=>({role:m.role==="ai"?"assistant":"user",content:m.text}));if(!STELLA_API_KEY||STELLA_API_KEY==="YOUR_OPENAI_API_KEY")return localReply(message);const res=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${STELLA_API_KEY}`},body:JSON.stringify({model:STELLA_MODEL,input:[{role:"system",content:STELLA_SYSTEM_PROMPT},...hist,{role:"user",content:message}]})});if(!res.ok)throw new Error(await res.text());const data=await res.json();return data.output_text||"응답 텍스트가 없습니다."}
+function localReply(m){const t=m.toLowerCase();if(t.includes("파일")||t.includes("첨부"))return"파일 첨부 기능이 켜져 있습니다. 텍스트 파일은 내용 일부를 Stella에게 함께 전달합니다.";if(t.includes("게시판"))return"오른쪽 게시판에서 회원별 게시글을 작성하고 볼 수 있습니다.";if(t.includes("작품")||t.includes("소설"))return"이후의 문학 작품으로는 소설 「덫」, 「여자비」, 「떠나기」와 시집 「Fantasy」 등이 소개되어 있습니다.";return"현재 API 키가 설정되지 않았습니다. STELLA_API_KEY에 OpenAI API Key를 넣으면 실제 OpenAI 응답으로 연결됩니다."}
+async function send(e){e.preventDefault();const text=$("#chatInput").value.trim();if(!text&&!files.length)return;const fileParts=await Promise.all(files.map(fileText));const full=[text,...fileParts].filter(Boolean).join("\n\n");const shown=[text||"첨부 파일을 분석해 주세요.",...files.map(f=>"첨부: "+f.name)].join("\n");addMsg("user",shown);$("#chatInput").value="";$("#chatInput").style.height="auto";files=[];renderFiles();setLoad(true);const thinking=addMsg("ai","생각하고 있습니다...",false);try{const ans=await ask(full);thinking.textContent=ans;room().messages.push({role:"ai",text:ans});saveRooms();renderRooms()}catch(err){console.error(err);thinking.textContent="API 연결 중 오류가 발생했습니다. API 키, 결제 상태, 도메인/CORS 정책을 확인해 주세요."}finally{setLoad(false);$("#chatInput").focus()}}
+function openBoard(){$("#board").classList.add("on");$("#back").classList.add("on");renderPosts()}
+function closeBoard(){$("#board").classList.remove("on");$("#back").classList.remove("on")}
+function renderPosts(){const posts=read(keys.posts,[]).filter(p=>p.owner===user?.email);$("#postList").innerHTML=posts.length?posts.map(p=>`<article class="post"><strong>${esc(p.title)}</strong><p>${esc(p.body)}</p><small>${esc(p.author)} · ${esc(p.time)}</small></article>`).join(""):'<p style="color:#6b7280">등록된 게시글이 없습니다.</p>'}
+function addPost(e){e.preventDefault();const posts=read(keys.posts,[]);posts.unshift({owner:user.email,author:user.name,title:$("#postTitle").value.trim(),body:$("#postBody").value.trim(),time:new Date().toLocaleString("ko-KR")});write(keys.posts,posts);$("#boardForm").reset();renderPosts()}
+$("#stellaBtn").onclick=openStella;$("#closeStella").onclick=closeStella;$("#loginTab").onclick=()=>setMode("login");$("#signupTab").onclick=()=>setMode("signup");$("#authForm").onsubmit=authSubmit;$("#logout").onclick=logout;$("#newRoom").onclick=newRoom;$("#chatForm").onsubmit=send;$("#attachBtn").onclick=()=>$("#fileInput").click();$("#fileInput").onchange=()=>{files.push(...Array.from($("#fileInput").files||[]));$("#fileInput").value="";renderFiles()};$("#chatInput").oninput=()=>{$("#chatInput").style.height="auto";$("#chatInput").style.height=Math.min($("#chatInput").scrollHeight,140)+"px"};$("#chatInput").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("#chatForm").requestSubmit()}};$("#boardOpen").onclick=openBoard;$("#boardClose").onclick=closeBoard;$("#back").onclick=closeBoard;$("#boardForm").onsubmit=addPost;document.onkeydown=e=>{if(e.key==="Escape"){if($("#board").classList.contains("on"))closeBoard();else if($("#stella").classList.contains("on"))closeStella()}};
 </script>
 </body>
 </html>
