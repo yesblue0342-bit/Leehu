@@ -1,12 +1,3 @@
-// Cloudflare Worker for Stella
-// 권장 방식:
-// Cloudflare Worker 설정에서 Secret/환경변수 이름을 OPENAI_API_KEY로 추가하세요.
-//
-// 임시 방식:
-// 아래 FALLBACK_OPENAI_API_KEY에 직접 API Key를 넣어도 됩니다.
-// 단, Worker 코드에 직접 넣으면 코드 접근 권한이 있는 사람에게 노출될 수 있습니다.
-
-const FALLBACK_OPENAI_API_KEY = "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";
 const DEFAULT_MODEL = "gpt-5.5";
 
 const ALLOWED_MODELS = [
@@ -34,16 +25,19 @@ export default {
       return json({ error: "Method not allowed" }, 405);
     }
 
-    const apiKey = env.OPENAI_API_KEY || FALLBACK_OPENAI_API_KEY;
+    const apiKey = env.OPENAI_API_KEY;
 
-    if (!apiKey || apiKey === "PASTE_OPENAI_API_KEY_HERE") {
-      return json({
-        error: "OPENAI_API_KEY is not configured. Cloudflare Secret 또는 FALLBACK_OPENAI_API_KEY에 API Key를 넣어주세요."
-      }, 500);
+    if (!apiKey) {
+      return json({ error: "OPENAI_API_KEY is not configured." }, 500);
     }
 
     try {
       const body = await request.json();
+
+      const requestedModel = String(body.model || env.OPENAI_MODEL || DEFAULT_MODEL);
+      const model = ALLOWED_MODELS.includes(requestedModel)
+        ? requestedModel
+        : DEFAULT_MODEL;
 
       const system =
         body.system ||
@@ -66,10 +60,10 @@ export default {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
+          Authorization: `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: env.OPENAI_MODEL || DEFAULT_MODEL,
+          model,
           input
         })
       });
@@ -84,10 +78,11 @@ export default {
           error = parsed.error?.message || raw;
         } catch {}
 
-        return json({ error }, openaiResponse.status);
+        return json({ error, model }, openaiResponse.status);
       }
 
       const data = JSON.parse(raw);
+
       let text = data.output_text || "";
 
       if (!text && Array.isArray(data.output)) {
@@ -105,7 +100,8 @@ export default {
       }
 
       return json({
-        text: text || "응답 텍스트가 없습니다."
+        text: text || "응답 텍스트가 없습니다.",
+        model
       });
     } catch (error) {
       return json({
