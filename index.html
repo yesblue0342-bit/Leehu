@@ -360,7 +360,7 @@ tr:last-child td{border-bottom:none}
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
-        <p class="notice">OpenAI 응답은 Cloudflare Worker 서버 프록시를 통해 연결됩니다. HTML에서 API Key를 직접 호출하지 않습니다.</p>
+        <p class="notice">Stella는 서버 프록시를 통해 AI 응답을 시도하고, 연결 오류 시 기본 안내 답변으로 전환됩니다. HTML에서 API Key를 직접 호출하지 않습니다.</p>
         <div class="model-row">
           <span>모델</span>
           <select id="modelSelect">
@@ -980,14 +980,39 @@ function keepComposerVisible(){
 }
 function localReply(message){
   const text = message.toLowerCase();
+  if (text.includes("unit test") || text.includes("유닛") || text.includes("단위 테스트")) return [
+    "SAP QM 모듈 Unit Test 중이라면 아래 순서로 진행하면 좋습니다.",
+    "",
+    "| 구분 | 해야 할 일 | 확인 포인트 |",
+    "| --- | --- | --- |",
+    "| 1. 테스트 범위 확인 | 오늘 테스트할 Function, 개발번호, 시나리오를 먼저 공유 | BB review unit test schedule 기준으로 진행 |",
+    "| 2. 선행 데이터 점검 | Material, Vendor, Plant, Inspection Type, Q-Info Record, Inspection Plan 확인 | 테스트 전에 Master Data 누락 여부 확인 |",
+    "| 3. Demonstration | 컨설턴트가 먼저 기능 목적과 화면 흐름 설명 | T-code, 입력값, 기대 결과를 짧게 설명 |",
+    "| 4. 대표 Tester 수행 | BB 담당자 중 1명이 직접 테스트 수행 | 실제 사용자가 실행해야 UAT/Unit Test 의미가 있음 |",
+    "| 5. 결과 확인 | 정상 케이스와 오류 케이스를 모두 확인 | QA32, QE51N, QA11/QA12, QI01/QI02/QI03 등 관련 화면 확인 |",
+    "| 6. 증빙 저장 | Unit Test Results 파일에 Screenshot 첨부 | 입력값, 결과 화면, 메시지 번호 포함 |",
+    "| 7. 이슈 정리 | 오류 발생 시 재현 조건, 기대 결과, 실제 결과 기록 | 결함 로그에 Owner와 Due Date 지정 |",
+    "| 8. Sign-off 준비 | 테스트 완료 여부와 Open Issue 여부 정리 | Completed / Failed / Retest Needed 구분 |",
+    "",
+    "컨설턴트 입장에서는 설명을 길게 하기보다, BB 사용자가 직접 실행하게 하고 증빙 Screenshot을 남기는 것이 가장 중요합니다."
+  ].join("\n");
+  if (text.includes("qm")) return [
+    "SAP QM 관점에서는 검사 로트 생성부터 결과 기록, 사용 결정, 재고 전기까지 end-to-end 흐름을 확인해야 합니다.",
+    "",
+    "| 영역 | 주요 확인 항목 | 관련 T-code 예시 |",
+    "| --- | --- | --- |",
+    "| Master Data | MIC, Selected Set, Inspection Plan, Q-Info Record | QS21/QS22, QS51, QP01/QP02, QI01/QI02 |",
+    "| Inspection Lot | Lot 생성, Status, Quantity, Origin | QA32, QA03 |",
+    "| Result Recording | 결과 입력, Code 선택, 결함 여부 | QE51N, QA32 |",
+    "| Usage Decision | UD Code, Stock Posting, Batch Status | QA11, QA12 |",
+    "| Evidence | Screenshot, Test Result, Defect Log | Unit Test Results 파일 |"
+  ].join("\n");
   if (text.includes("파일") || text.includes("첨부")) return "파일 첨부 기능이 켜져 있습니다. 텍스트 파일은 내용 일부를 Stella에게 함께 전달합니다.";
   if (text.includes("게시판")) return "오른쪽 게시판에서 회원별 게시글을 작성하고 볼 수 있습니다.";
-  if (text.includes("unit test") || text.includes("유닛") || text.includes("단위 테스트")) return "SAP QM 모듈 Unit Test 중이라면 우선 테스트 시나리오, 선행 마스터 데이터, 권한, 주요 T-code, 정상/오류 케이스, 결과 증빙 캡처, 결함 로그를 정리하세요. 특히 QA32, QA11, QA12, QA03, QE51N, QP01/QP02, QS21/QS22 등 관련 흐름에서 검사 로트 생성부터 사용 결정까지 데이터가 일관되는지 확인하는 것이 좋습니다.";
-  if (text.includes("qm")) return "SAP QM 컨설턴트 관점에서는 검사 계획, 검사 특성, 샘플링 절차, 검사 로트, 결과 기록, 사용 결정, 품질 통지, 재고 전기까지 end-to-end 흐름을 확인해야 합니다. 테스트 중 발견한 이슈는 재현 조건, 입력값, 기대 결과, 실제 결과, 관련 T-code, 스크린샷으로 정리하면 빠르게 원인을 좁힐 수 있습니다.";
   if (text.includes("작품") || text.includes("소설") || text.includes("시집")) return "이후의 문학 작품으로는 소설 『연』, 『데자뷔』, 『소나기』와 시집 『Fantasy』 등이 소개되어 있습니다.";
   if (text.includes("음악") || text.includes("래퍼") || text.includes("유튜브")) return "이후는 YouTube Music에서 래퍼로 활동 중이며, 2025년 여러 곡을 발매했습니다.";
   if (text.includes("sap") || text.includes("전문") || text.includes("저서")) return "전문저서 영역에는 SAP ERP, ABAP, 생산관리, 품질기획, MRP, Lean 혁신 관련 저서가 정리되어 있습니다.";
-  return "Stella 서버 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  return "현재 Stella 서버 연결이 불안정합니다. 홈페이지 기본 안내 답변으로 전환했습니다. 잠시 후 다시 시도해 주세요.";
 }
 async function askStella(message, attachments = []){
   const room = activeRoom();
@@ -1034,7 +1059,7 @@ async function askStella(message, attachments = []){
     await new Promise(resolve => setTimeout(resolve, attempt * 900));
   }
   if (lastCode === "REGION_UNSUPPORTED" || /country|region|territory|supported|연결 위치/i.test(lastError)) {
-    const error = new Error("Stella 서버 연결 위치 문제로 실시간 AI 응답을 받지 못했습니다.");
+    const error = new Error("Stella 서버 연결 문제로 실시간 AI 응답을 받지 못했습니다.");
     error.code = "REGION_UNSUPPORTED";
     throw error;
   }
