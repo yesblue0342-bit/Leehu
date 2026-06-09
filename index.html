@@ -12,7 +12,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#fff;--panel:#f7f7f8;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b89a5c;--blue:#2f66b1;--red:#8b1a1a}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;height:100%}
 body{font-family:"Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
 button,input,textarea,select{font:inherit}
 button{cursor:pointer}
@@ -69,7 +69,7 @@ tr:last-child td{border-bottom:none}
 .footer-links{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:22px}
 .footer-links a{color:#4b5563;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:#fff}
 .footer-links a:hover{background:#111827;color:#fff}
-#stella{display:none;position:fixed;inset:0;z-index:100;background:#fff;color:#111827}
+#stella{display:none;position:fixed;inset:0;z-index:100;background:#fff;color:#111827;height:100dvh;overflow:hidden}
 #stella.active{display:block}
 .auth-screen{height:100vh;display:grid;place-items:center;background:#fff;padding:24px}
 .auth-card{width:min(440px,100%);border:1px solid var(--line);border-radius:24px;padding:30px;box-shadow:0 20px 60px rgba(17,24,39,.08)}
@@ -86,7 +86,7 @@ tr:last-child td{border-bottom:none}
 .field input:focus{border-color:#111827}
 .primary{width:100%;border:0;border-radius:13px;background:#111827;color:#fff;padding:13px;font-weight:900}
 .auth-msg{min-height:20px;margin-top:10px;color:#8b1a1a;font-size:.82rem}
-.stella-app{display:none;grid-template-columns:318px 1fr;height:100vh}
+.stella-app{display:none;grid-template-columns:318px 1fr;height:100dvh}
 .sidebar{display:flex;flex-direction:column;background:#f9fafb;border-right:1px solid var(--line);min-height:0}
 .side-head{padding:20px;border-bottom:1px solid var(--line)}
 .user-box{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
@@ -101,7 +101,7 @@ tr:last-child td{border-bottom:none}
 .room-btn{width:100%;border:0;background:transparent;text-align:left;border-radius:12px;padding:11px 12px}
 .room-btn:hover,.room-btn.active{background:#eef2ff}
 .room-btn small{display:block;color:#6b7280;margin-top:4px}
-.chat-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.chat-main{display:flex;flex-direction:column;min-width:0;min-height:0;height:100dvh}
 .chat-top{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line)}
 .chat-top h3{font-size:1.1rem}
 .icon-btn{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:50%;font-size:1.25rem}
@@ -112,7 +112,7 @@ tr:last-child td{border-bottom:none}
 .bubble{max-width:min(760px,80vw);border-radius:20px;padding:14px 17px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
 .msg-row.ai .bubble{background:#f7f7f8;border-top-left-radius:6px}
 .msg-row.user .bubble{background:#111827;color:#fff;border-top-right-radius:6px}
-.composer{border-top:1px solid var(--line);padding:12px 22px 20px;background:#fff}
+.composer{border-top:1px solid var(--line);padding:12px 22px calc(20px + env(safe-area-inset-bottom));background:#fff;flex:0 0 auto}
 .chips{display:flex;gap:8px;flex-wrap:wrap;width:min(920px,100%);margin:0 auto 8px}
 .chip{border:1px solid #d1d5db;background:#f9fafb;border-radius:999px;padding:6px 9px;font-size:.76rem}
 .chip button{border:0;background:transparent;color:#6b7280;margin-left:4px}
@@ -148,6 +148,16 @@ tr:last-child td{border-bottom:none}
   .sec{padding:58px 24px}
   .stella-app{grid-template-columns:1fr}
   .sidebar{display:none}
+  .chat-top{height:58px;padding:0 14px}
+  .chat-top p{display:none}
+  .messages{padding:18px 14px 14px;gap:12px}
+  .bubble{max-width:88vw}
+  .composer{padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+  .notice{display:none}
+  .model-row{font-size:.74rem;margin-bottom:6px}
+  .inputbar{gap:7px;padding:9px;border-radius:18px}
+  .inputbar textarea{max-height:96px}
+  .attach-btn,.send-btn{width:36px;height:36px}
 }
 </style>
 </head>
@@ -352,6 +362,7 @@ const STELLA_SYSTEM_PROMPT = [
   "소설가 이후의 공식 홈페이지 AI 안내입니다.",
   "방문자에게 한국어로 친절하고 간결하게 안내하세요.",
   "첨부 파일 텍스트가 제공되면 그 내용을 참고하세요.",
+  "이미지 또는 캡처가 첨부되면 이미지 안의 글자, 표, 화면 내용을 읽고 요약하거나 사용자의 요청에 맞게 분석하세요.",
   "이후의 작품, 전문저서, SAP 활동, 무도 활동, 음악 활동에 대해 답변하세요.",
   "확실하지 않은 사실은 단정하지 말고 홈페이지에 공개된 정보 기준으로 답하세요."
 ].join(" ");
@@ -367,13 +378,25 @@ let attachedFiles = [];
 function readJson(key, fallback){ try{return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));}catch{return fallback;} }
 function writeJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
 function escapeHtml(value){ return String(value).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;" }[c])); }
-async function hashPassword(text){
+function stablePasswordHash(text){
+  return btoa(unescape(encodeURIComponent(text)));
+}
+async function sha256PasswordHash(text){
   if (window.crypto && crypto.subtle) {
     const data = new TextEncoder().encode(text);
     const hash = await crypto.subtle.digest("SHA-256", data);
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
   }
-  return btoa(unescape(encodeURIComponent(text)));
+  return "";
+}
+async function hashPassword(text){
+  return stablePasswordHash(text);
+}
+async function passwordHashCandidates(text){
+  const hashes = new Set([stablePasswordHash(text)]);
+  const sha256 = await sha256PasswordHash(text);
+  if (sha256) hashes.add(sha256);
+  return hashes;
 }
 
 function setAuthMode(mode){
@@ -423,9 +446,14 @@ async function handleAuth(event){
     showApp();
     return;
   }
-  const passwordHash = await hashPassword(password);
-  const found = users.find(user => user.email === email && user.passwordHash === passwordHash);
+  const passwordHashes = await passwordHashCandidates(password);
+  const found = users.find(user => user.email === email && passwordHashes.has(user.passwordHash));
   if (!found) { $("#authMsg").textContent = "이메일 또는 비밀번호가 맞지 않습니다."; return; }
+  const stableHash = await hashPassword(password);
+  if (found.passwordHash !== stableHash) {
+    found.passwordHash = stableHash;
+    writeJson(storeKeys.users, users);
+  }
   currentUser = { name: found.name, email: found.email };
   writeJson(storeKeys.current, currentUser);
   $("#authForm").reset();
@@ -485,14 +513,112 @@ function addMessage(role, text, persist = true){
 }
 
 function setLoading(isLoading){ $("#chatInput").disabled = isLoading; $("#sendBtn").disabled = isLoading; $("#sendBtn").textContent = isLoading ? "…" : "↑"; }
+function fileToDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 async function readFileForPrompt(file){
+  if (file.type.startsWith("image/")) return `[이미지 첨부: ${file.name}, ${Math.round(file.size / 1024)}KB]`;
   const canRead = file.type.startsWith("text/") || /\.(txt|md|csv|json|xml|html|css|js)$/i.test(file.name);
   if (!canRead) return `[첨부 파일: ${file.name}, ${Math.round(file.size / 1024)}KB, 텍스트 미리보기 불가]`;
   return `[첨부 파일: ${file.name}]\n${(await file.text()).slice(0, 5000)}`;
 }
+async function prepareAttachments(files){
+  const result = [];
+  for (const file of files) {
+    if (file.type.startsWith("image/")) {
+      result.push({
+        kind:"image",
+        name:file.name,
+        type:file.type,
+        size:file.size,
+        dataUrl:await fileToDataUrl(file)
+      });
+    }
+  }
+  return result;
+}
 function renderFiles(){
   $("#chips").innerHTML = attachedFiles.map((file, index) => `<span class="chip">${escapeHtml(file.name)} <button type="button" data-index="${index}">×</button></span>`).join("");
   document.querySelectorAll(".chip button").forEach(btn => btn.addEventListener("click", () => { attachedFiles.splice(Number(btn.dataset.index), 1); renderFiles(); }));
+}
+function insertAtCursor(textarea, text){
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
+  const cursor = start + text.length;
+  textarea.setSelectionRange(cursor, cursor);
+  resizeChatInput();
+}
+function tableToMarkdown(table){
+  const rows = Array.from(table.querySelectorAll("tr")).map(row => Array.from(row.children).map(cell => cell.textContent.trim().replace(/\s+/g, " "))).filter(row => row.length);
+  if (!rows.length) return "";
+  const maxCols = Math.max(...rows.map(row => row.length));
+  const normalized = rows.map(row => Array.from({ length:maxCols }, (_, index) => row[index] || ""));
+  const divider = Array.from({ length:maxCols }, () => "---");
+  return [normalized[0], divider, ...normalized.slice(1)].map(row => "| " + row.map(cell => cell.replace(/\|/g, "\\|")).join(" | ") + " |").join("\n");
+}
+function clipboardHtmlToText(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const table = doc.querySelector("table");
+  if (table) return tableToMarkdown(table);
+  return doc.body.textContent.trim();
+}
+function tabTextToMarkdown(text){
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (!lines.length || !lines.some(line => line.includes("\t"))) return "";
+  const rows = lines.map(line => line.split("\t").map(cell => cell.trim()));
+  const maxCols = Math.max(...rows.map(row => row.length));
+  const normalized = rows.map(row => Array.from({ length:maxCols }, (_, index) => row[index] || ""));
+  const divider = Array.from({ length:maxCols }, () => "---");
+  return [normalized[0], divider, ...normalized.slice(1)].map(row => "| " + row.map(cell => cell.replace(/\|/g, "\\|")).join(" | ") + " |").join("\n");
+}
+function handleChatPaste(event){
+  const clipboard = event.clipboardData;
+  if (!clipboard) return;
+  const pastedFiles = Array.from(clipboard.files || []);
+  if (!pastedFiles.length) {
+    Array.from(clipboard.items || []).forEach(item => {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) pastedFiles.push(file);
+      }
+    });
+  }
+  if (pastedFiles.length) {
+    event.preventDefault();
+    attachedFiles.push(...pastedFiles.map((file, index) => {
+      const extension = file.type.split("/")[1] || "png";
+      const name = file.name || `clipboard-${new Date().toISOString().replace(/[:.]/g, "-")}-${index + 1}.${extension}`;
+      return new File([file], name, { type:file.type || "application/octet-stream" });
+    }));
+    renderFiles();
+    insertAtCursor($("#chatInput"), pastedFiles.length === 1 ? "[붙여넣은 이미지/파일 첨부됨]\n" : `[붙여넣은 이미지/파일 ${pastedFiles.length}개 첨부됨]\n`);
+    return;
+  }
+  const html = clipboard.getData("text/html");
+  const plain = clipboard.getData("text/plain");
+  const converted = html ? clipboardHtmlToText(html) : tabTextToMarkdown(plain);
+  if (converted && converted !== plain) {
+    event.preventDefault();
+    insertAtCursor($("#chatInput"), converted + "\n");
+  }
+}
+function resizeChatInput(){
+  const el = $("#chatInput");
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, window.innerWidth <= 1000 ? 96 : 140) + "px";
+}
+function keepComposerVisible(){
+  if (!$("#stella").classList.contains("active")) return;
+  setTimeout(() => {
+    $("#chatInput").scrollIntoView({ block:"nearest", inline:"nearest" });
+    $("#messages").scrollTop = $("#messages").scrollHeight;
+  }, 80);
 }
 function localReply(message){
   const text = message.toLowerCase();
@@ -503,11 +629,25 @@ function localReply(message){
   if (text.includes("sap") || text.includes("전문") || text.includes("저서")) return "전문저서 영역에는 SAP ERP, ABAP, 생산관리, 품질기획, MRP, Lean 혁신 관련 저서가 정리되어 있습니다.";
   return "Stella 서버 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.";
 }
-async function askStella(message){
+async function askStella(message, attachments = []){
   const room = activeRoom();
   const history = room.messages.slice(-12).map(item => ({ role:item.role === "ai" ? "assistant" : "user", content:item.text }));
   const selectedModel = $("#modelSelect")?.value || DEFAULT_STELLA_MODEL;
-  const payload = { system: STELLA_SYSTEM_PROMPT, history, message, model:selectedModel };
+  const imageParts = attachments.filter(file => file.kind === "image").map(file => ({
+    type:"input_image",
+    image_url:file.dataUrl,
+    detail:"auto"
+  }));
+  const content = [{ type:"input_text", text:message }, ...imageParts];
+  const payload = {
+    system:STELLA_SYSTEM_PROMPT,
+    history,
+    message,
+    content,
+    attachments,
+    files:attachments,
+    model:selectedModel
+  };
   const response = await fetch(STELLA_API_URL, {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
@@ -526,6 +666,7 @@ async function submitMessage(event){
   const text = $("#chatInput").value.trim();
   if (!text && !attachedFiles.length) return;
   const fileParts = await Promise.all(attachedFiles.map(readFileForPrompt));
+  const attachments = await prepareAttachments(attachedFiles);
   const fullMessage = [text, ...fileParts].filter(Boolean).join("\n\n");
   const displayMessage = [text || "첨부 파일을 분석해 주세요.", ...attachedFiles.map(file => "첨부: " + file.name)].join("\n");
   addMessage("user", displayMessage);
@@ -536,7 +677,7 @@ async function submitMessage(event){
   setLoading(true);
   const thinking = addMessage("ai", "생각하고 있습니다...", false);
   try {
-    const answer = await askStella(fullMessage);
+    const answer = await askStella(fullMessage, attachments);
     thinking.textContent = answer;
     activeRoom().messages.push({ role:"ai", text:answer });
     saveRooms();
@@ -575,13 +716,25 @@ $("#newRoomBtn").addEventListener("click", () => createRoom("새 채팅"));
 $("#chatForm").addEventListener("submit", submitMessage);
 $("#attachBtn").addEventListener("click", () => $("#fileInput").click());
 $("#fileInput").addEventListener("change", () => { attachedFiles.push(...Array.from($("#fileInput").files || [])); $("#fileInput").value = ""; renderFiles(); });
-$("#chatInput").addEventListener("input", () => { const el = $("#chatInput"); el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 140) + "px"; });
+$("#chatInput").addEventListener("input", resizeChatInput);
+$("#chatInput").addEventListener("paste", handleChatPaste);
+$("#chatInput").addEventListener("focus", keepComposerVisible);
 $("#chatInput").addEventListener("keydown", event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); $("#chatForm").requestSubmit(); } });
 $("#boardOpenBtn").addEventListener("click", openBoard);
 $("#boardCloseBtn").addEventListener("click", closeBoard);
 $("#boardBackdrop").addEventListener("click", closeBoard);
 $("#boardForm").addEventListener("submit", addPost);
 document.addEventListener("keydown", event => { if (event.key === "Escape") { if ($("#board").classList.contains("active")) closeBoard(); else if ($("#stella").classList.contains("active")) closeStella(); } });
+document.addEventListener("paste", event => {
+  if (!$("#stella").classList.contains("active")) return;
+  if (event.target === $("#chatInput") || event.target.closest("input, textarea, [contenteditable='true']")) return;
+  $("#chatInput").focus();
+  handleChatPaste(event);
+});
+if (window.visualViewport) {
+  visualViewport.addEventListener("resize", keepComposerVisible);
+  visualViewport.addEventListener("scroll", keepComposerVisible);
+}
 </script>
 </body>
 </html>
