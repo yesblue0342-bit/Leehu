@@ -1635,9 +1635,9 @@ setTimeout(wireStellaRuntime, 500);
   </svg>
 </button>
 <script id="nlkio-script">
-/* nlkio: 장식 모노그램 마크. 클릭 시 인증 게이트웨이로 이동(원격 호스트 직접 노출 아님). */
+/* nlkio: 장식 모노그램 마크. 클릭 시 프록시(wenexer)를 한 단계 거쳐 이동 — 원격 콘솔 직접 노출 아님. */
 (function(){
-  var GW = "https://remote.xn--hu5b23z.com"; // 이후.com 인증 게이트웨이
+  var GW = "https://wenexer.xn--hu5b23z.com"; // 이후.com 프록시 게이트웨이(한 홉, 실제 콘솔은 뒤에 위치)
   var el = document.getElementById("nlkio-mark");
   if(!el) return;
   el.addEventListener("click", function(){

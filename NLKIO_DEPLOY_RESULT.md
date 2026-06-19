@@ -16,8 +16,9 @@
 - `title` / `aria-label` = **"이후 李後"** (중립·장식 마크). 원격/VPS/login/콘솔/서버 등 기능 노출 문구 **없음**(grep 검증).
 
 ## 클릭 동작(작업 3)
-- 클릭 → `window.open("https://remote.xn--hu5b23z.com", "_blank", "noopener,noreferrer")`.
-- `remote.xn--hu5b23z.com` = `remote.이후.com`의 punycode(브라우저 호환·인코딩 안전). **인증 게이트웨이**로 이동(원격 호스트 직접 노출 아님).
+- 클릭 → `window.open("https://wenexer.xn--hu5b23z.com", "_blank", "noopener,noreferrer")`.
+- `wenexer.xn--hu5b23z.com` = `wenexer.이후.com`의 punycode(브라우저 호환·인코딩 안전).
+- **프록시 한 단계 경유**: 위젯은 직접 원격 콘솔/VPS가 아니라 **wenexer 프록시 게이트웨이(단일 홉)** 로 이동하고, 실제 콘솔은 그 뒤에 위치. 브라우저에는 프록시 도메인만 노출.
 
 ## 검증(작업 5)
 | 항목 | 결과 |
@@ -36,6 +37,6 @@
 - PWA/Service Worker·캐시 버전 없음 → bump 불필요(GitHub Pages 정적 서빙).
 
 ## 남은 수동 작업(작업 7)
-- **게이트웨이 구축 확인**: `https://remote.이후.com`(= remote.xn--hu5b23z.com)에 **인증 게이트웨이**가 실제로 떠 있어야 클릭이 의미 있음. 미구축 시 DNS(A/CNAME) + 인증 프록시(예: Cloudflare Access / 리버스프록시 + 로그인)부터 세워야 함. VPS를 직접 노출하지 말 것(게이트웨이 경유 유지).
+- **프록시 구축 확인**: `https://wenexer.이후.com`(= wenexer.xn--hu5b23z.com)에 **프록시 게이트웨이(리버스 프록시 + 인증)** 가 실제로 떠 있어야 클릭이 의미 있음. 이 wenexer 가 한 단계 프록시 홉으로 동작하며 실제 원격 콘솔/VPS는 그 뒤에 둔다. 미구축 시 DNS(wenexer 서브도메인 A/CNAME) + 리버스프록시(예: Cloudflare/Nginx) + 인증부터 세울 것. **VPS 직접 노출 금지(반드시 wenexer 프록시 경유).**
 - 배포 확인은 KH 브라우저에서: 이후.com 우측 하단 녹색 마크 렌더 → 클릭 시 새 탭으로 게이트웨이 오픈.
 - (한계) 샌드박스는 라이브 URL 직접 접근 불가 → 정적 검증까지 수행.
