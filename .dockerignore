@@ -1,0 +1,5 @@
+.git
+*.md
+stella_cloudflare_worker.js
+Dockerfile
+.dockerignore
