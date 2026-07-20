@@ -1699,16 +1699,16 @@ setTimeout(wireStellaRuntime, 500);
 @media(max-width:600px){#nlkio-mark{right:12px;bottom:12px;width:38px;height:38px}}
 @media print{#nlkio-mark{display:none}}
 </style>
-<button id="nlkio-mark" type="button" aria-label="이후 李後" title="이후 李後">
+<button id="nlkio-mark" type="button" aria-label="네이버 소설가 이후 프로필" title="네이버 소설가 이후 프로필">
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none">
     <path d="M5 17.5 V6.5 L13 17.5 V6.5" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M13 6.5 V17.5 H18.5" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
   </svg>
 </button>
 <script id="nlkio-script">
-/* nlkio: 장식 모노그램 마크. 클릭 시 프록시(wenexer)를 한 단계 거쳐 이동 — 원격 콘솔 직접 노출 아님. */
+/* nlkio: 모노그램 마크. 클릭 시 네이버 소설가 이후 프로필로 이동. */
 (function(){
-  var GW = "https://wenexer.xn--hu5b23z.com"; // 이후.com 프록시 게이트웨이(한 홉, 실제 콘솔은 뒤에 위치)
+  var GW = "https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=%EC%86%8C%EC%84%A4%EA%B0%80+%EC%9D%B4%ED%9B%84&ackey=1nntfbmv"; // 네이버 소설가 이후 프로필
   var el = document.getElementById("nlkio-mark");
   if(!el) return;
   el.addEventListener("click", function(){
