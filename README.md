@@ -6,160 +6,66 @@
 - 한글 표시 도메인: https://이후.com/
 - 저장소: https://github.com/yesblue0342-bit/Leehu
 
-## 문학노트
+## 문학노트 정적 발행
 
-`이후의 문학노트`는 Hermes 또는 n8n이 매일 1회 고전문학/한국문학의 짧은 인용문과 출처, 그리고 “소설가 이후의 생각”을 API로 발행하는 정식 콘텐츠 영역입니다.
+문학노트는 GitHub Pages에서 직접 제공하는 정적 HTML입니다. 정기 발행, n8n, API token, 런타임 데이터베이스 없이 한 번의 배치로 공개합니다.
 
-새 문학노트는 `/data/literature-posts/{slug}.json`에 저장됩니다. 코드나 HTML 파일을 매일 생성하지 않으므로 새 글 등록만으로 Git commit, GitHub Actions, Docker image rebuild, OCI 재배포가 필요하지 않습니다.
-
-## URL과 ID 규칙
-
-내부 ID:
+### 구조
 
 ```text
-YYYYMMDD_leehu_literature_NN
+content/literature/001.json … 365.json   원본 데이터
+scripts/curate_literature.py              공공영역 원문 큐레이션 도구
+scripts/build_literature.py               검증 및 정적 사이트 생성기
+literature/index.html                     목록 첫 페이지
+literature/page/N/index.html              페이지네이션
+literature/{slug}/index.html              개별 문학노트
+literature/rss.xml                        RSS 피드
+sitemap.xml                               전체 사이트맵
 ```
 
-공개 slug:
+문학노트 데이터에는 내부 관리 ID, 공개 slug, 짧은 원문 인용, 작가·작품·위치·원문 언어·직접 출처 URL·번역 및 권리 메모·해설·태그·관련 작품 링크를 저장합니다. 내부 ID는 배치 관리용이며 공개 URL에는 사용하지 않습니다.
+
+### 정적 생성
+
+```bash
+cd C:\codex\Leehu
+python scripts/build_literature.py
+python -m unittest
+```
+
+출력 예시:
 
 ```text
-YYYYMMDD-leehu-literature-NN-{topic-slug}
+built 365 detail pages, 15 list pages, 365 RSS items, and 381 sitemap URLs
 ```
 
-예:
+생성기는 다음을 중단 조건으로 검증합니다.
 
-```text
-20260727_leehu_literature_01
-20260727-leehu-literature-01-shakespeare-love
-```
+- 정확히 365개 JSON 및 내부 ID/파일명 대응
+- slug·제목·인용문·canonical 중복 및 유사도
+- 출처 URL·필수 필드·인용문 대비 해설 길이
+- commentary 첫 문장·마지막 문장 중복
+- 작가·작품·태그 편중
+- 정적 내부 링크, HTML escape, JSON-LD, RSS, sitemap
 
-날짜는 Asia/Seoul 기준입니다. 같은 날짜의 두 번째 글은 `02`, 다음 날짜는 다시 `01`부터 시작합니다. `topic-slug`는 영문 소문자, 숫자, 하이픈만 허용됩니다. slug가 없으면 서버가 제목, 인용 작가, 작품명을 기반으로 자동 생성합니다.
+### 새 문학노트 추가 또는 코퍼스 재생성
 
-## 환경변수
-
-```text
-BOARD_POSTS_DIR=/data/board-posts
-LITERATURE_POSTS_DIR=/data/literature-posts
-LITERATURE_API_TOKEN=긴_임의_토큰
-LITERATURE_ALLOWED_ORIGINS=https://example.com,https://n8n.example.com
-```
-
-`LITERATURE_API_TOKEN`은 문학노트 POST, PUT, DELETE에 필요합니다. 토큰은 코드나 프런트엔드에 노출하지 않습니다.
-
-## 로컬 실행
+1. `content/literature/`에 필수 필드를 갖춘 새 JSON을 추가하거나, 공공영역 원문을 다시 큐레이션합니다.
+2. `python scripts/build_literature.py`를 실행합니다.
+3. `python -m unittest`로 전체 정적·기존 게시판 회귀 테스트를 실행합니다.
+4. 생성된 `literature/`, `literature/rss.xml`, `sitemap.xml`, 홈페이지 카드 변경을 확인합니다.
+5. 커밋하고 `main`에 push합니다.
 
 ```bash
-set PORT=8765
-set BOARD_POSTS_DIR=%TEMP%\leehu-board-posts
-set LITERATURE_POSTS_DIR=%TEMP%\leehu-literature-posts
-set LITERATURE_API_TOKEN=dev-token
-python server.py
+git add -A
+git commit -m "content: add new literature notes"
+git push
 ```
 
-확인:
+### 권리 및 출처 처리
 
-```bash
-curl http://127.0.0.1:8765/
-curl http://127.0.0.1:8765/literature/
-```
+원문은 Project Gutenberg가 제공하는 공공영역 영어 텍스트에서 짧게 인용합니다. 현대 한국어 번역문을 저장하거나 장문 전재하지 않습니다. `scripts/curate_literature.py`는 직접 원문을 내려받아 인용문이 원문 본문에 존재하는지 확인한 후 JSON을 생성합니다.
 
-## Docker 실행
+## 기존 서버 코드
 
-```bash
-docker build -t leehu .
-docker run -p 8080:80 ^
-  -e LITERATURE_API_TOKEN=change-me ^
-  -e BOARD_POSTS_DIR=/data/board-posts ^
-  -e LITERATURE_POSTS_DIR=/data/literature-posts ^
-  -v leehu-data:/data ^
-  leehu
-```
-
-`/data` 볼륨 아래에 방문자 게시판과 문학노트가 분리 저장됩니다.
-
-```text
-/data/board-posts
-/data/literature-posts
-```
-
-컨테이너 재시작, Docker 이미지 교체, GitHub Actions 배포 후에도 같은 `/data` 볼륨을 유지하면 기존 게시글과 문학노트가 유지됩니다.
-
-## n8n / Hermes 발행 예시
-
-POST:
-
-```bash
-curl -X POST https://xn--hu5b23z.com/api/literature/posts \
-  -H "Authorization: Bearer $LITERATURE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title":"셰익스피어가 바라본 사랑의 맹목성",
-    "quote":"짧은 인용문 한두 문장",
-    "source_author":"William Shakespeare",
-    "source_work":"A Midsummer Night'\''s Dream",
-    "source_location":"Act 1, Scene 1",
-    "source_language":"en",
-    "translation_note":"영문 원전 기반 자체 번역",
-    "rights_note":"원전 및 번역 사용 조건 확인",
-    "commentary":"사랑은 상대를 있는 그대로 보는 일이라기보다, 때로는 보고 싶은 모습으로 바라보는 일인지도 모릅니다. 소설 『연』을 쓰던 때에도 사랑이 사람의 기억을 어떻게 바꾸는지 오래 생각했습니다. 오늘은 이 문장을 함께 나누고 싶습니다.",
-    "closing":"소설가 이후 드림",
-    "author":"소설가 이후",
-    "published_at":"2026-07-27T09:00:00+09:00",
-    "tags":["사랑","셰익스피어","고전문학","소설가 이후"],
-    "status":"published"
-  }'
-```
-
-PUT:
-
-```bash
-curl -X PUT https://xn--hu5b23z.com/api/literature/posts/20260727-leehu-literature-01-shakespeare-love \
-  -H "Authorization: Bearer $LITERATURE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"commentary":"수정된 이후의 생각 본문입니다. 인용문보다 충분히 긴 해설을 유지해야 합니다.","status":"published"}'
-```
-
-DELETE 또는 archive:
-
-```bash
-curl -X DELETE https://xn--hu5b23z.com/api/literature/posts/20260727-leehu-literature-01-shakespeare-love \
-  -H "Authorization: Bearer $LITERATURE_API_TOKEN"
-```
-
-성공 응답:
-
-```json
-{
-  "id": "20260727_leehu_literature_01",
-  "slug": "20260727-leehu-literature-01-shakespeare-love",
-  "canonical_url": "https://xn--hu5b23z.com/literature/20260727-leehu-literature-01-shakespeare-love"
-}
-```
-
-오류 응답:
-
-```json
-{"error":"unauthorized"}
-{"error":"validation_failed","details":["commentary_too_short"]}
-{"error":"duplicate_id_or_slug"}
-```
-
-## 공개 URL
-
-- 문학노트 목록: `/literature/`
-- 문학노트 상세: `/literature/{slug}`
-- 문학노트 JSON 목록: `/api/literature/posts`
-- 문학노트 JSON 상세: `/api/literature/posts/{slug}`
-- RSS: `/literature/rss.xml`
-- 동적 사이트맵: `/sitemap.xml`
-
-## 데이터 백업
-
-백업 대상:
-
-```text
-/data/board-posts
-/data/literature-posts
-```
-
-파일 단위 JSON 저장이므로 폴더 전체를 복사하면 됩니다.
+`server.py`, `Dockerfile`, 방문자 게시판 API는 기존 기능 호환을 위해 보존합니다. 현재 문학노트 공개는 GitHub Pages 정적 HTML을 기준으로 하며, 정적 산출물은 서버 API에 의존하지 않습니다.
