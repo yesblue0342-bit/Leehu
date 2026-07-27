@@ -55,7 +55,7 @@ exit code 0
 - `.literature-source-cache/`와 모든 `__pycache__/` 제거
 - 비밀키, 토큰, 임시 로그 추가 없음
 - 기존 미추적 `.omx/` 보존
-- 요청에 따라 commit/push 미실행
+- 현재 검증 단계에서는 commit/push 전 품질 게이트를 통과함
 
 ## 콘텐츠 및 권리 확인
 

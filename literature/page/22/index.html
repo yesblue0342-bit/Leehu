@@ -56,57 +56,19 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
   <h1>이후의 문학노트</h1>
   <p class="lede">직접 확인할 수 있는 퍼블릭 도메인 원문의 한 문장과, 그 문장을 오늘의 삶으로 이어 읽은 소설가 이후의 기록입니다.</p>
 <form class="search-panel" id="literatureSearch" role="search">
-  <div class="search-box">
-    <input id="literatureSearchInput" name="q" type="search" placeholder="제목, 작가, 작품, 키워드로 문학노트 검색" autocomplete="off" aria-label="문학노트 검색">
-    <button type="submit">검색</button>
-  </div>
+  <div class="search-box"><input id="literatureSearchInput" type="search" placeholder="제목, 작가, 작품, 키워드로 문학노트 검색" autocomplete="off" aria-label="문학노트 검색"><button type="submit">검색</button></div>
   <p class="search-meta" id="literatureSearchMeta">키워드를 입력하면 전체 문학노트에서 찾아 보여줍니다.</p>
 </form>
 <script>
-(function () {
-  const form = document.getElementById("literatureSearch");
-  const input = document.getElementById("literatureSearchInput");
-  const meta = document.getElementById("literatureSearchMeta");
-  const grid = document.querySelector(".grid");
-  const pagination = document.querySelector(".pagination");
-  if (!form || !input || !meta || !grid) return;
-  const original = grid.cloneNode(true);
-  const originalPagination = pagination ? pagination.style.display : "";
-  let postsPromise;
-  function getPosts() {
-    if (!postsPromise) postsPromise = fetch("/literature/rss.xml", { cache: "no-store" })
-      .then(function (response) { if (!response.ok) throw new Error("rss"); return response.text(); })
-      .then(function (xml) {
-        const doc = new DOMParser().parseFromString(xml, "application/xml");
-        return Array.from(doc.querySelectorAll("item")).map(function (item) {
-          const value = function (selector) { const node = item.querySelector(selector); return node ? node.textContent.trim() : ""; };
-          const categories = Array.from(item.querySelectorAll("category")).map(function (node) { return node.textContent.trim(); });
-          return { title: value("title"), link: value("link"), description: value("description"), categories: categories };
-        });
-      });
-    return postsPromise;
-  }
-  function addCard(post) {
-    const link = document.createElement("a"); link.className = "note-card"; link.href = post.link;
-    const source = document.createElement("small"); source.textContent = post.categories.join(" · "); link.appendChild(source);
-    const title = document.createElement("h2"); title.textContent = post.title; link.appendChild(title);
-    const body = document.createElement("blockquote"); body.textContent = post.description.slice(0, 180) + (post.description.length > 180 ? "…" : ""); link.appendChild(body);
-    const detail = document.createElement("p"); detail.textContent = "자세히 읽기"; link.appendChild(detail);
-    grid.appendChild(link);
-  }
-  function search() {
-    const query = input.value.trim();
-    if (!query) { grid.replaceWith(original.cloneNode(true)); meta.textContent = "키워드를 입력하면 전체 문학노트에서 찾아 보여줍니다."; if (pagination) pagination.style.display = originalPagination; return; }
-    meta.textContent = "검색 중입니다.";
-    getPosts().then(function (posts) {
-      const terms = query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-      const results = posts.filter(function (post) { return terms.every(function (term) { return [post.title, post.description, post.categories.join(" ")].join(" ").toLocaleLowerCase().includes(term); }); }).slice(0, 60);
-      grid.replaceChildren(); results.forEach(addCard); meta.textContent = "검색 결과 " + results.length + "건"; if (pagination) pagination.style.display = "none";
-      if (!results.length) { const empty = document.createElement("p"); empty.className = "lede"; empty.textContent = "검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요."; grid.appendChild(empty); }
-    }).catch(function () { meta.textContent = "검색 데이터를 불러오지 못했습니다."; });
-  }
-  form.addEventListener("submit", function (event) { event.preventDefault(); search(); });
-  input.addEventListener("input", function () { clearTimeout(input._searchTimer); input._searchTimer = setTimeout(search, 180); });
+(function(){
+  const form=document.getElementById("literatureSearch"), input=document.getElementById("literatureSearchInput"), meta=document.getElementById("literatureSearchMeta"), grid=document.querySelector(".grid"), pagination=document.querySelector(".pagination");
+  if(!form||!input||!meta||!grid) return;
+  const original=grid.innerHTML, originalPagination=pagination ? pagination.style.display : "";
+  let feed;
+  function posts(){ if(!feed) feed=fetch("/literature/rss.xml",{cache:"no-store"}).then(function(r){if(!r.ok)throw Error("rss");return r.text();}).then(function(xml){const doc=new DOMParser().parseFromString(xml,"application/xml");return Array.from(doc.querySelectorAll("item")).map(function(item){const text=function(name){const n=item.querySelector(name);return n?n.textContent.trim():"";};return {title:text("title"),link:text("link"),description:text("description"),tags:Array.from(item.querySelectorAll("category")).map(function(n){return n.textContent.trim();})};});}); return feed; }
+  function add(post){const a=document.createElement("a"), small=document.createElement("small"), h2=document.createElement("h2"), quote=document.createElement("blockquote"), p=document.createElement("p");a.className="note-card";a.href=post.link;small.textContent=post.tags.join(" · ");h2.textContent=post.title;quote.textContent=post.description.slice(0,180)+(post.description.length>180?"…":"");p.textContent="자세히 읽기";a.append(small,h2,quote,p);grid.appendChild(a);}
+  function search(){const query=input.value.trim().toLocaleLowerCase();if(!query){grid.innerHTML=original;meta.textContent="키워드를 입력하면 전체 문학노트에서 찾아 보여줍니다.";if(pagination)pagination.style.display=originalPagination;return;}meta.textContent="검색 중입니다.";posts().then(function(items){const terms=query.split(/\s+/).filter(Boolean), results=items.filter(function(post){return terms.every(function(term){return [post.title,post.description,post.tags.join(" ")].join(" ").toLocaleLowerCase().includes(term);});}).slice(0,60);grid.replaceChildren();results.forEach(add);if(!results.length){const empty=document.createElement("p");empty.className="lede";empty.textContent="검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요.";grid.appendChild(empty);}meta.textContent="검색 결과 "+results.length+"건";if(pagination)pagination.style.display="none";}).catch(function(){meta.textContent="검색 데이터를 불러오지 못했습니다.";});}
+  form.addEventListener("submit",function(e){e.preventDefault();search();}); input.addEventListener("input",function(){clearTimeout(input._timer);input._timer=setTimeout(search,180);});
 }());
 </script>
 </div></header>

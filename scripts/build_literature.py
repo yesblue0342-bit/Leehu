@@ -55,6 +55,23 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 @media(max-width:850px){.grid{grid-template-columns:1fr}.nav-links{gap:10px;font-size:.78rem}.post-nav{grid-template-columns:1fr}}
 """
 
+SEARCH_COMPONENT = """<form class="search-panel" id="literatureSearch" role="search">
+  <div class="search-box"><input id="literatureSearchInput" type="search" placeholder="제목, 작가, 작품, 키워드로 문학노트 검색" autocomplete="off" aria-label="문학노트 검색"><button type="submit">검색</button></div>
+  <p class="search-meta" id="literatureSearchMeta">키워드를 입력하면 전체 문학노트에서 찾아 보여줍니다.</p>
+</form>
+<script>
+(function(){
+  const form=document.getElementById("literatureSearch"), input=document.getElementById("literatureSearchInput"), meta=document.getElementById("literatureSearchMeta"), grid=document.querySelector(".grid"), pagination=document.querySelector(".pagination");
+  if(!form||!input||!meta||!grid) return;
+  const original=grid.innerHTML, originalPagination=pagination ? pagination.style.display : "";
+  let feed;
+  function posts(){ if(!feed) feed=fetch("/literature/rss.xml",{cache:"no-store"}).then(function(r){if(!r.ok)throw Error("rss");return r.text();}).then(function(xml){const doc=new DOMParser().parseFromString(xml,"application/xml");return Array.from(doc.querySelectorAll("item")).map(function(item){const text=function(name){const n=item.querySelector(name);return n?n.textContent.trim():"";};return {title:text("title"),link:text("link"),description:text("description"),tags:Array.from(item.querySelectorAll("category")).map(function(n){return n.textContent.trim();})};});}); return feed; }
+  function add(post){const a=document.createElement("a"), small=document.createElement("small"), h2=document.createElement("h2"), quote=document.createElement("blockquote"), p=document.createElement("p");a.className="note-card";a.href=post.link;small.textContent=post.tags.join(" · ");h2.textContent=post.title;quote.textContent=post.description.slice(0,180)+(post.description.length>180?"…":"");p.textContent="자세히 읽기";a.append(small,h2,quote,p);grid.appendChild(a);}
+  function search(){const query=input.value.trim().toLocaleLowerCase();if(!query){grid.innerHTML=original;meta.textContent="키워드를 입력하면 전체 문학노트에서 찾아 보여줍니다.";if(pagination)pagination.style.display=originalPagination;return;}meta.textContent="검색 중입니다.";posts().then(function(items){const terms=query.split(/\\s+/).filter(Boolean), results=items.filter(function(post){return terms.every(function(term){return [post.title,post.description,post.tags.join(" ")].join(" ").toLocaleLowerCase().includes(term);});}).slice(0,60);grid.replaceChildren();results.forEach(add);if(!results.length){const empty=document.createElement("p");empty.className="lede";empty.textContent="검색 결과가 없습니다. 다른 키워드로 다시 찾아보세요.";grid.appendChild(empty);}meta.textContent="검색 결과 "+results.length+"건";if(pagination)pagination.style.display="none";}).catch(function(){meta.textContent="검색 데이터를 불러오지 못했습니다.";});}
+  form.addEventListener("submit",function(e){e.preventDefault();search();}); input.addEventListener("input",function(){clearTimeout(input._timer);input._timer=setTimeout(search,180);});
+}());
+</script>"""
+
 
 def esc(value: object) -> str:
     return html.escape(str(value), quote=True)
