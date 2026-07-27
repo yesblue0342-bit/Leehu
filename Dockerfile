@@ -3,6 +3,8 @@ FROM python:3.12-alpine
 WORKDIR /app
 COPY index.html robots.txt sitemap.xml CNAME og-image.jpg ./
 COPY google17ccaa674b8b790b.html naver7a6895689b825b13f6abd14a77c7c18a.html ./
+COPY 404.html ./404.html
+COPY literature ./literature
 COPY server.py ./
 ENV PORT=80
 ENV BOARD_POSTS_DIR=/data/board-posts
