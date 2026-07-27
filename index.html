@@ -236,6 +236,12 @@ body.board-mode #board{display:grid}
 .post-delete{border:1px solid #e5e7eb;background:#fafafa;border-radius:999px;padding:6px 10px;color:#6b7280;font-size:.78rem;flex:0 0 auto}
 .post-delete:hover{background:#111827;color:#fff}
 .empty-posts{color:#6b7280;line-height:1.8;text-align:center;padding:28px 12px}
+.board-literature{margin-top:24px;border-top:1px solid var(--line);padding-top:20px}
+.board-literature h3{font-size:1rem;margin-bottom:10px}
+.board-literature a{display:block;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;text-decoration:none;background:#fff}
+.board-literature a:hover{border-color:var(--gold)}
+.board-literature strong{display:block;font-size:.92rem;line-height:1.45}
+.board-literature span{display:block;color:#6b7280;font-size:.78rem;line-height:1.7;margin-top:4px}
 .stella-board-backdrop{display:none;position:fixed;inset:0;z-index:110;background:rgba(17,24,39,.18)}
 .stella-board-backdrop.active{display:block}
 .stella-board{display:none;position:fixed;top:0;right:0;bottom:0;z-index:111;width:min(540px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 60px rgba(17,24,39,.12);flex-direction:column}
@@ -610,6 +616,7 @@ body.stella-open #stellaButton{display:none!important}
     <li><a href="#martial">무도</a></li>
     <li><a href="#books">전문저서</a></li>
     <li><a href="#music">음악</a></li>
+    <li><a href="/literature/">문학노트</a></li>
     <li><a href="#contact">연락</a></li>
     <li><a href="#board">게시판</a></li>
   </ul>
@@ -733,11 +740,31 @@ body.stella-open #stellaButton{display:none!important}
   </div>
 </section>
 
+<section id="literature-latest" class="sec wide">
+  <p class="sec-title">Literature Notes · 이후의 문학노트</p>
+  <div class="about-grid" style="margin-bottom:28px">
+    <div>
+      <h2 style="font-size:clamp(2rem,3.2vw,3rem);line-height:1.25">이후의 문학노트</h2>
+      <p class="tagline">고전 문학의 한 문장과<br>그 문장을 바라보는 소설가 이후의 생각</p>
+    </div>
+    <div style="display:flex;align-items:end;justify-content:flex-end">
+      <a class="mini-link" href="/literature/">전체 문학노트 보기</a>
+    </div>
+  </div>
+  <div class="cards">
+    <!-- LITERATURE_LATEST_ITEMS -->
+  </div>
+</section>
+
 <section id="board" class="sec board-section">
   <div class="board-copy">
     <p class="sec-title">Board · 글 남기기</p>
     <h2>방문자 게시판</h2>
     <p>이후 홈페이지에 남기고 싶은 글, 좋은 문구, 응원 메시지를 자유롭게 기록할 수 있습니다. 등록된 글은 검색할 수 있고, 필요하면 삭제할 수 있습니다.</p>
+    <div class="board-literature">
+      <h3>최근 문학노트</h3>
+      <!-- BOARD_LITERATURE_ITEMS -->
+    </div>
   </div>
   <div class="board-panel" aria-live="polite">
     <form id="publicBoardForm" class="board-form">
@@ -766,6 +793,7 @@ body.stella-open #stellaButton{display:none!important}
     <a href="https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">나무위키</a>
     <a href="https://search.daum.net/search?w=tot&q=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Daum</a>
     <a href="https://www.google.com/search?q=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Google</a>
+    <a href="/literature/">문학노트</a>
     <a href="https://store.kyobobook.co.kr/person/detail/1000809404" target="_blank" rel="noopener">교보문고</a>
     <a href="https://www.yes24.com/Product/Search?domain=BOOK&query=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">YES24</a>
   </div>
