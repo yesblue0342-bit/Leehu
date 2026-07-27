@@ -48,6 +48,12 @@ class StaticLiteratureTest(unittest.TestCase):
             )
             self.assertTrue(REQUIRED <= set(note))
 
+    def test_search_component_waits_for_document_and_indexes_author_work(self) -> None:
+        page = (LITERATURE / "index.html").read_text(encoding="utf-8")
+        self.assertIn('document.addEventListener("DOMContentLoaded"', page)
+        self.assertIn('author:text("author")', page)
+        self.assertIn('work:text("source")', page)
+
     def test_publication_order_places_newer_batch_and_higher_sequence_first(self) -> None:
         notes = [
             {"id": "20260728_leehu_literature_002", "published_at": "2026-07-28T12:00:00+09:00"},
