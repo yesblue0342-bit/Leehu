@@ -212,18 +212,32 @@ tr:last-child td{border-bottom:none}
 .mobile-sidebar-backdrop.active{display:block}
 .sidebar-toggle{display:none}
 
-.board-backdrop{display:none;position:fixed;inset:0;z-index:110;background:rgba(17,24,39,.18)}
-.board-backdrop.active{display:block}
-.board{display:none;position:fixed;top:0;right:0;bottom:0;z-index:111;width:min(540px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 60px rgba(17,24,39,.12);flex-direction:column}
-.board.active{display:flex}
-.board-head{height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--line)}
-.board-body{padding:18px;overflow:auto}
-.board-form{display:grid;gap:9px;margin-bottom:18px}
+.board-section{display:grid;grid-template-columns:minmax(280px,.76fr) minmax(0,1.24fr);gap:34px;align-items:start}
+.board-copy h2{font-size:clamp(1.9rem,3vw,2.8rem);line-height:1.25;margin-bottom:18px}
+.board-copy p{color:#4b5563;line-height:1.9;margin-bottom:14px}
+.board-api{border:1px solid var(--line);border-radius:14px;background:#fafafa;padding:14px;color:#374151;font-size:.84rem;line-height:1.7}
+.board-panel{border:1px solid var(--line);border-radius:18px;background:#fff;overflow:hidden}
+.board-toolbar{display:flex;gap:10px;align-items:center;padding:14px;border-bottom:1px solid var(--line);background:#fafafa}
+.board-toolbar input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:11px 12px;outline:none}
+.board-form{display:grid;gap:10px;padding:16px;border-bottom:1px solid var(--line)}
+.board-form-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.34fr);gap:10px}
 .board-form input,.board-form textarea{border:1px solid #d1d5db;border-radius:13px;padding:12px;outline:none}
-.board-form textarea{min-height:96px;resize:vertical}
-.post{border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:11px}
-.post p{white-space:pre-wrap;color:#374151;line-height:1.75;margin-top:7px}
-.post small{display:block;color:#9ca3af;margin-top:8px}
+.board-form textarea{min-height:112px;resize:vertical}
+.board-form input:focus,.board-form textarea:focus,.board-toolbar input:focus{border-color:#111827}
+.board-status{min-height:20px;color:#6b7280;font-size:.84rem;padding:0 16px 14px}
+.post-list{padding:16px}
+.post{border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px;background:#fff}
+.post-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.post h3{font-size:1rem;line-height:1.45}
+.post p{white-space:pre-wrap;color:#374151;line-height:1.8;margin-top:9px}
+.post small{display:block;color:#9ca3af;margin-top:9px}
+.post-delete{border:1px solid #e5e7eb;background:#fafafa;border-radius:999px;padding:6px 10px;color:#6b7280;font-size:.78rem;flex:0 0 auto}
+.post-delete:hover{background:#111827;color:#fff}
+.empty-posts{color:#6b7280;line-height:1.8;text-align:center;padding:28px 12px}
+.stella-board-backdrop{display:none;position:fixed;inset:0;z-index:110;background:rgba(17,24,39,.18)}
+.stella-board-backdrop.active{display:block}
+.stella-board{display:none;position:fixed;top:0;right:0;bottom:0;z-index:111;width:min(540px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-20px 0 60px rgba(17,24,39,.12);flex-direction:column}
+.stella-board.active{display:flex}
 @media(max-width:1000px){
   .site-nav{padding:0 190px 0 22px}
   .nav-links{display:none}
@@ -231,7 +245,7 @@ tr:last-child td{border-bottom:none}
   .hero{grid-template-columns:1fr}
   .hero-left{padding:58px 24px 70px}
   .hero-right{min-height:260px;border-left:0;border-top:1px solid var(--line)}
-  .about-grid,.cards,.identity-grid{grid-template-columns:1fr}
+  .about-grid,.cards,.identity-grid,.board-section{grid-template-columns:1fr}
   .sec{padding:58px 24px}
   #stella.active{overflow:hidden}
   .stella-app{grid-template-columns:1fr;height:100dvh;position:relative}
@@ -595,6 +609,7 @@ body.stella-open #stellaButton{display:none!important}
     <li><a href="#books">전문저서</a></li>
     <li><a href="#music">음악</a></li>
     <li><a href="#contact">연락</a></li>
+    <li><a href="#board">게시판</a></li>
   </ul>
 </nav>
 <input id="stellaToggle" type="checkbox" aria-hidden="true" disabled>
@@ -715,6 +730,34 @@ body.stella-open #stellaButton{display:none!important}
   </div>
 </section>
 
+<section id="board" class="sec board-section">
+  <div class="board-copy">
+    <p class="sec-title">Board · 글 남기기</p>
+    <h2>방문자 게시판</h2>
+    <p>이후 홈페이지에 남기고 싶은 글, 좋은 문구, 응원 메시지를 자유롭게 기록할 수 있습니다. 등록된 글은 검색할 수 있고, 필요하면 삭제할 수 있습니다.</p>
+    <div class="board-api">
+      <strong>자동 등록 API</strong><br>
+      n8n, Hermes 등 자동화 도구에서는 <code>POST /api/board/posts</code>로 제목과 본문을 보내면 됩니다.<br>
+      JSON 예시: <code>{"title":"문구","body":"오늘의 좋은 글","author":"n8n"}</code>
+    </div>
+  </div>
+  <div class="board-panel" aria-live="polite">
+    <form id="publicBoardForm" class="board-form">
+      <div class="board-form-row">
+        <input id="publicPostTitle" name="title" maxlength="120" placeholder="제목" required>
+        <input id="publicPostAuthor" name="author" maxlength="40" placeholder="작성자">
+      </div>
+      <textarea id="publicPostBody" name="body" maxlength="5000" placeholder="글이나 좋은 문구를 입력하세요." required></textarea>
+      <button class="primary" type="submit">게시글 등록</button>
+    </form>
+    <div class="board-toolbar">
+      <input id="publicBoardSearch" type="search" placeholder="게시글 검색" aria-label="게시글 검색">
+    </div>
+    <div id="publicBoardStatus" class="board-status">게시글을 불러오는 중입니다.</div>
+    <div id="publicPostList" class="post-list"></div>
+  </div>
+</section>
+
 <footer id="contact" class="footer">
   <h2>이후 李後</h2>
   <p>소설가 · 시인 · 공학박사 · SAP 전문가 · 래퍼 · 무도인 · 주식회사 소설가이후 대표</p>
@@ -809,8 +852,8 @@ body.stella-open #stellaButton{display:none!important}
   </div>
 </div>
 
-<div id="boardBackdrop" class="board-backdrop"></div>
-<section id="board" class="board">
+<div id="boardBackdrop" class="stella-board-backdrop"></div>
+<section id="stellaBoard" class="stella-board">
   <div class="board-head"><h3>Stella 게시판</h3><button id="boardCloseBtn" class="icon-btn" type="button">×</button></div>
   <div class="board-body">
     <form id="boardForm" class="board-form"><input id="postTitle" placeholder="제목" required><textarea id="postBody" placeholder="게시글 내용을 입력하세요." required></textarea><button class="primary" type="submit">게시글 등록</button></form>
@@ -853,6 +896,146 @@ function escapeHtml(value){ return String(value).replace(/[&<>"']/g, c => ({ "&"
 function stripAttachmentPlaceholders(text){
   return String(text || "").replace(/\[붙여넣은 이미지\/파일(?: \d+개)? 첨부됨\]\s*/g, "").trim();
 }
+const BOARD_API_URL = "/api/board/posts";
+let publicBoardSearchTimer = null;
+
+function setBoardStatus(message, isError = false){
+  const status = document.getElementById("publicBoardStatus");
+  if (!status) return;
+  status.textContent = message || "";
+  status.style.color = isError ? "#8b1a1a" : "#6b7280";
+}
+
+function boardDate(value){
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat("ko-KR", {
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit",
+      hour:"2-digit",
+      minute:"2-digit"
+    }).format(new Date(value));
+  } catch {
+    return String(value);
+  }
+}
+
+async function loadPublicPosts(){
+  const list = document.getElementById("publicPostList");
+  const search = document.getElementById("publicBoardSearch");
+  if (!list) return;
+
+  const query = search ? search.value.trim() : "";
+  const url = query ? `${BOARD_API_URL}?q=${encodeURIComponent(query)}` : BOARD_API_URL;
+  setBoardStatus("게시글을 불러오는 중입니다.");
+
+  try {
+    const response = await fetch(url, { headers:{ "Accept":"application/json" }, cache:"no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "게시글을 불러오지 못했습니다.");
+    renderPublicPosts(Array.isArray(data.posts) ? data.posts : []);
+    setBoardStatus(query ? `검색 결과 ${data.posts?.length || 0}건` : `게시글 ${data.posts?.length || 0}건`);
+  } catch (error) {
+    list.innerHTML = '<div class="empty-posts">게시판 서버에 연결할 수 없습니다.</div>';
+    setBoardStatus(error.message || "게시글을 불러오지 못했습니다.", true);
+  }
+}
+
+function renderPublicPosts(posts){
+  const list = document.getElementById("publicPostList");
+  if (!list) return;
+  if (!posts.length) {
+    list.innerHTML = '<div class="empty-posts">아직 게시글이 없습니다.</div>';
+    return;
+  }
+
+  list.innerHTML = posts.map(post => `
+    <article class="post" data-post-id="${escapeHtml(post.id)}">
+      <div class="post-head">
+        <div>
+          <h3>${escapeHtml(post.title || "제목 없음")}</h3>
+          <small>${escapeHtml(post.author || "방문자")} · ${escapeHtml(boardDate(post.created_at))}</small>
+        </div>
+        <button class="post-delete" type="button" data-delete-post="${escapeHtml(post.id)}">삭제</button>
+      </div>
+      <p>${escapeHtml(post.body || "")}</p>
+    </article>
+  `).join("");
+}
+
+async function submitPublicPost(event){
+  event.preventDefault();
+  const form = event.currentTarget;
+  const title = document.getElementById("publicPostTitle")?.value.trim();
+  const body = document.getElementById("publicPostBody")?.value.trim();
+  const author = document.getElementById("publicPostAuthor")?.value.trim() || "방문자";
+  if (!title || !body) return;
+
+  setBoardStatus("게시글을 등록하는 중입니다.");
+  try {
+    const response = await fetch(BOARD_API_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify({ title, body, author, source:"website" })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "게시글을 등록하지 못했습니다.");
+    form.reset();
+    await loadPublicPosts();
+    setBoardStatus("게시글이 등록되었습니다.");
+  } catch (error) {
+    setBoardStatus(error.message || "게시글을 등록하지 못했습니다.", true);
+  }
+}
+
+async function deletePublicPost(id){
+  if (!id) return;
+  setBoardStatus("게시글을 삭제하는 중입니다.");
+  try {
+    const response = await fetch(`${BOARD_API_URL}/${encodeURIComponent(id)}`, {
+      method:"DELETE",
+      headers:{ "Accept":"application/json" }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "게시글을 삭제하지 못했습니다.");
+    await loadPublicPosts();
+    setBoardStatus("게시글이 삭제되었습니다.");
+  } catch (error) {
+    setBoardStatus(error.message || "게시글을 삭제하지 못했습니다.", true);
+  }
+}
+
+function renderPosts(){
+  loadPublicPosts();
+}
+
+function wirePublicBoard(){
+  const form = document.getElementById("publicBoardForm");
+  const search = document.getElementById("publicBoardSearch");
+  const list = document.getElementById("publicPostList");
+  if (form && !form.dataset.bound) {
+    form.dataset.bound = "true";
+    form.addEventListener("submit", submitPublicPost);
+  }
+  if (search && !search.dataset.bound) {
+    search.dataset.bound = "true";
+    search.addEventListener("input", () => {
+      clearTimeout(publicBoardSearchTimer);
+      publicBoardSearchTimer = setTimeout(loadPublicPosts, 220);
+    });
+  }
+  if (list && !list.dataset.bound) {
+    list.dataset.bound = "true";
+    list.addEventListener("click", event => {
+      const button = event.target.closest("[data-delete-post]");
+      if (button) deletePublicPost(button.dataset.deletePost);
+    });
+  }
+  loadPublicPosts();
+}
+
+document.addEventListener("DOMContentLoaded", wirePublicBoard);
 function stablePasswordHash(text){
   return btoa(unescape(encodeURIComponent(text)));
 }
