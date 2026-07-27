@@ -7,6 +7,7 @@ import html
 import json
 import re
 import shutil
+import time
 from collections import Counter
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -21,7 +22,7 @@ CONTENT_DIR = ROOT / "content" / "literature"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 365
+EXPECTED_COUNT = 665
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -38,6 +39,7 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 .site-nav a{text-decoration:none}.nav-logo{font-weight:900;font-size:1.25rem}.nav-links{display:flex;gap:18px;list-style:none;color:#4b5563;font-size:.9rem}
 .wrap{width:min(1120px,calc(100% - 40px));margin:0 auto}.hero{padding:76px 0 48px;border-bottom:1px solid var(--line)}
 .eyebrow{font-size:.86rem;letter-spacing:.24em;color:var(--red);font-style:italic}.hero h1{font-size:clamp(2.5rem,7vw,5rem);line-height:1.15;margin:12px 0}.lede{color:var(--muted);max-width:720px}
+.search-panel{margin-top:28px;max-width:720px}.search-box{display:flex;gap:10px;align-items:center}.search-box input{width:100%;border:1px solid var(--line);border-radius:999px;padding:13px 16px;font:inherit;background:#fff;color:var(--ink)}.search-box button{border:1px solid var(--ink);border-radius:999px;padding:12px 18px;background:var(--ink);color:#fff;font:inherit;white-space:nowrap;cursor:pointer}.search-meta{margin-top:10px;color:var(--muted);font-size:.88rem}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:42px 0}
 .note-card{display:flex;flex-direction:column;min-height:330px;border:1px solid var(--line);border-radius:18px;padding:22px;text-decoration:none;background:#fff}
 .note-card:hover{border-color:var(--gold);transform:translateY(-2px)}.note-card small{color:var(--gold);letter-spacing:.08em}.note-card h2{font-size:1.08rem;line-height:1.5;margin:10px 0}
@@ -56,6 +58,31 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 
 def esc(value: object) -> str:
     return html.escape(str(value), quote=True)
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    replace_with_retry(tmp, path)
+
+
+def write_xml_atomic(path: Path, root: ET.Element) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    ET.ElementTree(root).write(tmp, encoding="utf-8", xml_declaration=True)
+    replace_with_retry(tmp, path)
+
+
+def replace_with_retry(source: Path, target: Path) -> None:
+    for attempt in range(12):
+        try:
+            source.replace(target)
+            return
+        except PermissionError:
+            if attempt == 11:
+                raise
+            time.sleep(0.25)
 
 
 def normalize(value: object) -> str:
@@ -261,16 +288,17 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
         )
     extra = f"""<meta property="og:type" content="website">
 <meta property="og:title" content="{esc(title)}">
-<meta property="og:description" content="퍼블릭 도메인 고전 원문 365편과 소설가 이후의 독서 기록">
+<meta property="og:description" content="퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록">
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" type="application/rss+xml" title="이후의 문학노트 RSS" href="/literature/rss.xml">"""
-    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록 365편.", url, extra)}
+    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra)}
 <body>{nav()}
 <header class="hero"><div class="wrap">
-  <p class="eyebrow">Literature Notes · {page}/{total_pages}</p>
+  <p class="eyebrow">Literature Notes</p>
   <h1>이후의 문학노트</h1>
-  <p class="lede">직접 확인할 수 있는 퍼블릭 도메인 원문의 한 문장과, 그 문장을 오늘의 삶으로 이어 읽은 소설가 이후의 기록입니다. 365편 모두 2026년 7월 27일 한 번에 공개했습니다.</p>
+  <p class="lede">직접 확인할 수 있는 퍼블릭 도메인 원문의 한 문장과, 그 문장을 오늘의 삶으로 이어 읽은 소설가 이후의 기록입니다.</p>
+{SEARCH_COMPONENT}
 </div></header>
 <main class="wrap"><section class="grid">{''.join(card(note) for note in current)}</section>
 <nav class="pagination" aria-label="문학노트 페이지">{''.join(links)}</nav></main>
@@ -370,7 +398,7 @@ def update_homepage(notes: list[dict[str, object]]) -> None:
     )
     source = replace_marker(source, "LITERATURE_LATEST_ITEMS", homepage_cards)
     source = replace_marker(source, "BOARD_LITERATURE_ITEMS", board_cards)
-    path.write_text(source, encoding="utf-8")
+    write_text_atomic(path, source)
 
 
 def replace_marker(source: str, marker: str, replacement: str) -> str:
@@ -394,7 +422,7 @@ def write_rss(notes: list[dict[str, object]]) -> None:
     for name, value in (
         ("title", "이후의 문학노트"),
         ("link", f"{ORIGIN}/literature/"),
-        ("description", "퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록 365편"),
+        ("description", "퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록"),
         ("language", "ko"),
     ):
         ET.SubElement(channel, name).text = value
@@ -415,7 +443,7 @@ def write_rss(notes: list[dict[str, object]]) -> None:
         ET.SubElement(item, "description").text = str(note["commentary"])
         for tag in note["tags"]:
             ET.SubElement(item, "category").text = str(tag)
-    ET.ElementTree(rss).write(LITERATURE_DIR / "rss.xml", encoding="utf-8", xml_declaration=True)
+    write_xml_atomic(LITERATURE_DIR / "rss.xml", rss)
 
 
 def write_sitemap(notes: list[dict[str, object]], total_pages: int) -> None:
@@ -429,7 +457,7 @@ def write_sitemap(notes: list[dict[str, object]], total_pages: int) -> None:
         node = ET.SubElement(root, f"{{{namespace}}}url")
         ET.SubElement(node, f"{{{namespace}}}loc").text = url
         ET.SubElement(node, f"{{{namespace}}}lastmod").text = "2026-07-27"
-    ET.ElementTree(root).write(ROOT / "sitemap.xml", encoding="utf-8", xml_declaration=True)
+    write_xml_atomic(ROOT / "sitemap.xml", root)
 
 
 def generated_html_paths(notes: list[dict[str, object]], total_pages: int) -> list[Path]:
@@ -465,7 +493,7 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
             target = internal_target(html.unescape(href))
             if target is not None and not target.exists():
                 errors.append(f"broken internal link in {path.relative_to(ROOT)}: {href}")
-        if path.parent.name.startswith("20260727-leehu-literature-"):
+        if path.parent.name in notes_by_slug:
             note = notes_by_slug.get(path.parent.name)
             if note:
                 for field in (
@@ -529,23 +557,17 @@ def build() -> None:
                 ):
                     shutil.rmtree(child)
     LITERATURE_DIR.mkdir(parents=True, exist_ok=True)
-    (LITERATURE_DIR / "index.html").write_text(
-        list_page(notes, 1, total_pages), encoding="utf-8"
-    )
+    write_text_atomic(LITERATURE_DIR / "index.html", list_page(notes, 1, total_pages))
     for page in range(2, total_pages + 1):
         target = LITERATURE_DIR / "page" / str(page)
         target.mkdir(parents=True, exist_ok=True)
-        (target / "index.html").write_text(
-            list_page(notes, page, total_pages), encoding="utf-8"
-        )
+        write_text_atomic(target / "index.html", list_page(notes, page, total_pages))
     for index, note in enumerate(notes):
         target = LITERATURE_DIR / str(note["slug"])
         target.mkdir(parents=True, exist_ok=True)
         previous = notes[index - 1] if index else None
         following = notes[index + 1] if index + 1 < len(notes) else None
-        (target / "index.html").write_text(
-            detail_page(note, previous, following), encoding="utf-8"
-        )
+        write_text_atomic(target / "index.html", detail_page(note, previous, following))
     write_rss(notes)
     write_sitemap(notes, total_pages)
     update_homepage(notes)

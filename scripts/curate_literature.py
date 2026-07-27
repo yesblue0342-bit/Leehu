@@ -21,7 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = ROOT / "content" / "literature"
 CACHE_DIR = ROOT / ".literature-source-cache"
 BATCH_PUBLISHED_AT = "2026-07-27T12:00:00+09:00"
-TOTAL_NOTES = 365
+TOTAL_NOTES = 665
+BASE_NOTE_COUNT = 365
+EXTRA_NOTE_COUNT_PER_SOURCE = 10
 
 
 @dataclass(frozen=True)
@@ -351,7 +353,10 @@ def note(source: Source, quote: str, line: int, index: int) -> dict[str, object]
     )
     title = f"{base_title} — {anchor}에서 {second_anchor}까지"
     slug_anchor = re.sub(r"[^a-z0-9]+", "-", anchor.casefold()).strip("-") or "word"
+    second_slug = re.sub(r"[^a-z0-9]+", "-", second_anchor.casefold()).strip("-") or "passage"
     slug = f"{source.short}-{theme_en}-{slug_anchor[:24]}"
+    if index > BASE_NOTE_COUNT:
+        slug = f"{slug}-{second_slug[:24]}"
     related_name, related_url = RELATED_WORKS[(index + source.gutenberg_id) % len(RELATED_WORKS)]
     secondary_theme = THEMES[(index * 7) % len(THEMES)][0]
     if secondary_theme == theme:
@@ -396,9 +401,31 @@ def generate(refresh: bool = False) -> None:
     texts = {source: download(source, refresh) for source in SOURCES}
     notes: list[dict[str, object]] = []
     index = 1
-    for source_position, source in enumerate(SOURCES):
-        count = 13 if source_position < 5 else 12
-        for quote, line in choose_quotes(source, texts[source], count):
+    base_counts = {
+        source: 13 if source_position < 5 else 12
+        for source_position, source in enumerate(SOURCES)
+    }
+
+    # Preserve the original 365 records and their internal IDs. The additional
+    # corpus is appended only after the original batch so existing URLs and
+    # editorial references remain stable.
+    for source in SOURCES:
+        for quote, line in choose_quotes(source, texts[source], base_counts[source]):
+            data = note(source, quote, line, index)
+            verify_quote(data, texts[source])
+            notes.append(data)
+            index += 1
+    if len(notes) != BASE_NOTE_COUNT:
+        raise RuntimeError(f"expected {BASE_NOTE_COUNT} base notes, got {len(notes)}")
+
+    # Add ten previously unselected, source-verified sentences per work.
+    for source in SOURCES:
+        candidates = choose_quotes(
+            source,
+            texts[source],
+            base_counts[source] + EXTRA_NOTE_COUNT_PER_SOURCE,
+        )
+        for quote, line in candidates[base_counts[source]:]:
             data = note(source, quote, line, index)
             verify_quote(data, texts[source])
             notes.append(data)

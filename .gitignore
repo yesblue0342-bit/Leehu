@@ -1,0 +1,4 @@
+.omx/
+.literature-source-cache/
+__pycache__/
+*.py[cod]

@@ -4,14 +4,14 @@
 
 ## 최종 산출물
 
-- 원천 JSON: 365개 (`content/literature/001.json` … `365.json`)
-- ID 범위: `20260727_leehu_literature_001` … `_365`
-- 공개 시각: 365편 모두 `2026-07-27T12:00:00+09:00`
+- 원천 JSON: 665개 (`content/literature/001.json` … `665.json`)
+- ID 범위: `20260727_leehu_literature_001` … `_665`
+- 공개 시각: 665편 모두 `2026-07-27T12:00:00+09:00`
 - 원문 범위: 저자와 작품이 서로 다른 Project Gutenberg 영어 원전 30편
-- 상세 HTML: 365개
-- 목록 HTML: 15쪽 (25편 × 14쪽, 마지막 15편)
-- RSS: 365개 항목
-- 사이트맵: 381개 URL
+- 상세 HTML: 665개
+- 목록 HTML: 27쪽 (25편 × 26쪽, 마지막 15편)
+- RSS: 665개 항목
+- 사이트맵: 693개 URL
 - 홈페이지 대표 카드: 정확히 6개
 
 ## 실행 명령과 결과
@@ -20,16 +20,16 @@
 
 ```text
 python scripts/curate_literature.py
-curated 365 verified notes from 30 public-domain works
+curated 665 verified notes from 30 public-domain works
 ```
 
-각 Project Gutenberg plain-text 본문을 `urllib`로 내려받고 `*** START`와 `*** END` 사이에서만 문장을 선별했다. 저장 직전에 공백을 정규화한 원문 본문에 각 인용문이 정확히 존재하는지 365건 모두 확인했다. 닫는 인용부호가 소실되거나 쌍이 맞지 않는 문장은 제외했다.
+각 Project Gutenberg plain-text 본문을 `urllib`로 내려받고 `*** START`와 `*** END` 사이에서만 문장을 선별했다. 저장 직전에 공백을 정규화한 원문 본문에 각 인용문이 정확히 존재하는지 665건 모두 확인했다. 닫는 인용부호가 소실되거나 쌍이 맞지 않는 문장은 제외했다.
 
 ### 정적 빌드
 
 ```text
 python scripts/build_literature.py
-built 365 detail pages, 15 list pages, 365 RSS items, and 381 sitemap URLs
+built 665 detail pages, 27 list pages, 665 RSS items, and 693 sitemap URLs
 ```
 
 빌드 과정에서 필수 필드, 파일명/ID 대응, slug와 canonical, 중복 및 유사도, 해설 첫·끝 문장, 원문 URL, 인용 대비 해설 길이, 작가·작품·태그 편중, 태그 중복, HTML 이스케이프, JSON-LD JSON, 정적 내부 링크, RSS·사이트맵·홈페이지 개수를 검증했다.

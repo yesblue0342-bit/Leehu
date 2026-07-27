@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
+TARGET_COUNT = 665
+PAGE_SIZE = 25
+TARGET_LIST_PAGES = 27
+TARGET_SITEMAP_URLS = 693
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -31,8 +35,8 @@ class StaticLiteratureTest(unittest.TestCase):
         ]
 
     def test_exact_source_count_names_ids_and_batch_date(self):
-        self.assertEqual(len(self.paths), 365)
-        self.assertEqual(len(self.notes), 365)
+        self.assertEqual(len(self.paths), TARGET_COUNT)
+        self.assertEqual(len(self.notes), TARGET_COUNT)
         for index, (path, note) in enumerate(zip(self.paths, self.notes), 1):
             self.assertEqual(path.name, f"{index:03d}.json")
             self.assertEqual(note["id"], f"20260727_leehu_literature_{index:03d}")
@@ -49,7 +53,7 @@ class StaticLiteratureTest(unittest.TestCase):
         canonicals = {
             f"{ORIGIN}/literature/{note['slug']}/" for note in self.notes
         }
-        self.assertEqual(len(canonicals), 365)
+        self.assertEqual(len(canonicals), TARGET_COUNT)
         openings = []
         closings = []
         for note in self.notes:
@@ -77,8 +81,8 @@ class StaticLiteratureTest(unittest.TestCase):
         authors = Counter(note["source_author"] for note in self.notes)
         works = Counter(note["source_work"] for note in self.notes)
         tags = Counter(tag for note in self.notes for tag in note["tags"])
-        self.assertLessEqual(authors.most_common(1)[0][1] / 365, 0.05)
-        self.assertLessEqual(works.most_common(1)[0][1] / 365, 0.05)
+        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.05)
+        self.assertLessEqual(works.most_common(1)[0][1] / TARGET_COUNT, 0.05)
         self.assertLessEqual(tags.most_common(1)[0][1] / sum(tags.values()), 0.18)
         self.assertGreaterEqual(len(authors), 30)
         self.assertGreaterEqual(len(works), 30)
@@ -90,10 +94,11 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertTrue(all(path.is_file() for path in detail_paths))
         list_paths = [LITERATURE / "index.html"] + [
             LITERATURE / "page" / str(page) / "index.html"
-            for page in range(2, 16)
+            for page in range(2, TARGET_LIST_PAGES + 1)
         ]
         self.assertTrue(all(path.is_file() for path in list_paths))
-        expected_cards = [25] * 14 + [15]
+        self.assertIn('id="literatureSearch"', list_paths[0].read_text(encoding="utf-8"))
+        expected_cards = [PAGE_SIZE] * (TARGET_LIST_PAGES - 1) + [15]
         for path, expected in zip(list_paths, expected_cards):
             text = path.read_text(encoding="utf-8")
             self.assertEqual(text.count('class="note-card"'), expected)
@@ -125,19 +130,19 @@ class StaticLiteratureTest(unittest.TestCase):
         sitemap = ET.parse(ROOT / "sitemap.xml").getroot()
         namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         locations = [node.text for node in sitemap.findall("s:url/s:loc", namespace)]
-        self.assertEqual(len(locations), 381)
+        self.assertEqual(len(locations), TARGET_SITEMAP_URLS)
         self.assertEqual(len(locations), len(set(locations)))
         self.assertEqual(
             sum(url == f"{ORIGIN}/literature/{note['slug']}/" for url in locations for note in self.notes),
-            365,
+            TARGET_COUNT,
         )
 
         rss = ET.parse(LITERATURE / "rss.xml")
         items = rss.findall("./channel/item")
-        self.assertEqual(len(items), 365)
+        self.assertEqual(len(items), TARGET_COUNT)
         self.assertEqual(
             len({item.findtext("guid") for item in items}),
-            365,
+            TARGET_COUNT,
         )
         rss_descriptions = {
             item.findtext("guid"): item.findtext("description") for item in items
@@ -194,7 +199,7 @@ class StaticLiteratureTest(unittest.TestCase):
             timeout=120,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertIn("built 365 detail pages", completed.stdout)
+        self.assertIn(f"built {TARGET_COUNT} detail pages", completed.stdout)
         after = {path: path.read_bytes() for path in tracked_outputs}
         self.assertEqual(before, after)
 

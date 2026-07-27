@@ -13,7 +13,7 @@
 ### 구조
 
 ```text
-content/literature/001.json … 365.json   원본 데이터
+content/literature/001.json … 665.json   원본 데이터
 scripts/curate_literature.py              공공영역 원문 큐레이션 도구
 scripts/build_literature.py               검증 및 정적 사이트 생성기
 literature/index.html                     목록 첫 페이지
@@ -36,12 +36,12 @@ python -m unittest
 출력 예시:
 
 ```text
-built 365 detail pages, 15 list pages, 365 RSS items, and 381 sitemap URLs
+built 665 detail pages, 27 list pages, 665 RSS items, and 693 sitemap URLs
 ```
 
 생성기는 다음을 중단 조건으로 검증합니다.
 
-- 정확히 365개 JSON 및 내부 ID/파일명 대응
+- 정확히 665개 JSON 및 내부 ID/파일명 대응
 - slug·제목·인용문·canonical 중복 및 유사도
 - 출처 URL·필수 필드·인용문 대비 해설 길이
 - commentary 첫 문장·마지막 문장 중복
