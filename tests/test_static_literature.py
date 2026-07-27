@@ -9,6 +9,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
+from scripts import build_literature
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
@@ -34,19 +36,35 @@ class StaticLiteratureTest(unittest.TestCase):
             json.loads(path.read_text(encoding="utf-8")) for path in cls.paths
         ]
 
-    def test_exact_source_count_names_ids_and_batch_date(self):
+    def test_exact_source_count_names_ids_and_publication_dates(self):
         self.assertEqual(len(self.paths), TARGET_COUNT)
         self.assertEqual(len(self.notes), TARGET_COUNT)
         for index, (path, note) in enumerate(zip(self.paths, self.notes), 1):
             self.assertEqual(path.name, f"{index:03d}.json")
-            self.assertEqual(note["id"], f"20260727_leehu_literature_{index:03d}")
+            self.assertRegex(note["id"], r"^\d{8}_leehu_literature_\d{3}$")
+            self.assertEqual(
+                note["id"][:8],
+                note["published_at"][:10].replace("-", ""),
+            )
             self.assertTrue(REQUIRED <= set(note))
+
+    def test_publication_order_places_newer_batch_and_higher_sequence_first(self) -> None:
+        notes = [
+            {"id": "20260728_leehu_literature_002", "published_at": "2026-07-28T12:00:00+09:00"},
+            {"id": "20260727_leehu_literature_365", "published_at": "2026-07-27T12:00:00+09:00"},
+            {"id": "20260728_leehu_literature_001", "published_at": "2026-07-28T12:00:00+09:00"},
+        ]
+        ordered = build_literature.sort_for_publication(notes)
         self.assertEqual(
-            {note["published_at"] for note in self.notes},
-            {"2026-07-27T12:00:00+09:00"},
+            [note["id"] for note in ordered],
+            [
+                "20260728_leehu_literature_002",
+                "20260728_leehu_literature_001",
+                "20260727_leehu_literature_365",
+            ],
         )
 
-    def test_content_integrity_metrics(self):
+    def test_content_integrity_metrics(self) -> None:
         for field in ("id", "slug", "title", "quote"):
             values = [re.sub(r"\W+", "", str(note[field])).casefold() for note in self.notes]
             self.assertEqual(len(values), len(set(values)), field)
@@ -140,6 +158,11 @@ class StaticLiteratureTest(unittest.TestCase):
         rss = ET.parse(LITERATURE / "rss.xml")
         items = rss.findall("./channel/item")
         self.assertEqual(len(items), TARGET_COUNT)
+        latest_note = build_literature.sort_for_publication(self.notes)[0]
+        self.assertEqual(
+            items[0].findtext("link"),
+            f"{ORIGIN}/literature/{latest_note['slug']}/",
+        )
         self.assertEqual(
             len({item.findtext("guid") for item in items}),
             TARGET_COUNT,

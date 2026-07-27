@@ -153,6 +153,18 @@ def first_near_duplicate(
     return None
 
 
+def sort_for_publication(notes: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Return newest publication batches first, then highest batch sequence first."""
+    return sorted(
+        notes,
+        key=lambda note: (
+            datetime.fromisoformat(str(note["published_at"])),
+            str(note["id"]),
+        ),
+        reverse=True,
+    )
+
+
 def load_and_validate() -> list[dict[str, object]]:
     paths = sorted(CONTENT_DIR.glob("*.json"))
     errors: list[str] = []
@@ -172,9 +184,12 @@ def load_and_validate() -> list[dict[str, object]]:
         if missing:
             errors.append(f"{path.name}: missing {', '.join(missing)}")
             continue
-        expected_id = f"20260727_leehu_literature_{position:03d}"
-        if data["id"] != expected_id:
-            errors.append(f"{path.name}: expected id {expected_id}")
+        id_match = re.fullmatch(
+            r"(?P<date>\d{8})_leehu_literature_(?P<sequence>\d{3})",
+            str(data["id"]),
+        )
+        if not id_match:
+            errors.append(f"{path.name}: invalid literature id")
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(data["slug"])):
             errors.append(f"{path.name}: invalid slug")
         if not isinstance(data["tags"], list) or not 2 <= len(data["tags"]) <= 6:
@@ -187,9 +202,12 @@ def load_and_validate() -> list[dict[str, object]]:
         if parsed_url.scheme != "https" or parsed_url.netloc != "www.gutenberg.org":
             errors.append(f"{path.name}: source_url must be a direct HTTPS Project Gutenberg URL")
         try:
-            datetime.fromisoformat(str(data["published_at"]))
+            published_at = datetime.fromisoformat(str(data["published_at"]))
         except ValueError:
             errors.append(f"{path.name}: invalid published_at")
+        else:
+            if id_match and id_match.group("date") != published_at.strftime("%Y%m%d"):
+                errors.append(f"{path.name}: id date must match published_at")
         quote = str(data["quote"]).strip()
         commentary = str(data["commentary"]).strip()
         if not 50 <= len(quote) <= 260:
@@ -242,12 +260,9 @@ def load_and_validate() -> list[dict[str, object]]:
         if denominator and count / denominator > limit:
             errors.append(f"{label} over-concentration: {top} ({count}/{denominator})")
 
-    publication_dates = {str(note["published_at"]) for note in notes}
-    if len(publication_dates) != 1:
-        errors.append("all notes must share one real batch publication timestamp")
     if errors:
         raise ValueError("literature validation failed:\n- " + "\n- ".join(errors))
-    return notes
+    return sort_for_publication(notes)
 
 
 def base_head(title: str, description: str, canonical_url: str, extra: str = "") -> str:
@@ -406,12 +421,11 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
 def update_homepage(notes: list[dict[str, object]]) -> None:
     path = ROOT / "index.html"
     source = path.read_text(encoding="utf-8")
-    representative_indexes = (0, 61, 122, 183, 244, 364)
-    homepage_cards = "".join(card(notes[index]) for index in representative_indexes)
+    homepage_cards = "".join(card(note) for note in notes[:6])
     board_cards = "".join(
         f'<a href="/literature/{esc(note["slug"])}/"><strong>{esc(note["title"])}</strong>'
         f'<span>{esc(note["source_author"])} · {esc(note["source_work"])}</span></a>'
-        for note in notes[-3:]
+        for note in notes[:3]
     )
     source = replace_marker(source, "LITERATURE_LATEST_ITEMS", homepage_cards)
     source = replace_marker(source, "BOARD_LITERATURE_ITEMS", board_cards)
@@ -450,7 +464,7 @@ def write_rss(notes: list[dict[str, object]]) -> None:
         rel="self",
         type="application/rss+xml",
     )
-    for note in reversed(notes):
+    for note in notes:
         item = ET.SubElement(channel, "item")
         ET.SubElement(item, "title").text = str(note["title"])
         ET.SubElement(item, "link").text = canonical(note)
