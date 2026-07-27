@@ -212,10 +212,12 @@ tr:last-child td{border-bottom:none}
 .mobile-sidebar-backdrop.active{display:block}
 .sidebar-toggle{display:none}
 
-.board-section{display:grid;grid-template-columns:minmax(280px,.76fr) minmax(0,1.24fr);gap:34px;align-items:start}
+.homepage-main{display:block}
+.board-section{display:none;grid-template-columns:minmax(280px,.76fr) minmax(0,1.24fr);gap:34px;align-items:start;min-height:calc(100vh - 74px)}
+body.board-mode .homepage-main > :not(#board){display:none}
+body.board-mode #board{display:grid}
 .board-copy h2{font-size:clamp(1.9rem,3vw,2.8rem);line-height:1.25;margin-bottom:18px}
 .board-copy p{color:#4b5563;line-height:1.9;margin-bottom:14px}
-.board-api{border:1px solid var(--line);border-radius:14px;background:#fafafa;padding:14px;color:#374151;font-size:.84rem;line-height:1.7}
 .board-panel{border:1px solid var(--line);border-radius:18px;background:#fff;overflow:hidden}
 .board-toolbar{display:flex;gap:10px;align-items:center;padding:14px;border-bottom:1px solid var(--line);background:#fafafa}
 .board-toolbar input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:11px 12px;outline:none}
@@ -612,6 +614,7 @@ body.stella-open #stellaButton{display:none!important}
     <li><a href="#board">게시판</a></li>
   </ul>
 </nav>
+<main id="homepageMain" class="homepage-main">
 <input id="stellaToggle" type="checkbox" aria-hidden="true" disabled>
 <label id="stellaButton" for="stellaToggle" role="button" aria-label="Stella AI 열기" aria-disabled="true" style="display:none!important;pointer-events:none!important;">✦ Stella</label>
 
@@ -735,11 +738,6 @@ body.stella-open #stellaButton{display:none!important}
     <p class="sec-title">Board · 글 남기기</p>
     <h2>방문자 게시판</h2>
     <p>이후 홈페이지에 남기고 싶은 글, 좋은 문구, 응원 메시지를 자유롭게 기록할 수 있습니다. 등록된 글은 검색할 수 있고, 필요하면 삭제할 수 있습니다.</p>
-    <div class="board-api">
-      <strong>자동 등록 API</strong><br>
-      n8n, Hermes 등 자동화 도구에서는 <code>POST /api/board/posts</code>로 제목과 본문을 보내면 됩니다.<br>
-      JSON 예시: <code>{"title":"문구","body":"오늘의 좋은 글","author":"n8n"}</code>
-    </div>
   </div>
   <div class="board-panel" aria-live="polite">
     <form id="publicBoardForm" class="board-form">
@@ -772,6 +770,7 @@ body.stella-open #stellaButton{display:none!important}
     <a href="https://www.yes24.com/Product/Search?domain=BOOK&query=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">YES24</a>
   </div>
 </footer>
+</main>
 
 <div id="stella">
   <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"></div>
@@ -928,17 +927,17 @@ async function loadPublicPosts(){
 
   const query = search ? search.value.trim() : "";
   const url = query ? `${BOARD_API_URL}?q=${encodeURIComponent(query)}` : BOARD_API_URL;
-  setBoardStatus("게시글을 불러오는 중입니다.");
+  setBoardStatus("");
 
   try {
     const response = await fetch(url, { headers:{ "Accept":"application/json" }, cache:"no-store" });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "게시글을 불러오지 못했습니다.");
+    if (!response.ok) throw new Error(data.error || "load_failed");
     renderPublicPosts(Array.isArray(data.posts) ? data.posts : []);
     setBoardStatus(query ? `검색 결과 ${data.posts?.length || 0}건` : `게시글 ${data.posts?.length || 0}건`);
   } catch (error) {
-    list.innerHTML = '<div class="empty-posts">게시판 서버에 연결할 수 없습니다.</div>';
-    setBoardStatus(error.message || "게시글을 불러오지 못했습니다.", true);
+    list.innerHTML = "";
+    setBoardStatus("", true);
   }
 }
 
@@ -1035,7 +1034,18 @@ function wirePublicBoard(){
   loadPublicPosts();
 }
 
+function syncBoardRoute(){
+  const isBoard = window.location.hash === "#board";
+  document.body.classList.toggle("board-mode", isBoard);
+  if (isBoard) {
+    loadPublicPosts();
+    setTimeout(() => document.getElementById("publicBoardSearch")?.focus(), 80);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", wirePublicBoard);
+document.addEventListener("DOMContentLoaded", syncBoardRoute);
+window.addEventListener("hashchange", syncBoardRoute);
 function stablePasswordHash(text){
   return btoa(unescape(encodeURIComponent(text)));
 }

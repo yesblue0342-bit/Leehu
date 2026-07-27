@@ -2,7 +2,6 @@ import json
 import mimetypes
 import os
 import posixpath
-import sqlite3
 import time
 import uuid
 from http import HTTPStatus
@@ -12,39 +11,56 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 
 ROOT = Path(__file__).resolve().parent
-DB_PATH = Path(os.environ.get("BOARD_DB_PATH", "/data/leehu_board.sqlite3"))
 MAX_BODY_BYTES = 64 * 1024
+LOCAL_DRIVE_POSTS_DIR = Path("G:/내 드라이브/1개인/7 이후닷컴 홈페이지/6 게시판")
+POSTS_DIR = Path(os.environ.get(
+    "BOARD_POSTS_DIR",
+    str(LOCAL_DRIVE_POSTS_DIR if LOCAL_DRIVE_POSTS_DIR.exists() else Path("/data/board-posts")),
+))
 
 
-def db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DB_PATH)
-    connection.row_factory = sqlite3.Row
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS posts (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          body TEXT NOT NULL,
-          author TEXT NOT NULL,
-          source TEXT NOT NULL,
-          created_at TEXT NOT NULL
-        )
-        """
-    )
-    connection.commit()
-    return connection
+def ensure_posts_dir():
+    POSTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def post_to_dict(row):
+def post_path(post_id):
+    safe_id = "".join(ch for ch in post_id if ch.isalnum() or ch in ("-", "_"))[:80]
+    return POSTS_DIR / f"{safe_id}.json"
+
+
+def read_post(path):
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if data.get("deleted"):
+        return None
     return {
-        "id": row["id"],
-        "title": row["title"],
-        "body": row["body"],
-        "author": row["author"],
-        "source": row["source"],
-        "created_at": row["created_at"],
+        "id": clipped(data.get("id") or path.stem, 80),
+        "title": clipped(data.get("title") or "제목 없음", 120),
+        "body": clipped(data.get("body") or "", 5000),
+        "author": clipped(data.get("author") or "방문자", 40),
+        "source": clipped(data.get("source") or "api", 40),
+        "created_at": clipped(data.get("created_at") or data.get("createdAt") or "", 40),
+        "updated_at": clipped(data.get("updated_at") or data.get("updatedAt") or data.get("created_at") or "", 40),
     }
+
+
+def list_posts(query=""):
+    ensure_posts_dir()
+    query = query.casefold()
+    posts = []
+    for path in POSTS_DIR.glob("*.json"):
+        post = read_post(path)
+        if not post:
+            continue
+        haystack = " ".join([post["title"], post["body"], post["author"]]).casefold()
+        if query and query not in haystack:
+            continue
+        posts.append(post)
+    posts.sort(key=lambda item: item.get("updated_at") or item.get("created_at") or "", reverse=True)
+    return posts[:200]
 
 
 def clipped(value, limit):
@@ -92,29 +108,7 @@ class LeehuHandler(SimpleHTTPRequestHandler):
 
     def handle_list_posts(self, query_string):
         query = clipped(parse_qs(query_string).get("q", [""])[0], 120)
-        with db() as connection:
-            if query:
-                like = f"%{query}%"
-                rows = connection.execute(
-                    """
-                    SELECT id, title, body, author, source, created_at
-                    FROM posts
-                    WHERE title LIKE ? OR body LIKE ? OR author LIKE ?
-                    ORDER BY datetime(created_at) DESC
-                    LIMIT 200
-                    """,
-                    (like, like, like),
-                ).fetchall()
-            else:
-                rows = connection.execute(
-                    """
-                    SELECT id, title, body, author, source, created_at
-                    FROM posts
-                    ORDER BY datetime(created_at) DESC
-                    LIMIT 200
-                    """
-                ).fetchall()
-        self.json_response({"posts": [post_to_dict(row) for row in rows]})
+        self.json_response({"posts": list_posts(query)})
 
     def handle_create_post(self):
         payload = self.read_json_body()
@@ -130,22 +124,22 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             self.json_response({"error": "title_and_body_required"}, HTTPStatus.BAD_REQUEST)
             return
 
-        post_id = uuid.uuid4().hex
+        post_id = clipped(payload.get("id"), 80) or uuid.uuid4().hex
         created_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        with db() as connection:
-            connection.execute(
-                """
-                INSERT INTO posts (id, title, body, author, source, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (post_id, title, body, author, source, created_at),
-            )
-            row = connection.execute(
-                "SELECT id, title, body, author, source, created_at FROM posts WHERE id = ?",
-                (post_id,),
-            ).fetchone()
+        post = {
+            "id": post_id,
+            "title": title,
+            "body": body,
+            "author": author,
+            "source": source,
+            "created_at": created_at,
+            "updated_at": created_at,
+        }
+        ensure_posts_dir()
+        with post_path(post_id).open("w", encoding="utf-8") as handle:
+            json.dump(post, handle, ensure_ascii=False, indent=2)
 
-        self.json_response({"post": post_to_dict(row)}, HTTPStatus.CREATED)
+        self.json_response({"post": post}, HTTPStatus.CREATED)
 
     def handle_delete_post(self, post_id):
         post_id = clipped(post_id, 64)
@@ -153,11 +147,11 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             self.json_response({"error": "post_id_required"}, HTTPStatus.BAD_REQUEST)
             return
 
-        with db() as connection:
-            cursor = connection.execute("DELETE FROM posts WHERE id = ?", (post_id,))
-        if cursor.rowcount == 0:
+        target = post_path(post_id)
+        if not target.exists():
             self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
             return
+        target.unlink()
         self.json_response({"ok": True})
 
     def read_json_body(self):
@@ -201,8 +195,8 @@ class LeehuHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    db().close()
+    ensure_posts_dir()
     port = int(os.environ.get("PORT", "80"))
     server = ThreadingHTTPServer(("0.0.0.0", port), LeehuHandler)
-    print(f"Leehu board server listening on :{port}", flush=True)
+    print(f"Leehu board server listening on :{port}, posts={POSTS_DIR}", flush=True)
     server.serve_forever()
