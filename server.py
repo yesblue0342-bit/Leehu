@@ -1,10 +1,15 @@
+<<<<<<< Updated upstream
 import hmac
+=======
+import hashlib
+>>>>>>> Stashed changes
 import html
 import json
 import mimetypes
 import os
 import posixpath
 import re
+<<<<<<< Updated upstream
 import threading
 import time
 import uuid
@@ -23,12 +28,26 @@ OG_IMAGE = f"{CANONICAL_ORIGIN}/og-image.jpg"
 MAX_BODY_BYTES = 128 * 1024
 KST = ZoneInfo("Asia/Seoul")
 
+=======
+import time
+import uuid
+from datetime import datetime, timezone
+from http import HTTPStatus
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, quote, unquote, urlparse
+from xml.etree import ElementTree as ET
+
+ROOT = Path(__file__).resolve().parent
+MAX_BODY_BYTES = 64 * 1024
+SITE_URL = os.environ.get("SITE_URL", "https://xn--hu5b23z.com").rstrip("/")
+>>>>>>> Stashed changes
 LOCAL_DRIVE_POSTS_DIR = Path("G:/내 드라이브/1개인/7 이후닷컴 홈페이지/6 게시판")
-POSTS_DIR = Path(os.environ.get(
-    "BOARD_POSTS_DIR",
-    str(LOCAL_DRIVE_POSTS_DIR if LOCAL_DRIVE_POSTS_DIR.exists() else Path("/data/board-posts")),
+BOARD_POSTS_DIR = Path(os.environ.get(
+    "BOARD_POSTS_DIR", str(LOCAL_DRIVE_POSTS_DIR if LOCAL_DRIVE_POSTS_DIR.exists() else Path("/data/board-posts"))
 ))
 LITERATURE_POSTS_DIR = Path(os.environ.get("LITERATURE_POSTS_DIR", "/data/literature-posts"))
+<<<<<<< Updated upstream
 
 LITERATURE_ID_RE = re.compile(r"^\d{8}_leehu_literature_\d{2}$")
 LITERATURE_SLUG_RE = re.compile(r"^\d{8}-leehu-literature-\d{2}-[a-z0-9][a-z0-9-]*$")
@@ -40,12 +59,23 @@ LITERATURE_WRITE_LOCK = threading.Lock()
 def ensure_dirs():
     POSTS_DIR.mkdir(parents=True, exist_ok=True)
     LITERATURE_POSTS_DIR.mkdir(parents=True, exist_ok=True)
+=======
+LITERATURE_API_TOKEN = os.environ.get("LITERATURE_API_TOKEN", "")
+LITERATURE_ALLOWED_ORIGINS = {item.strip().rstrip("/") for item in os.environ.get(
+    "LITERATURE_ALLOWED_ORIGINS", SITE_URL
+).split(",") if item.strip()}
+
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+>>>>>>> Stashed changes
 
 
 def clipped(value, limit):
     return str(value or "").strip()[:limit]
 
 
+<<<<<<< Updated upstream
 def escape(value):
     return html.escape(str(value or ""), quote=True)
 
@@ -85,6 +115,50 @@ def literature_post_path(slug):
 
 
 def read_json_file(path):
+=======
+def ensure_dirs():
+    BOARD_POSTS_DIR.mkdir(parents=True, exist_ok=True)
+    LITERATURE_POSTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def safe_id(value, limit=80):
+    return "".join(ch for ch in str(value or "") if ch.isalnum() or ch in ("-", "_"))[:limit]
+
+
+def slugify(value):
+    value = re.sub(r"[^a-z0-9가-힣]+", "-", str(value or "").lower()).strip("-")
+    return value[:72] or "literature-note"
+
+
+def unique_slug(requested, title):
+    base = slugify(requested or title)
+    candidate = base
+    number = 2
+    while literature_path(candidate).exists():
+        candidate = f"{base}-{number}"
+        number += 1
+    return candidate
+
+
+def board_path(post_id):
+    return BOARD_POSTS_DIR / f"{safe_id(post_id)}.json"
+
+
+def literature_path(slug):
+    return LITERATURE_POSTS_DIR / f"{safe_id(slug)}.json"
+
+
+def atomic_write(path, data):
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    temporary.replace(path)
+
+
+def read_json(path):
+>>>>>>> Stashed changes
     try:
         with path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
@@ -92,6 +166,7 @@ def read_json_file(path):
         return None
 
 
+<<<<<<< Updated upstream
 def write_json_file(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -102,6 +177,10 @@ def write_json_file(path, data):
 
 def read_board_post(path):
     data = read_json_file(path)
+=======
+def read_board_post(path):
+    data = read_json(path)
+>>>>>>> Stashed changes
     if not data or data.get("deleted"):
         return None
     return {
@@ -117,9 +196,15 @@ def read_board_post(path):
 
 def list_board_posts(query=""):
     ensure_dirs()
+<<<<<<< Updated upstream
     needle = query.casefold()
     posts = []
     for path in POSTS_DIR.glob("*.json"):
+=======
+    query = query.casefold()
+    posts = []
+    for path in BOARD_POSTS_DIR.glob("*.json"):
+>>>>>>> Stashed changes
         post = read_board_post(path)
         if not post:
             continue
@@ -131,6 +216,7 @@ def list_board_posts(query=""):
     return posts[:200]
 
 
+<<<<<<< Updated upstream
 def parse_datetime(value):
     if not value:
         return datetime.now(KST)
@@ -729,13 +815,87 @@ def render_rss():
   </channel>
 </rss>
 """
+=======
+def normalize_literature(data, path=None):
+    if not isinstance(data, dict):
+        return None
+    slug = safe_id(data.get("slug") or (path.stem if path else ""))
+    if not slug:
+        return None
+    status = clipped(data.get("status") or "draft", 16).lower()
+    if status not in {"draft", "published", "archived"}:
+        status = "draft"
+    return {
+        "id": clipped(data.get("id") or slug, 80),
+        "slug": slug,
+        "title": clipped(data.get("title"), 180),
+        "quote": clipped(data.get("quote"), 1200),
+        "source": clipped(data.get("source"), 500),
+        "author": clipped(data.get("author"), 160),
+        "work": clipped(data.get("work"), 240),
+        "location": clipped(data.get("location"), 240),
+        "original_language": clipped(data.get("original_language"), 80),
+        "translation_method": clipped(data.get("translation_method"), 240),
+        "commentary": clipped(data.get("commentary"), 6000),
+        "closing": clipped(data.get("closing") or "오늘은 이 글을 함께 나누고 싶습니다.\n소설가 이후 드림", 400),
+        "tags": [clipped(tag, 40) for tag in data.get("tags", []) if clipped(tag, 40)][:12],
+        "status": status,
+        "idempotency_key": clipped(data.get("idempotency_key"), 120),
+        "created_at": clipped(data.get("created_at"), 40),
+        "updated_at": clipped(data.get("updated_at") or data.get("created_at"), 40),
+        "published_at": clipped(data.get("published_at"), 40),
+    }
+
+
+def read_literature(path):
+    return normalize_literature(read_json(path), path)
+
+
+def list_literature(include_nonpublic=False):
+    ensure_dirs()
+    posts = []
+    for path in LITERATURE_POSTS_DIR.glob("*.json"):
+        post = read_literature(path)
+        if post and (include_nonpublic or post["status"] == "published"):
+            posts.append(post)
+    posts.sort(key=lambda item: item.get("published_at") or item.get("updated_at") or item.get("created_at") or "", reverse=True)
+    return posts
+
+
+def public_literature(post):
+    public = dict(post)
+    public["canonical_url"] = f"{SITE_URL}/literature/{quote(post['slug'])}"
+    public.pop("idempotency_key", None)
+    return public
+
+
+def html_page(title, body, description="소설가 이후의 문학노트"):
+    canonical = f"{SITE_URL}/literature/"
+    escaped_title = html.escape(title)
+    escaped_description = html.escape(description)
+    json_ld = json.dumps({
+        "@context": "https://schema.org", "@type": "CollectionPage", "name": title,
+        "url": canonical, "description": description, "inLanguage": "ko-KR"
+    }, ensure_ascii=False)
+    return f'''<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{escaped_title}</title><meta name="description" content="{escaped_description}"><link rel="canonical" href="{canonical}"><meta property="og:type" content="article"><meta property="og:title" content="{escaped_title}"><meta property="og:description" content="{escaped_description}"><meta property="og:url" content="{canonical}"><script type="application/ld+json">{json_ld}</script><style>body{{max-width:760px;margin:0 auto;padding:40px 22px;font-family:Georgia,'Noto Serif KR',serif;line-height:1.8;color:#172033}}a{{color:#234f8b}}article{{border-top:1px solid #d8dce4;padding:22px 0}}.meta{{color:#697386;font-size:.9rem}}blockquote{{margin:18px 0;padding:14px 20px;border-left:4px solid #b89a5c;background:#faf8f3;white-space:pre-wrap}}.closing{{white-space:pre-wrap;font-weight:600}}</style></head><body><header><a href="/">이후 공식 홈페이지</a><h1>{escaped_title}</h1></header>{body}</body></html>'''
+>>>>>>> Stashed changes
 
 
 class LeehuHandler(SimpleHTTPRequestHandler):
     server_version = "LeehuLiterature/2.0"
 
     def end_headers(self):
+<<<<<<< Updated upstream
+=======
+        origin = self.headers.get("Origin", "").rstrip("/")
+        if origin and origin in LITERATURE_ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Literature-Token, Idempotency-Key")
+>>>>>>> Stashed changes
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         super().end_headers()
 
     def do_OPTIONS(self):
@@ -756,6 +916,7 @@ class LeehuHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+<<<<<<< Updated upstream
         if parsed.path in ("/", "/index.html"):
             self.html_response(render_homepage())
             return
@@ -793,13 +954,37 @@ class LeehuHandler(SimpleHTTPRequestHandler):
                 self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
                 return
             self.json_response({"post": post})
+=======
+        path = parsed.path.rstrip("/") or "/"
+        if path == "/api/board/posts":
+            self.json_response({"posts": list_board_posts(clipped(parse_qs(parsed.query).get("q", [""])[0], 120))})
+>>>>>>> Stashed changes
             return
-        if parsed.path.startswith("/api/"):
+        if path == "/api/literature/posts":
+            self.handle_list_literature()
+            return
+        if path.startswith("/api/literature/posts/"):
+            self.handle_get_literature(unquote(path.rsplit("/", 1)[-1]))
+            return
+        if path == "/literature":
+            self.handle_literature_index()
+            return
+        if path.startswith("/literature/") and path != "/literature/rss.xml":
+            self.handle_literature_detail(unquote(path.rsplit("/", 1)[-1]))
+            return
+        if path == "/literature/rss.xml":
+            self.handle_rss()
+            return
+        if path == "/sitemap.xml":
+            self.handle_sitemap()
+            return
+        if path.startswith("/api/"):
             self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
             return
         self.serve_static(parsed.path)
 
     def do_POST(self):
+<<<<<<< Updated upstream
         parsed = urlparse(self.path)
         if parsed.path == "/api/board/posts":
             self.handle_create_board_post()
@@ -808,20 +993,36 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             if not self.require_literature_auth():
                 return
             self.handle_create_literature_post()
+=======
+        path = urlparse(self.path).path.rstrip("/")
+        if path == "/api/board/posts":
+            self.handle_create_board_post()
+            return
+        if path == "/api/literature/posts":
+            self.handle_create_literature()
+>>>>>>> Stashed changes
             return
         self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
 
     def do_PUT(self):
+<<<<<<< Updated upstream
         parsed = urlparse(self.path)
         if parsed.path.startswith("/api/literature/posts/"):
             if not self.require_literature_auth():
                 return
             slug = unquote(parsed.path[len("/api/literature/posts/"):])
             self.handle_update_literature_post(slug)
+=======
+        path = urlparse(self.path).path.rstrip("/")
+        prefix = "/api/literature/posts/"
+        if path.startswith(prefix):
+            self.handle_update_literature(unquote(path[len(prefix):]))
+>>>>>>> Stashed changes
             return
         self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
 
     def do_DELETE(self):
+<<<<<<< Updated upstream
         parsed = urlparse(self.path)
         board_prefix = "/api/board/posts/"
         lit_prefix = "/api/literature/posts/"
@@ -879,6 +1080,181 @@ class LeehuHandler(SimpleHTTPRequestHandler):
 
     def handle_delete_board_post(self, post_id):
         target = board_post_path(post_id)
+=======
+        path = urlparse(self.path).path.rstrip("/")
+        board_prefix = "/api/board/posts/"
+        literature_prefix = "/api/literature/posts/"
+        if path.startswith(board_prefix):
+            self.handle_delete_board_post(unquote(path[len(board_prefix):]))
+            return
+        if path.startswith(literature_prefix):
+            self.handle_delete_literature(unquote(path[len(literature_prefix):]))
+            return
+        self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+
+    def authorized(self):
+        if not LITERATURE_API_TOKEN:
+            self.json_response({"error": "literature_api_not_configured"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return False
+        supplied = self.headers.get("X-Literature-Token", "")
+        auth = self.headers.get("Authorization", "")
+        if auth.lower().startswith("bearer "):
+            supplied = auth[7:].strip()
+        if not supplied or not secrets_equal(supplied, LITERATURE_API_TOKEN):
+            self.json_response({"error": "unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return False
+        return True
+
+    def handle_list_literature(self):
+        include_nonpublic = self.authorized() if self.headers.get("Authorization") or self.headers.get("X-Literature-Token") else False
+        if include_nonpublic is False and (self.headers.get("Authorization") or self.headers.get("X-Literature-Token")):
+            return
+        posts = list_literature(include_nonpublic=bool(include_nonpublic))
+        self.json_response({"posts": [public_literature(post) for post in posts]})
+
+    def handle_get_literature(self, slug):
+        post = read_literature(literature_path(slug))
+        if not post or post["status"] != "published":
+            self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        self.json_response({"post": public_literature(post)})
+
+    def validate_literature(self, payload, existing=None):
+        base = dict(existing or {})
+        base.update(payload or {})
+        post = normalize_literature(base)
+        errors = []
+        for field in ("title", "quote", "source", "author", "work", "location", "original_language", "translation_method", "commentary"):
+            if not post.get(field):
+                errors.append(f"{field}_required")
+        if post.get("status") == "published" and len(post.get("commentary", "")) < 240:
+            errors.append("commentary_too_short")
+        if len(post.get("quote", "")) > 1200:
+            errors.append("quote_too_long")
+        return post, errors
+
+    def handle_create_literature(self):
+        if not self.authorized():
+            return
+        payload = self.read_json_body()
+        if payload is None:
+            return
+        key = clipped(self.headers.get("Idempotency-Key") or payload.get("idempotency_key"), 120)
+        for existing in list_literature(include_nonpublic=True):
+            if key and existing.get("idempotency_key") == key:
+                self.json_response({"error": "duplicate", "post": public_literature(existing)}, HTTPStatus.CONFLICT)
+                return
+        post, errors = self.validate_literature(payload)
+        if errors:
+            self.json_response({"error": "validation_failed", "details": errors}, HTTPStatus.BAD_REQUEST)
+            return
+        post["slug"] = unique_slug(payload.get("slug"), post["title"])
+        post["id"] = post["slug"]
+        post["idempotency_key"] = key
+        post["created_at"] = utc_now()
+        post["updated_at"] = post["created_at"]
+        if post["status"] == "published":
+            post["published_at"] = post["created_at"]
+        ensure_dirs()
+        atomic_write(literature_path(post["slug"]), post)
+        self.json_response({"post": public_literature(post)}, HTTPStatus.CREATED)
+
+    def handle_update_literature(self, slug):
+        if not self.authorized():
+            return
+        existing = read_literature(literature_path(slug))
+        if not existing:
+            self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        payload = self.read_json_body()
+        if payload is None:
+            return
+        payload.pop("slug", None)
+        post, errors = self.validate_literature(payload, existing)
+        if errors:
+            self.json_response({"error": "validation_failed", "details": errors}, HTTPStatus.BAD_REQUEST)
+            return
+        post["slug"] = existing["slug"]
+        post["id"] = existing["id"]
+        post["created_at"] = existing["created_at"]
+        post["updated_at"] = utc_now()
+        if post["status"] == "published" and not existing.get("published_at"):
+            post["published_at"] = post["updated_at"]
+        atomic_write(literature_path(slug), post)
+        self.json_response({"post": public_literature(post)})
+
+    def handle_delete_literature(self, slug):
+        if not self.authorized():
+            return
+        target = literature_path(slug)
+        post = read_literature(target)
+        if not post:
+            self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+            return
+        post["status"] = "archived"
+        post["updated_at"] = utc_now()
+        atomic_write(target, post)
+        self.json_response({"ok": True, "status": "archived"})
+
+    def handle_literature_index(self):
+        articles = []
+        for post in list_literature():
+            articles.append(f'<article><h2><a href="/literature/{quote(post["slug"])}">{html.escape(post["title"])}</a></h2><p class="meta">{html.escape(post["author"])} · {html.escape(post["work"])} · {html.escape(post["published_at"][:10])}</p><blockquote>{html.escape(post["quote"])}</blockquote><p>{html.escape(post["commentary"][:240])}…</p></article>')
+        body = "<p><a href=\"/literature/rss.xml\">RSS 구독</a></p>" + ("".join(articles) or "<p>아직 발행된 문학노트가 없습니다.</p>")
+        self.html_response(html_page("문학노트 | 이후", body, "고전과 한국문학을 읽고 쓰는 소설가 이후의 문학노트"))
+
+    def handle_literature_detail(self, slug):
+        post = read_literature(literature_path(slug))
+        if not post or post["status"] != "published":
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        canonical = f"{SITE_URL}/literature/{quote(post['slug'])}"
+        metadata = f'<p class="meta">{html.escape(post["author"])} · {html.escape(post["work"])} · {html.escape(post["location"])}<br>{html.escape(post["original_language"])} · {html.escape(post["translation_method"])}</p>'
+        body = f'<article><h1>{html.escape(post["title"])}</h1>{metadata}<blockquote>{html.escape(post["quote"])}</blockquote><p><strong>정확한 출처</strong><br>{html.escape(post["source"])}</p><h2>이후의 생각</h2><p style="white-space:pre-wrap">{html.escape(post["commentary"])}</p><p class="closing">{html.escape(post["closing"])}</p></article>'
+        page = html_page(post["title"], body, post["quote"][:160])
+        page = page.replace(f'<link rel="canonical" href="{SITE_URL}/literature/">', f'<link rel="canonical" href="{canonical}"><meta property="og:url" content="{canonical}"><meta property="og:type" content="article">')
+        self.html_response(page)
+
+    def handle_sitemap(self):
+        urls = [(f"{SITE_URL}/", "weekly", "1.0"), (f"{SITE_URL}/literature/", "daily", "0.8")]
+        for post in list_literature():
+            urls.append((f"{SITE_URL}/literature/{quote(post['slug'])}", "monthly", "0.7"))
+        root = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+        for location, frequency, priority in urls:
+            node = ET.SubElement(root, "url")
+            ET.SubElement(node, "loc").text = location
+            ET.SubElement(node, "lastmod").text = datetime.now(timezone.utc).date().isoformat()
+            ET.SubElement(node, "changefreq").text = frequency
+            ET.SubElement(node, "priority").text = priority
+        data = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        self.bytes_response(data, "application/xml; charset=utf-8")
+
+    def handle_rss(self):
+        items = []
+        for post in list_literature()[:30]:
+            url = f"{SITE_URL}/literature/{quote(post['slug'])}"
+            items.append(f"<item><title>{xml_escape(post['title'])}</title><link>{xml_escape(url)}</link><guid>{xml_escape(url)}</guid><description>{xml_escape(post['quote'] + ' ' + post['commentary'][:300])}</description><pubDate>{xml_escape(post['published_at'])}</pubDate></item>")
+        payload = f'''<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>이후 문학노트</title><link>{SITE_URL}/literature/</link><description>소설가 이후의 문학노트</description>{''.join(items)}</channel></rss>'''.encode("utf-8")
+        self.bytes_response(payload, "application/rss+xml; charset=utf-8")
+
+    def handle_create_board_post(self):
+        payload = self.read_json_body()
+        if payload is None:
+            return
+        title = clipped(payload.get("title"), 120)
+        body = clipped(payload.get("body") or payload.get("content"), 5000)
+        if not title or not body:
+            self.json_response({"error": "title_and_body_required"}, HTTPStatus.BAD_REQUEST)
+            return
+        post_id, created_at = clipped(payload.get("id"), 80) or uuid.uuid4().hex, utc_now()
+        post = {"id": post_id, "title": title, "body": body, "author": clipped(payload.get("author") or "방문자", 40), "source": clipped(payload.get("source") or "api", 40), "created_at": created_at, "updated_at": created_at}
+        ensure_dirs()
+        atomic_write(board_path(post_id), post)
+        self.json_response({"post": post}, HTTPStatus.CREATED)
+
+    def handle_delete_board_post(self, post_id):
+        target = board_path(post_id)
+>>>>>>> Stashed changes
         if not target.exists():
             self.json_response({"error": "not_found"}, HTTPStatus.NOT_FOUND)
             return
@@ -964,7 +1340,12 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             return None
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+<<<<<<< Updated upstream
         except json.JSONDecodeError:
+=======
+            return payload if isinstance(payload, dict) else None
+        except (UnicodeDecodeError, json.JSONDecodeError):
+>>>>>>> Stashed changes
             self.json_response({"error": "invalid_json"}, HTTPStatus.BAD_REQUEST)
             return None
         if not isinstance(payload, dict):
@@ -973,12 +1354,18 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         return payload
 
     def json_response(self, payload, status=HTTPStatus.OK):
-        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.bytes_response(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+
+    def bytes_response(self, data, content_type, status=HTTPStatus.OK):
         self.send_response(status)
+<<<<<<< Updated upstream
         origin = allowed_literature_origin(self.headers.get("Origin"))
         if origin and self.is_protected_literature_path(urlparse(self.path).path):
             self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+=======
+        self.send_header("Content-Type", content_type)
+>>>>>>> Stashed changes
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
@@ -1000,6 +1387,9 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def html_response(self, content, status=HTTPStatus.OK):
+        self.bytes_response(content.encode("utf-8"), "text/html; charset=utf-8", status)
+
     def serve_static(self, request_path):
         path = posixpath.normpath(unquote(request_path.split("?", 1)[0]))
         if path in ("", "/", "."):
@@ -1009,6 +1399,7 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         if not str(target).startswith(str(ROOT)) or not target.is_file():
             self.send_error(HTTPStatus.NOT_FOUND)
             return
+<<<<<<< Updated upstream
         content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
         content = target.read_bytes()
         self.send_response(HTTPStatus.OK)
@@ -1016,11 +1407,26 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+=======
+        self.bytes_response(target.read_bytes(), mimetypes.guess_type(target.name)[0] or "application/octet-stream")
+
+
+def secrets_equal(left, right):
+    return hashlib.sha256(left.encode()).digest() == hashlib.sha256(right.encode()).digest()
+
+
+def xml_escape(value):
+    return html.escape(str(value or ""), quote=False)
+>>>>>>> Stashed changes
 
 
 if __name__ == "__main__":
     ensure_dirs()
     port = int(os.environ.get("PORT", "80"))
     server = ThreadingHTTPServer(("0.0.0.0", port), LeehuHandler)
+<<<<<<< Updated upstream
     print(f"Leehu server listening on :{port}", flush=True)
+=======
+    print(f"Leehu server listening on :{port}, board={BOARD_POSTS_DIR}, literature={LITERATURE_POSTS_DIR}", flush=True)
+>>>>>>> Stashed changes
     server.serve_forever()

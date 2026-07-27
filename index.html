@@ -101,6 +101,8 @@ a{color:inherit}
 .stat strong{display:block;font-size:2.4rem;line-height:1}
 .stat span{display:block;color:var(--muted);font-size:.8rem;margin-top:8px}
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.literature-note{border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:18px;padding:26px;background:#fff;max-width:900px}
+.literature-note h2{font-size:1.5rem;margin-bottom:10px}.literature-note blockquote{white-space:pre-wrap;margin:16px 0;padding:14px 18px;background:#faf8f3;border-left:3px solid var(--gold);line-height:1.8}.literature-note .meta{color:var(--muted);font-size:.88rem}.literature-note .note-link{display:inline-flex;margin-top:14px;color:var(--blue);font-weight:700}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;min-height:190px;display:flex;flex-direction:column}
 .card small{display:block;color:var(--gold);font-size:.74rem;letter-spacing:.16em;margin-bottom:10px}
 .card h3{font-size:1.05rem;line-height:1.4;margin-bottom:10px}
@@ -616,7 +618,11 @@ body.stella-open #stellaButton{display:none!important}
     <li><a href="#martial">무도</a></li>
     <li><a href="#books">전문저서</a></li>
     <li><a href="#music">음악</a></li>
+<<<<<<< Updated upstream
     <li><a href="/literature/">문학노트</a></li>
+=======
+    <li><a href="#literature">문학노트</a></li>
+>>>>>>> Stashed changes
     <li><a href="#contact">연락</a></li>
     <li><a href="#board">게시판</a></li>
   </ul>
@@ -721,6 +727,12 @@ body.stella-open #stellaButton{display:none!important}
   <div class="cards">
     <article class="card"><small>YouTube Music</small><h3>이후 음악 활동</h3><p>래퍼로 활동하며 2025년 짠짠짠, Summer Drive, BURBERRY, 같은 장면, 사랑인가 봐요, None 등 다수의 곡을 발매했다.</p><div class="link-row"><a class="mini-link" href="https://youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA?si=VtXfRfu9FWWtEHOd" target="_blank" rel="noopener">YouTube Music 채널</a><a class="mini-link" href="https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA" target="_blank" rel="noopener">전체 곡 듣기</a></div></article>
   </div>
+</section>
+
+<section id="literature" class="sec">
+  <p class="sec-title">Literature Note · 오늘의 문학노트</p>
+  <div id="latestLiteratureNote" class="literature-note" aria-live="polite"><p class="meta">문학노트를 불러오는 중입니다.</p></div>
+  <p><a class="mini-link" href="/literature/">문학노트 전체 보기</a> <a class="mini-link" href="/literature/rss.xml">RSS</a></p>
 </section>
 
 <section id="sources" class="sec">
@@ -924,7 +936,22 @@ function stripAttachmentPlaceholders(text){
   return String(text || "").replace(/\[붙여넣은 이미지\/파일(?: \d+개)? 첨부됨\]\s*/g, "").trim();
 }
 const BOARD_API_URL = "/api/board/posts";
+const LITERATURE_API_URL = "/api/literature/posts";
 let publicBoardSearchTimer = null;
+
+function literatureEscape(value){ return String(value || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])); }
+async function loadLatestLiterature(){
+  const panel = document.getElementById("latestLiteratureNote");
+  if (!panel) return;
+  try {
+    const response = await fetch(LITERATURE_API_URL, { headers:{"Accept":"application/json"}, cache:"no-store" });
+    const data = await response.json();
+    const post = Array.isArray(data.posts) ? data.posts[0] : null;
+    if (!response.ok || !post) { panel.innerHTML = '<p class="meta">첫 문학노트를 준비하고 있습니다.</p>'; return; }
+    panel.innerHTML = `<h2>${literatureEscape(post.title)}</h2><p class="meta">${literatureEscape(post.author)} · ${literatureEscape(post.work)}</p><blockquote>${literatureEscape(post.quote)}</blockquote><p>${literatureEscape(String(post.commentary || "").slice(0, 240))}…</p><a class="note-link" href="${literatureEscape(post.canonical_url)}">문학노트 읽기 →</a>`;
+  } catch { panel.innerHTML = '<p class="meta">문학노트를 불러오지 못했습니다.</p>'; }
+}
+document.addEventListener("DOMContentLoaded", loadLatestLiterature);
 
 function setBoardStatus(message, isError = false){
   const status = document.getElementById("publicBoardStatus");
