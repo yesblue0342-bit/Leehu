@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 1165
+TARGET_COUNT = 1465
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 47
-TARGET_SITEMAP_URLS = 1213
+TARGET_LIST_PAGES = 59
+TARGET_SITEMAP_URLS = 1525
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -49,7 +49,7 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertTrue(REQUIRED <= set(note))
 
     def test_love_batch_author_mix_and_hwang_reflection_rights(self) -> None:
-        batch = self.notes[665:]
+        batch = self.notes[665:1165]
         self.assertEqual(len(batch), 500)
         self.assertEqual(
             Counter(note["source_author"] for note in batch),
@@ -65,6 +65,27 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(len(reflection_notes), 190)
         self.assertTrue(all("직접 인용 없음" in note["rights_note"] for note in reflection_notes))
         self.assertTrue(all("사랑" in note["tags"] for note in batch))
+
+    def test_world_love_batch_author_mix_and_rights_modes(self) -> None:
+        batch = self.notes[1165:]
+        self.assertEqual(len(batch), 300)
+        self.assertEqual(
+            Counter(note["source_author"] for note in batch),
+            Counter({
+                "Leo Tolstoy": 35, "Emily Brontë": 35, "Victor Hugo": 35,
+                "Johann Wolfgang von Goethe": 35, "Alexandre Dumas fils": 35,
+                "Anton Chekhov": 35, "Gabriel García Márquez 작품 감상": 45,
+                "Antoine de Saint-Exupéry 작품 감상": 45,
+            }),
+        )
+        self.assertEqual(sum(note.get("content_kind") == "original_reflection" for note in batch), 90)
+        self.assertTrue(all(set(note["tags"]) & {"사랑", "애정", "연애", "헌신", "기다림", "관계", "신뢰", "기억", "갈망", "돌봄"} for note in batch))
+
+    def test_reflection_pages_do_not_claim_project_gutenberg_source(self) -> None:
+        reflection = next(note for note in self.notes if note.get("content_kind") == "original_reflection")
+        page = (LITERATURE / reflection["slug"] / "index.html").read_text(encoding="utf-8")
+        self.assertIn("작품 정보 확인", page)
+        self.assertNotIn("Project Gutenberg 원문 확인", page)
 
     def test_search_component_waits_for_document_and_indexes_author_work(self) -> None:
         page = (LITERATURE / "index.html").read_text(encoding="utf-8")
@@ -120,7 +141,7 @@ class StaticLiteratureTest(unittest.TestCase):
                 self.assertIn("퍼블릭 도메인", note["rights_note"])
             else:
                 self.assertEqual(parsed.scheme, "https")
-                self.assertIn(parsed.netloc, {"library.ltikorea.or.kr", "ko.wikisource.org"})
+                self.assertIn(parsed.netloc, {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"})
                 self.assertIn("직접 인용 없음", note["rights_note"])
             self.assertNotIn("번역:", note["quote"])
         self.assertEqual(len(openings), len(set(openings)))

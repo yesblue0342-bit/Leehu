@@ -22,7 +22,7 @@ CONTENT_DIR = ROOT / "content" / "literature"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 1165
+EXPECTED_COUNT = 1465
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -132,10 +132,11 @@ def first_near_duplicate(
     notes: list[dict[str, object]], field: str, threshold: float
 ) -> tuple[str, str] | None:
     """Find a near duplicate with a cheap shingle gate before SequenceMatcher."""
+    shingle_size = 8
     prepared: list[tuple[str, set[str]]] = []
     for note in notes:
         value = normalize(note[field])
-        shingles = {value[index:index + 4] for index in range(max(1, len(value) - 3))}
+        shingles = {value[index:index + shingle_size] for index in range(max(1, len(value) - shingle_size + 1))}
         prepared.append((value, shingles))
     for left in range(len(notes)):
         left_value, left_shingles = prepared[left]
@@ -205,7 +206,7 @@ def load_and_validate() -> list[dict[str, object]]:
         parsed_url = urlparse(str(data["source_url"]))
         allowed_hosts = {"www.gutenberg.org", "ko.wikisource.org"}
         if content_kind == "original_reflection":
-            allowed_hosts = {"library.ltikorea.or.kr", "ko.wikisource.org"}
+            allowed_hosts = {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"}
             if "직접 인용 없음" not in str(data["rights_note"]):
                 errors.append(f"{path.name}: original_reflection must disclose no direct quote")
         elif content_kind != "source_quote":
@@ -257,7 +258,7 @@ def load_and_validate() -> list[dict[str, object]]:
 
     similarity_specs = (("title", 0.94), ("quote", 0.97), ("commentary", 0.92))
     for field, threshold in similarity_specs:
-        candidates = notes if field != "commentary" else [
+        candidates = [
             note for note in notes if str(note.get("content_kind", "source_quote")) == "source_quote"
         ]
         duplicate = first_near_duplicate(candidates, field, threshold)
@@ -344,7 +345,7 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 <header class="hero"><div class="wrap">
   <p class="eyebrow">Literature Notes</p>
   <h1>이후의 문학노트</h1>
-  <p class="lede">직접 확인할 수 있는 퍼블릭 도메인 원문의 한 문장과, 그 문장을 오늘의 삶으로 이어 읽은 소설가 이후의 기록입니다.</p>
+  <p class="lede">직접 확인한 퍼블릭 도메인 원전의 짧은 인용과, 원문을 인용하지 않은 독창적 감상을 오늘의 삶으로 이어 읽은 소설가 이후의 기록입니다.</p>
 {SEARCH_COMPONENT}
 </div></header>
 <main class="wrap"><section class="grid">{''.join(card(note) for note in current)}</section>
@@ -358,6 +359,7 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
     url = canonical(note)
     description = re.sub(r"\s+", " ", str(note["commentary"]))[:155]
     published = str(note["published_at"])
+    source_link_label = "작품 정보 확인" if str(note.get("content_kind", "source_quote")) == "original_reflection" else "원문 확인"
     article_ld = {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
@@ -418,7 +420,7 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
     <p class="meta">글 {esc(note['author'])} · <time datetime="{esc(published)}">2026년 7월 27일</time></p></header>
     <blockquote>{esc(note['quote'])}</blockquote>
     <p class="source">— {esc(note['source_author'])}, <cite>{esc(note['source_work'])}</cite>, {esc(note['source_location'])}<br>
-    <a href="{esc(note['source_url'])}" rel="external noopener">Project Gutenberg 원문 확인</a><br>
+    <a href="{esc(note['source_url'])}" rel="external noopener">{source_link_label}</a><br>
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
     <section class="commentary"><h2>이후의 생각</h2><p>{esc(note['commentary'])}</p></section>
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>

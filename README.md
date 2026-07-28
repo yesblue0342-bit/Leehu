@@ -13,9 +13,10 @@
 ### 구조
 
 ```text
-content/literature/001.json … 1165.json  원본 데이터
+content/literature/001.json … 1465.json  원본 데이터
 scripts/curate_literature.py              기존 공공영역 원문 큐레이션 도구
 scripts/append_love_literature.py         사랑 주제 확장 배치 생성 도구
+scripts/append_world_love_literature.py   세계문학 사랑 주제 확장 배치 생성 도구
 scripts/build_literature.py               검증 및 정적 사이트 생성기
 literature/index.html                     목록 첫 페이지
 literature/page/N/index.html              페이지네이션
@@ -37,12 +38,12 @@ python -m unittest
 출력 예시:
 
 ```text
-built 1165 detail pages, 47 list pages, 1165 RSS items, and 1213 sitemap URLs
+built 1465 detail pages, 59 list pages, 1465 RSS items, and 1525 sitemap URLs
 ```
 
 생성기는 다음을 중단 조건으로 검증합니다.
 
-- 정확히 1,165개 JSON 및 내부 ID/파일명 대응
+- 정확히 1,465개 JSON 및 내부 ID/파일명 대응
 - 원문 인용은 Project Gutenberg·위키문헌의 확인된 퍼블릭 도메인 원전만 허용하고, 권리가 남아 있는 작가의 항목은 `original_reflection` 모드에서 직접 인용 없이 공개
 - slug·제목·인용문·canonical 중복 및 유사도
 - 출처 URL·필수 필드·인용문 대비 해설 길이
