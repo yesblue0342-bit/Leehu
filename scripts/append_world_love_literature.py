@@ -25,7 +25,7 @@ DIRECT_SOURCES = (
     (135, "Victor Hugo", "Les Misérables", "hugo-les-miserables"),
     (2527, "Johann Wolfgang von Goethe", "The Sorrows of Young Werther", "goethe-young-werther"),
     (1608, "Alexandre Dumas fils", "La Dame aux Camélias", "dumas-camelias"),
-    (1883, "Anton Chekhov", "About Love", "chekhov-about-love"),
+    (1883, "Anton Chekhov", "About Love (in The Wife, and Other Stories)", "chekhov-about-love"),
 )
 
 REFLECTIONS = (
@@ -105,7 +105,7 @@ def direct_note(sequence: int, position: int, author: str, work: str, short: str
         "source_location": f"Project Gutenberg eBook #{book_id}, plain-text paragraph near line {line}",
         "source_language": "en", "source_url": f"https://www.gutenberg.org/cache/epub/{book_id}/pg{book_id}.txt",
         "translation_note": "퍼블릭 도메인 영어 원문 인용. 현대 한국어 번역문을 저장하거나 전재하지 않음.",
-        "rights_note": "퍼블릭 도메인 원전에서 직접 확인한 문장.",
+        "rights_note": "Project Gutenberg에서 copyright: false로 제공되는 영어 텍스트를 직접 확인한 문장. 이용 전 관할지별 이용 조건 확인 필요.",
         "commentary": commentary, "closing": "소설가 이후 드림", "author": "소설가 이후",
         "tags": tags(position, author), "related_work": RELATED, "published_at": PUBLISHED_AT,
         "content_kind": "source_quote",

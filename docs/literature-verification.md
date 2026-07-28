@@ -4,14 +4,14 @@
 
 ## 최종 산출물
 
-- 원천 JSON: 1,465개 (`content/literature/001.json` … `1465.json`)
+- 원천 JSON: 1,466개 (`content/literature/001.json` … `1466.json`)
 - ID 범위:
   - 기존 배치: `20260727_leehu_literature_001` … `_1165`
   - 최신 세계문학 배치: `20260728_leehu_literature_001` … `_300`
-- 정적 상세 페이지: 1,465개
+- 정적 상세 페이지: 1,466개
 - 목록 페이지: 59개 (페이지당 25개)
-- RSS item: 1,465개
-- sitemap URL: 1,525개
+- RSS item: 1,466개
+- sitemap URL: 1,526개
 
 ## 최신 300편 구성
 
@@ -22,11 +22,13 @@
 | Victor Hugo · *Les Misérables* | 35 | Project Gutenberg 퍼블릭 도메인 영어 원전 직접 인용 |
 | J. W. von Goethe · *The Sorrows of Young Werther* | 35 | Project Gutenberg 퍼블릭 도메인 영어 원전 직접 인용 |
 | Alexandre Dumas fils · *La Dame aux Camélias* | 35 | Project Gutenberg 퍼블릭 도메인 영어 원전 직접 인용 |
-| Anton Chekhov · *About Love* | 35 | Project Gutenberg 수록 영어 원전 직접 인용 |
+| Anton Chekhov · *About Love* (in *The Wife, and Other Stories*) | 35 | Project Gutenberg 수록 영어 텍스트 직접 인용 |
 | Gabriel García Márquez · *Love in the Time of Cholera* | 45 | `original_reflection`: 직접 인용·번역문·장면 재현 없음 |
 | Antoine de Saint-Exupéry · *The Little Prince* | 45 | `original_reflection`: 직접 인용·번역문·장면 재현 없음 |
 
 마르케스와 생택쥐페리 항목은 권리 상태를 보수적으로 처리했다. 작품 제목과 일반적 사랑 주제를 매개로 한 독창 감상만 사용하며, 해당 작품의 원문·번역문·대사·세부 줄거리를 인용하지 않는다.
+
+Project Gutenberg 직접 인용 항목은 해당 서비스에서 `copyright: false`로 제공되는 영어 텍스트를 기준으로 했으며, 미국 외 이용 조건은 관할지별 확인이 필요하다는 고지를 함께 기록한다.
 
 ## 생성·검증 명령
 
@@ -56,5 +58,5 @@ Ran 15 tests
 OK
 
 python scripts/build_literature.py
-built 1465 detail pages, 59 list pages, 1465 RSS items, and 1525 sitemap URLs
+built 1466 detail pages, 59 list pages, 1466 RSS items, and 1526 sitemap URLs
 ```

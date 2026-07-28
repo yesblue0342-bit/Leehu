@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 1465
+TARGET_COUNT = 1466
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 59
-TARGET_SITEMAP_URLS = 1525
+TARGET_SITEMAP_URLS = 1526
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -67,7 +67,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertTrue(all("사랑" in note["tags"] for note in batch))
 
     def test_world_love_batch_author_mix_and_rights_modes(self) -> None:
-        batch = self.notes[1165:]
+        batch = self.notes[1165:1465]
         self.assertEqual(len(batch), 300)
         self.assertEqual(
             Counter(note["source_author"] for note in batch),
@@ -86,6 +86,13 @@ class StaticLiteratureTest(unittest.TestCase):
         page = (LITERATURE / reflection["slug"] / "index.html").read_text(encoding="utf-8")
         self.assertIn("작품 정보 확인", page)
         self.assertNotIn("Project Gutenberg 원문 확인", page)
+
+    def test_structured_seo_sample_has_semantic_sections(self) -> None:
+        sample = next(note for note in self.notes if note["id"] == "20260728_leehu_literature_301")
+        page = (LITERATURE / sample["slug"] / "index.html").read_text(encoding="utf-8")
+        for heading in ("작품 소개", "왜 지금도 읽히는가", "나의 감상", "오늘 우리에게 주는 의미"):
+            self.assertIn(f"<h2>{heading}</h2>", page)
+        self.assertIn("『예언자(The Prophet)』", page)
 
     def test_search_component_waits_for_document_and_indexes_author_work(self) -> None:
         page = (LITERATURE / "index.html").read_text(encoding="utf-8")
@@ -138,7 +145,7 @@ class StaticLiteratureTest(unittest.TestCase):
                 self.assertEqual(parsed.scheme, "https")
                 self.assertIn(parsed.netloc, {"www.gutenberg.org", "ko.wikisource.org"})
                 self.assertIn(note["source_language"], {"en", "ko"})
-                self.assertIn("퍼블릭 도메인", note["rights_note"])
+                self.assertTrue("퍼블릭 도메인" in note["rights_note"] or "copyright: false" in note["rights_note"])
             else:
                 self.assertEqual(parsed.scheme, "https")
                 self.assertIn(parsed.netloc, {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"})
@@ -167,7 +174,8 @@ class StaticLiteratureTest(unittest.TestCase):
         ]
         self.assertTrue(all(path.is_file() for path in list_paths))
         self.assertIn('id="literatureSearch"', list_paths[0].read_text(encoding="utf-8"))
-        expected_cards = [PAGE_SIZE] * (TARGET_LIST_PAGES - 1) + [15]
+        last_page_cards = TARGET_COUNT % PAGE_SIZE or PAGE_SIZE
+        expected_cards = [PAGE_SIZE] * (TARGET_LIST_PAGES - 1) + [last_page_cards]
         for path, expected in zip(list_paths, expected_cards):
             text = path.read_text(encoding="utf-8")
             self.assertEqual(text.count('class="note-card"'), expected)
@@ -185,7 +193,11 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertIn('property="article:author"', text)
             self.assertIn("전체 목록", text)
             self.assertIn('href="/"', text)
-            self.assertIn(html.escape(note["commentary"], quote=True), text)
+            if isinstance(note.get("seo_sections"), dict):
+                for section_text in note["seo_sections"].values():
+                    self.assertIn(html.escape(section_text, quote=True), text)
+            else:
+                self.assertIn(html.escape(note["commentary"], quote=True), text)
             blocks = json_ld_re.findall(text)
             self.assertEqual(len(blocks), 1)
             graph = json.loads(blocks[0].replace("<\\/", "</"))

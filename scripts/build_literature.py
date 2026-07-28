@@ -22,7 +22,7 @@ CONTENT_DIR = ROOT / "content" / "literature"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 1465
+EXPECTED_COUNT = 1466
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -411,18 +411,32 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
         f'<a class="next" href="/literature/{esc(following["slug"])}/">{esc(following["title"])} →</a>'
         if following else "<span></span>"
     )
+    seo_sections = note.get("seo_sections")
+    if isinstance(seo_sections, dict) and {"work_introduction", "why_read_now", "personal_reflection", "meaning_today"} <= set(seo_sections):
+        article_body = f"""
+    <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
+    <blockquote>{esc(note['quote'])}</blockquote>
+    <p class="source">— {esc(note['source_author'])}, <cite>{esc(note['source_work'])}</cite>, {esc(note['source_location'])}<br>
+    <a href="{esc(note['source_url'])}" rel="external noopener">{source_link_label}</a><br>
+    {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
+    <section class="commentary"><h2>왜 지금도 읽히는가</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
+    <section class="commentary"><h2>나의 감상</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
+    <section class="commentary"><h2>오늘 우리에게 주는 의미</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
+    else:
+        article_body = f"""
+    <blockquote>{esc(note['quote'])}</blockquote>
+    <p class="source">— {esc(note['source_author'])}, <cite>{esc(note['source_work'])}</cite>, {esc(note['source_location'])}<br>
+    <a href="{esc(note['source_url'])}" rel="external noopener">{source_link_label}</a><br>
+    {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
+    <section class="commentary"><h2>이후의 생각</h2><p>{esc(note['commentary'])}</p></section>"""
     return f"""{base_head(str(note['title']) + " | 이후의 문학노트", description, url, extra)}
 <body>{nav()}
 <main class="article">
   <nav class="breadcrumbs" aria-label="이동 경로"><a href="/">홈</a> / <a href="/literature/">문학노트</a> / {esc(note['title'])}</nav>
   <article>
     <header><p class="eyebrow">Literature Note · {esc(note['id'])}</p><h1>{esc(note['title'])}</h1>
-    <p class="meta">글 {esc(note['author'])} · <time datetime="{esc(published)}">2026년 7월 27일</time></p></header>
-    <blockquote>{esc(note['quote'])}</blockquote>
-    <p class="source">— {esc(note['source_author'])}, <cite>{esc(note['source_work'])}</cite>, {esc(note['source_location'])}<br>
-    <a href="{esc(note['source_url'])}" rel="external noopener">{source_link_label}</a><br>
-    {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
-    <section class="commentary"><h2>이후의 생각</h2><p>{esc(note['commentary'])}</p></section>
+    <p class="meta">글 {esc(note['author'])} · <time datetime="{esc(published)}">{datetime.fromisoformat(published).year}년 {datetime.fromisoformat(published).month}월 {datetime.fromisoformat(published).day}일</time></p></header>
+{article_body}
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>
     <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
     <p class="meta" style="margin-top:28px">{esc(note['closing'])}</p>
@@ -546,13 +560,16 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
         if path.parent.name in notes_by_slug:
             note = notes_by_slug.get(path.parent.name)
             if note:
-                for field in (
-                    "title", "quote", "source_author", "source_work",
-                    "source_location", "commentary", "closing",
-                ):
-                    if esc(note[field]) not in text:
+                fields = ["title", "quote", "source_author", "source_work", "source_location", "closing"]
+                seo_sections = note.get("seo_sections")
+                if isinstance(seo_sections, dict):
+                    expected_values = [note[field] for field in fields] + list(seo_sections.values())
+                else:
+                    expected_values = [note[field] for field in fields + ["commentary"]]
+                for value in expected_values:
+                    if esc(value) not in text:
                         errors.append(
-                            f"escaped {field} missing: {path.relative_to(ROOT)}"
+                            f"escaped note content missing: {path.relative_to(ROOT)}"
                         )
             blocks = json_re.findall(text)
             if len(blocks) != 1:
