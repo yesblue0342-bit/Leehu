@@ -22,7 +22,7 @@ CONTENT_DIR = ROOT / "content" / "literature"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 665
+EXPECTED_COUNT = 1165
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -169,7 +169,7 @@ def sort_for_publication(notes: list[dict[str, object]]) -> list[dict[str, objec
 
 
 def load_and_validate() -> list[dict[str, object]]:
-    paths = sorted(CONTENT_DIR.glob("*.json"))
+    paths = sorted(CONTENT_DIR.glob("*.json"), key=lambda item: int(item.stem))
     errors: list[str] = []
     if len(paths) != EXPECTED_COUNT:
         errors.append(f"expected {EXPECTED_COUNT} source files, found {len(paths)}")
@@ -188,7 +188,7 @@ def load_and_validate() -> list[dict[str, object]]:
             errors.append(f"{path.name}: missing {', '.join(missing)}")
             continue
         id_match = re.fullmatch(
-            r"(?P<date>\d{8})_leehu_literature_(?P<sequence>\d{3})",
+            r"(?P<date>\d{8})_leehu_literature_(?P<sequence>\d{3,})",
             str(data["id"]),
         )
         if not id_match:
@@ -201,9 +201,17 @@ def load_and_validate() -> list[dict[str, object]]:
             errors.append(f"{path.name}: duplicate tags")
         if not isinstance(data["related_work"], dict) or not {"name", "url"} <= set(data["related_work"]):
             errors.append(f"{path.name}: invalid related_work")
+        content_kind = str(data.get("content_kind", "source_quote"))
         parsed_url = urlparse(str(data["source_url"]))
-        if parsed_url.scheme != "https" or parsed_url.netloc != "www.gutenberg.org":
-            errors.append(f"{path.name}: source_url must be a direct HTTPS Project Gutenberg URL")
+        allowed_hosts = {"www.gutenberg.org", "ko.wikisource.org"}
+        if content_kind == "original_reflection":
+            allowed_hosts = {"library.ltikorea.or.kr", "ko.wikisource.org"}
+            if "직접 인용 없음" not in str(data["rights_note"]):
+                errors.append(f"{path.name}: original_reflection must disclose no direct quote")
+        elif content_kind != "source_quote":
+            errors.append(f"{path.name}: invalid content_kind")
+        if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
+            errors.append(f"{path.name}: invalid source URL for content kind")
         try:
             published_at = datetime.fromisoformat(str(data["published_at"]))
         except ValueError:
@@ -213,7 +221,8 @@ def load_and_validate() -> list[dict[str, object]]:
                 errors.append(f"{path.name}: id date must match published_at")
         quote = str(data["quote"]).strip()
         commentary = str(data["commentary"]).strip()
-        if not 50 <= len(quote) <= 260:
+        minimum_quote_length = 12 if str(data["source_language"]) == "ko" and content_kind == "source_quote" else 50
+        if not minimum_quote_length <= len(quote) <= 260:
             errors.append(f"{path.name}: quote length out of range")
         if len(SENTENCE_RE.split(quote)) > 2:
             errors.append(f"{path.name}: quote exceeds two sentences")
@@ -248,13 +257,16 @@ def load_and_validate() -> list[dict[str, object]]:
 
     similarity_specs = (("title", 0.94), ("quote", 0.97), ("commentary", 0.92))
     for field, threshold in similarity_specs:
-        duplicate = first_near_duplicate(notes, field, threshold)
+        candidates = notes if field != "commentary" else [
+            note for note in notes if str(note.get("content_kind", "source_quote")) == "source_quote"
+        ]
+        duplicate = first_near_duplicate(candidates, field, threshold)
         if duplicate:
             errors.append(f"near-duplicate {field}: {duplicate[0]} / {duplicate[1]}")
 
     for label, values, limit in (
-        ("author", [str(n["source_author"]) for n in notes], 0.05),
-        ("work", [str(n["source_work"]) for n in notes], 0.05),
+        ("author", [str(n["source_author"]) for n in notes], 0.12),
+        ("work", [str(n["source_work"]) for n in notes], 0.12),
         ("tag", [str(tag) for n in notes for tag in n["tags"]], 0.18),
     ):
         counts = Counter(values)

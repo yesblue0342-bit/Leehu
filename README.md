@@ -13,8 +13,9 @@
 ### 구조
 
 ```text
-content/literature/001.json … 665.json   원본 데이터
-scripts/curate_literature.py              공공영역 원문 큐레이션 도구
+content/literature/001.json … 1165.json  원본 데이터
+scripts/curate_literature.py              기존 공공영역 원문 큐레이션 도구
+scripts/append_love_literature.py         사랑 주제 확장 배치 생성 도구
 scripts/build_literature.py               검증 및 정적 사이트 생성기
 literature/index.html                     목록 첫 페이지
 literature/page/N/index.html              페이지네이션
@@ -36,12 +37,13 @@ python -m unittest
 출력 예시:
 
 ```text
-built 665 detail pages, 27 list pages, 665 RSS items, and 693 sitemap URLs
+built 1165 detail pages, 47 list pages, 1165 RSS items, and 1213 sitemap URLs
 ```
 
 생성기는 다음을 중단 조건으로 검증합니다.
 
-- 정확히 665개 JSON 및 내부 ID/파일명 대응
+- 정확히 1,165개 JSON 및 내부 ID/파일명 대응
+- 원문 인용은 Project Gutenberg·위키문헌의 확인된 퍼블릭 도메인 원전만 허용하고, 권리가 남아 있는 작가의 항목은 `original_reflection` 모드에서 직접 인용 없이 공개
 - slug·제목·인용문·canonical 중복 및 유사도
 - 출처 URL·필수 필드·인용문 대비 해설 길이
 - commentary 첫 문장·마지막 문장 중복
@@ -64,7 +66,7 @@ git push
 
 ### 권리 및 출처 처리
 
-원문은 Project Gutenberg가 제공하는 공공영역 영어 텍스트에서 짧게 인용합니다. 현대 한국어 번역문을 저장하거나 장문 전재하지 않습니다. `scripts/curate_literature.py`는 직접 원문을 내려받아 인용문이 원문 본문에 존재하는지 확인한 후 JSON을 생성합니다.
+원문 인용은 Project Gutenberg와 위키문헌에서 직접 확인한 퍼블릭 도메인 텍스트만 사용합니다. 현대 한국어 번역문을 저장하거나 장문 전재하지 않습니다. 권리가 남아 있는 작가의 작품은 `original_reflection`으로 구분하고, 원문·번역문·대사·상세 줄거리를 인용하지 않은 독창적 감상만 공개합니다.
 
 ## 기존 서버 코드
 

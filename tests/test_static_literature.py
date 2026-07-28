@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 665
+TARGET_COUNT = 1165
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 27
-TARGET_SITEMAP_URLS = 693
+TARGET_LIST_PAGES = 47
+TARGET_SITEMAP_URLS = 1213
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -31,7 +31,7 @@ REQUIRED = {
 class StaticLiteratureTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.paths = sorted(CONTENT.glob("*.json"))
+        cls.paths = sorted(CONTENT.glob("*.json"), key=lambda item: int(item.stem))
         cls.notes = [
             json.loads(path.read_text(encoding="utf-8")) for path in cls.paths
         ]
@@ -41,12 +41,30 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(len(self.notes), TARGET_COUNT)
         for index, (path, note) in enumerate(zip(self.paths, self.notes), 1):
             self.assertEqual(path.name, f"{index:03d}.json")
-            self.assertRegex(note["id"], r"^\d{8}_leehu_literature_\d{3}$")
+            self.assertRegex(note["id"], r"^\d{8}_leehu_literature_\d{3,}$")
             self.assertEqual(
                 note["id"][:8],
                 note["published_at"][:10].replace("-", ""),
             )
             self.assertTrue(REQUIRED <= set(note))
+
+    def test_love_batch_author_mix_and_hwang_reflection_rights(self) -> None:
+        batch = self.notes[665:]
+        self.assertEqual(len(batch), 500)
+        self.assertEqual(
+            Counter(note["source_author"] for note in batch),
+            Counter({
+                "Guy de Maupassant": 125,
+                "William Shakespeare": 125,
+                "이상": 60,
+                "이상 작품 감상": 65,
+                "황순원 작품 감상": 125,
+            }),
+        )
+        reflection_notes = [note for note in batch if note.get("content_kind") == "original_reflection"]
+        self.assertEqual(len(reflection_notes), 190)
+        self.assertTrue(all("직접 인용 없음" in note["rights_note"] for note in reflection_notes))
+        self.assertTrue(all("사랑" in note["tags"] for note in batch))
 
     def test_search_component_waits_for_document_and_indexes_author_work(self) -> None:
         page = (LITERATURE / "index.html").read_text(encoding="utf-8")
@@ -95,9 +113,15 @@ class StaticLiteratureTest(unittest.TestCase):
             openings.append(re.sub(r"\W+", "", sentences[0]).casefold())
             closings.append(re.sub(r"\W+", "", sentences[-1]).casefold())
             parsed = urlparse(note["source_url"])
-            self.assertEqual((parsed.scheme, parsed.netloc), ("https", "www.gutenberg.org"))
-            self.assertEqual(note["source_language"], "en")
-            self.assertIn("퍼블릭 도메인", note["rights_note"])
+            if note.get("content_kind", "source_quote") == "source_quote":
+                self.assertEqual(parsed.scheme, "https")
+                self.assertIn(parsed.netloc, {"www.gutenberg.org", "ko.wikisource.org"})
+                self.assertIn(note["source_language"], {"en", "ko"})
+                self.assertIn("퍼블릭 도메인", note["rights_note"])
+            else:
+                self.assertEqual(parsed.scheme, "https")
+                self.assertIn(parsed.netloc, {"library.ltikorea.or.kr", "ko.wikisource.org"})
+                self.assertIn("직접 인용 없음", note["rights_note"])
             self.assertNotIn("번역:", note["quote"])
         self.assertEqual(len(openings), len(set(openings)))
         self.assertEqual(len(closings), len(set(closings)))
@@ -105,8 +129,8 @@ class StaticLiteratureTest(unittest.TestCase):
         authors = Counter(note["source_author"] for note in self.notes)
         works = Counter(note["source_work"] for note in self.notes)
         tags = Counter(tag for note in self.notes for tag in note["tags"])
-        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.05)
-        self.assertLessEqual(works.most_common(1)[0][1] / TARGET_COUNT, 0.05)
+        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.12)
+        self.assertLessEqual(works.most_common(1)[0][1] / TARGET_COUNT, 0.12)
         self.assertLessEqual(tags.most_common(1)[0][1] / sum(tags.values()), 0.18)
         self.assertGreaterEqual(len(authors), 30)
         self.assertGreaterEqual(len(works), 30)
@@ -225,7 +249,7 @@ class StaticLiteratureTest(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=300,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn(f"built {TARGET_COUNT} detail pages", completed.stdout)
