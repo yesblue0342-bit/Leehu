@@ -125,7 +125,7 @@ def reflection_note(sequence: int, position: int, source_author: str, work: str,
     return {
         "id": f"20260728_leehu_literature_{sequence:03d}",
         "slug": f"{short}-love-{token(source_author + work + theme)}",
-        "title": f"{theme}으로 읽는 사랑: {author_tag}의 『{work}』", "quote": quote,
+        "title": f"{theme}의 자리에서 읽는 사랑: {author_tag}의 『{work}』", "quote": quote,
         "source_author": source_author, "source_work": work,
         "source_location": "직접 인용 없음 · 작품 제목과 일반적 사랑 주제에 대한 독창적 감상",
         "source_language": "en", "source_url": source_url,
