@@ -305,6 +305,12 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn('id="publicBoardForm"', homepage)
         self.assertIn('id="publicPostList"', homepage)
         self.assertIn('href="#board"', homepage)
+        self.assertNotIn("이후 홈페이지에 남기고 싶은 글", homepage)
+        compact_homepage = re.sub(r"\s+", "", homepage)
+        self.assertRegex(
+            compact_homepage,
+            r"\.board-copyh2\{[^}]*white-space:nowrap",
+        )
         server_text = (ROOT / "server.py").read_text(encoding="utf-8")
         self.assertIn('"/api/board/posts"', server_text)
         self.assertTrue((ROOT / "Dockerfile").is_file())
