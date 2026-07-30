@@ -485,6 +485,17 @@ class StaticLiteratureTest(unittest.TestCase):
             r'id="stellaButton"[^>]*aria-controls="stella"'
             r'[^>]*aria-expanded="false"',
         )
+        self.assertIn('<body data-stella-ui="dormant">', homepage)
+        compact = re.sub(r"\s+", "", homepage)
+        self.assertIn(
+            'body[data-stella-ui="dormant"]#stellaButton#stellaButton',
+            compact,
+        )
+        self.assertRegex(
+            compact,
+            r'body\[data-stella-ui="dormant"\]#stella#stella\{'
+            r'[^}]*display:none!important',
+        )
         self.assertRegex(
             homepage,
             r'<button[^>]*id="closeStellaBtn"[^>]*aria-label="[^"]+"',

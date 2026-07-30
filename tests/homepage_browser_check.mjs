@@ -337,25 +337,16 @@ function pageMetricsExpression(width) {
       "#mobileNavToggle",
       '.hero-actions a[href="#works"]',
       '.hero-actions a[href="#about"]',
-      "#stellaButton",
     ]) : "[]"};
-    const controls = ${width <= 768 ? '["#mobileNavToggle", "#stellaButton"].map(detail)' : "[]"};
-    const controlsOverlap = controls.length === 2 &&
-      controls.every(item => item.visible) &&
-      !(
-        controls[0].left + controls[0].width <= controls[1].left ||
-        controls[1].left + controls[1].width <= controls[0].left ||
-        controls[0].top + controls[0].height <= controls[1].top ||
-        controls[1].top + controls[1].height <= controls[0].top
-      );
     return {
       viewportWidth:document.documentElement.clientWidth,
       scrollWidth:document.documentElement.scrollWidth,
       overflow:document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       required:required.map(detail),
       touchTargets:touchSelectors.map(detail).filter(item => item.visible),
-      controls,
-      controlsOverlap,
+      stellaDormant:document.body.dataset.stellaUi === "dormant",
+      stellaEntry:detail("#stellaButton"),
+      stellaPanel:detail("#stella"),
       staticImageCount:document.querySelectorAll("body > img, main img, header img, footer img").length,
     };
   })()`;
@@ -694,10 +685,12 @@ function validateReport(report) {
         );
       }
     }
-    if (viewport.metrics.controlsOverlap) {
-      failures.push(`${viewport.name}: mobile menu and Stella controls overlap`);
+    if (!viewport.metrics.stellaDormant ||
+        viewport.metrics.stellaEntry.visible ||
+        viewport.metrics.stellaPanel.visible) {
+      failures.push(`${viewport.name}: dormant Stella UI is exposed`);
     }
-    if (!viewport.keyboard.reachesStella ||
+    if (viewport.keyboard.reachesStella ||
         !viewport.keyboard.reachesWorks ||
         !viewport.keyboard.reachesAbout) {
       failures.push(`${viewport.name}: keyboard navigation did not reach key controls`);
@@ -841,13 +834,16 @@ async function main() {
       await navigate(cdp, `${baseUrl}?browser-check=${viewport.name}-anonymous`);
       const metrics = await evaluate(cdp, pageMetricsExpression(viewport.width));
       const keyboard = await inspectKeyboardNavigation(cdp);
+      await evaluate(cdp, `document.body.removeAttribute("data-stella-ui")`);
       const anonymous = await inspectStella(cdp, false);
       const legacyLogin = await inspectLegacyLogin(cdp);
       const signup = await inspectSignup(cdp);
       const escapeClose = await inspectEscapeClose(cdp);
       await seedCompatibleSession(cdp);
       await navigate(cdp, `${baseUrl}?browser-check=${viewport.name}-seeded`);
+      await evaluate(cdp, `document.body.removeAttribute("data-stella-ui")`);
       const seeded = await inspectStella(cdp, true);
+      await evaluate(cdp, `document.body.setAttribute("data-stella-ui", "dormant")`);
       const mobileNavigation = await inspectMobileNavigation(cdp, viewport.width);
       await evaluate(cdp, `(() => {
         history.replaceState(null, "", location.pathname + location.search);

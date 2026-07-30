@@ -832,10 +832,18 @@ td{color:#45413c}
   html{scroll-behavior:auto}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+html body[data-stella-ui="dormant"] #stellaToggle#stellaToggle,
+html body[data-stella-ui="dormant"] #stellaButton#stellaButton,
+html body[data-stella-ui="dormant"] #stella#stella{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+body[data-stella-ui="dormant"] .nav-links{margin-right:0}
 </style>
 
 </head>
-<body>
+<body data-stella-ui="dormant">
 
 <nav class="site-nav">
   <a class="nav-logo" href="#top">이후</a>
