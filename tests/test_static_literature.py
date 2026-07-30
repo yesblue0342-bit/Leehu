@@ -421,6 +421,7 @@ class StaticLiteratureTest(unittest.TestCase):
         homepage_casefold = self.homepage.casefold()
         for phrase in forbidden_copy:
             self.assertNotIn(phrase.casefold(), homepage_casefold)
+        self.assertNotIn("시인 김경의 아들로", self.homepage)
 
     def test_homepage_editorial_design_tokens_match_approved_palette(self):
         token_blocks = re.findall(r":root\s*\{(?P<body>[^}]+)\}", self.homepage)
