@@ -437,6 +437,7 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertIn(f"{name}:{value}", normalized)
         self.assertIn("--font-serif:", normalized)
         self.assertIn("--font-sans:", normalized)
+        self.assertNotIn(".quote::before", self.homepage)
 
     def test_homepage_has_keyboard_focus_and_reduced_motion_contracts(self):
         compact = re.sub(r"\s+", "", self.homepage)
