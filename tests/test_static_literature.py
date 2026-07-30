@@ -5,6 +5,7 @@ import subprocess
 import sys
 import unittest
 from collections import Counter
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
@@ -28,6 +29,39 @@ REQUIRED = {
 }
 
 
+class HomepageContractParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.ids = Counter()
+        self.links = []
+        self.images = []
+        self.scripts = []
+        self._json_ld = None
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        element_id = attributes.get("id")
+        if element_id:
+            self.ids[element_id] += 1
+        if tag == "a":
+            self.links.append(attributes)
+        if tag == "img":
+            self.images.append(attributes)
+        if tag == "script":
+            self._json_ld = (
+                [] if attributes.get("type") == "application/ld+json" else None
+            )
+
+    def handle_data(self, data):
+        if self._json_ld is not None:
+            self._json_ld.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._json_ld is not None:
+            self.scripts.append("".join(self._json_ld))
+            self._json_ld = None
+
+
 class StaticLiteratureTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -35,6 +69,9 @@ class StaticLiteratureTest(unittest.TestCase):
         cls.notes = [
             json.loads(path.read_text(encoding="utf-8")) for path in cls.paths
         ]
+        cls.homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.homepage_parser = HomepageContractParser()
+        cls.homepage_parser.feed(cls.homepage)
 
     def test_exact_source_count_names_ids_and_publication_dates(self):
         self.assertEqual(len(self.paths), TARGET_COUNT)
@@ -273,7 +310,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertTrue((ROOT / "Dockerfile").is_file())
 
     def test_homepage_sources_hide_structured_data_description_and_seo_card(self):
-        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        homepage = self.homepage
         self.assertIn("소설가 이후에 대한 공개 정보를 백과·포털 전반에서 확인할 수 있습니다.", homepage)
         self.assertNotIn("각 소스는 구조화 데이터", homepage)
         self.assertNotIn("SEO · 색인 지표", homepage)
@@ -283,6 +320,194 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn('<meta property="og:title"', homepage)
         self.assertTrue((ROOT / "sitemap.xml").is_file())
         self.assertTrue((ROOT / "robots.txt").is_file())
+
+    def test_homepage_preserves_seo_json_ld_canonical_and_open_graph(self):
+        homepage = self.homepage
+        self.assertIn(
+            '<link rel="canonical" href="https://xn--hu5b23z.com/">',
+            homepage,
+        )
+        for property_name in (
+            "og:type", "og:site_name", "og:title", "og:description",
+            "og:url", "og:image", "og:locale",
+        ):
+            self.assertRegex(
+                homepage,
+                rf'<meta\s+property="{re.escape(property_name)}"\s+content="[^"]+">',
+            )
+        self.assertEqual(len(self.homepage_parser.scripts), 1)
+        graph = json.loads(self.homepage_parser.scripts[0])["@graph"]
+        graph_types = [entry["@type"] for entry in graph]
+        self.assertIn("Person", graph_types)
+        self.assertIn("WebSite", graph_types)
+        self.assertGreaterEqual(graph_types.count("Book"), 3)
+
+    def test_homepage_generator_markers_remain_unique_and_ordered(self):
+        homepage = self.homepage
+        marker_pairs = (
+            ("LITERATURE_LATEST_ITEMS:START", "LITERATURE_LATEST_ITEMS:END"),
+            ("BOARD_LITERATURE_ITEMS:START", "BOARD_LITERATURE_ITEMS:END"),
+        )
+        for start, end in marker_pairs:
+            start_marker = f"<!-- {start} -->"
+            end_marker = f"<!-- {end} -->"
+            self.assertEqual(homepage.count(start_marker), 1)
+            self.assertEqual(homepage.count(end_marker), 1)
+            self.assertLess(homepage.index(start_marker), homepage.index(end_marker))
+
+    def test_homepage_literal_javascript_ids_exist_exactly_once(self):
+        javascript_ids = set(re.findall(
+            r'(?:getElementById\(|\$\()\s*["\']([A-Za-z][\w:-]*)["\']\s*\)',
+            self.homepage,
+        ))
+        self.assertGreaterEqual(len(javascript_ids), 20)
+        for element_id in sorted(javascript_ids):
+            self.assertEqual(
+                self.homepage_parser.ids[element_id],
+                1,
+                f"JavaScript-consumed id must exist exactly once: {element_id}",
+            )
+
+    def test_homepage_stella_storage_keys_and_api_contract_are_unchanged(self):
+        homepage = self.homepage
+        expected_keys = {
+            "users": "stella_users_v3",
+            "current": "stella_current_user_v3",
+            "rooms": "stella_rooms_v3",
+            "projects": "stella_projects_v1",
+            "posts": "stella_posts_v3",
+        }
+        store_keys_match = re.search(
+            r"const\s+storeKeys\s*=\s*\{(?P<body>[^}]+)\}",
+            homepage,
+        )
+        self.assertIsNotNone(store_keys_match)
+        parsed_keys = dict(re.findall(
+            r'(\w+)\s*:\s*["\']([^"\']+)["\']',
+            store_keys_match.group("body"),
+        ))
+        self.assertEqual(parsed_keys, expected_keys)
+        self.assertIn('const STELLA_API_URL = "/api/chat";', homepage)
+        self.assertIn('const BOARD_API_URL = "/api/board/posts";', homepage)
+        self.assertIn("passwordHashCandidates", homepage)
+        self.assertIn('crypto.subtle.digest("SHA-256"', homepage)
+
+    def test_homepage_blank_links_are_isolated_from_opener(self):
+        blank_links = [
+            link for link in self.homepage_parser.links
+            if link.get("target", "").casefold() == "_blank"
+        ]
+        self.assertGreater(len(blank_links), 10)
+        for link in blank_links:
+            rel_tokens = set(link.get("rel", "").casefold().split())
+            self.assertIn("noopener", rel_tokens, link.get("href"))
+
+    def test_homepage_contains_no_person_image_or_person_placeholder(self):
+        self.assertEqual(
+            self.homepage_parser.images,
+            [],
+            "The homepage must express the author brand without static images.",
+        )
+        forbidden_copy = (
+            "인물사진", "인물 사진", "개인사진", "개인 사진", "프로필 사진",
+            "ai 인물", "인물 실루엣", "얼굴 이미지", "portrait placeholder",
+        )
+        homepage_casefold = self.homepage.casefold()
+        for phrase in forbidden_copy:
+            self.assertNotIn(phrase.casefold(), homepage_casefold)
+
+    def test_homepage_editorial_design_tokens_match_approved_palette(self):
+        token_blocks = re.findall(r":root\s*\{(?P<body>[^}]+)\}", self.homepage)
+        self.assertGreaterEqual(len(token_blocks), 1)
+        normalized = re.sub(r"\s+", "", "".join(token_blocks)).casefold()
+        expected_tokens = {
+            "--paper": "#f4f0e8",
+            "--paper-light": "#faf8f3",
+            "--ink": "#151a24",
+            "--body-ink": "#45413c",
+            "--brass": "#9c7a45",
+        }
+        for name, value in expected_tokens.items():
+            self.assertIn(f"{name}:{value}", normalized)
+        self.assertIn("--font-serif:", normalized)
+        self.assertIn("--font-sans:", normalized)
+
+    def test_homepage_has_keyboard_focus_and_reduced_motion_contracts(self):
+        compact = re.sub(r"\s+", "", self.homepage)
+        self.assertIn(":focus-visible", self.homepage)
+        self.assertRegex(
+            compact,
+            r":focus-visible\{[^}]*outline:(?:[^;}]*\s)?(?:2px|3px)",
+        )
+        self.assertIn("@media(prefers-reduced-motion:reduce)", compact)
+        reduced_motion = re.search(
+            r"@media\(prefers-reduced-motion:reduce\)\{(?P<body>.*?)\}\}",
+            compact,
+            re.S,
+        )
+        self.assertIsNotNone(reduced_motion)
+        self.assertRegex(
+            reduced_motion.group("body"),
+            r"(animation-duration:\.01ms|animation:none)",
+        )
+
+    def test_homepage_mobile_navigation_and_hero_ctas_are_explicit(self):
+        homepage = self.homepage
+        self.assertEqual(self.homepage_parser.ids["mobileNavToggle"], 1)
+        self.assertEqual(self.homepage_parser.ids["primaryNav"], 1)
+        self.assertRegex(
+            homepage,
+            r'id="mobileNavToggle"[^>]*aria-controls="primaryNav"'
+            r'[^>]*aria-expanded="false"',
+        )
+        self.assertIn('class="hero-actions"', homepage)
+        hero_actions = re.search(
+            r'<div class="hero-actions">(?P<body>.*?)</div>',
+            homepage,
+            re.S,
+        )
+        self.assertIsNotNone(hero_actions)
+        self.assertIn('href="#works"', hero_actions.group("body"))
+        self.assertIn('href="#about"', hero_actions.group("body"))
+        self.assertIn('getElementById("mobileNavToggle")', homepage)
+        self.assertIn('getElementById("primaryNav")', homepage)
+
+    def test_homepage_stella_entry_open_close_and_auth_contract(self):
+        homepage = self.homepage
+        for element_id in (
+            "stellaButton", "stella", "authScreen", "loginTab", "signupTab",
+            "authForm", "stellaApp", "closeStellaBtn", "closeStellaAuthBtn",
+            "stellaDialogTitle",
+        ):
+            self.assertEqual(self.homepage_parser.ids[element_id], 1)
+        self.assertRegex(
+            homepage,
+            r'id="stellaButton"[^>]*aria-controls="stella"'
+            r'[^>]*aria-expanded="false"',
+        )
+        self.assertRegex(
+            homepage,
+            r'<button[^>]*id="closeStellaBtn"[^>]*aria-label="[^"]+"',
+        )
+        self.assertRegex(
+            homepage,
+            r'id="stella"[^>]*role="dialog"[^>]*aria-modal="true"'
+            r'[^>]*aria-labelledby="stellaDialogTitle"',
+        )
+        self.assertIn('setAttribute("inert", "")', homepage)
+        self.assertIn('removeAttribute("inert")', homepage)
+        self.assertIn('event.key === "Escape"', homepage)
+        self.assertNotIn('id="stella-icon-disabled-css"', homepage)
+        self.assertNotIn('id="stella-icon-disabled-runtime"', homepage)
+        self.assertIn('stellaBtn.focus()', homepage)
+        self.assertRegex(
+            homepage,
+            r'setAttribute\(["\']aria-expanded["\'],\s*["\']true["\']\)',
+        )
+        self.assertRegex(
+            homepage,
+            r'setAttribute\(["\']aria-expanded["\'],\s*["\']false["\']\)',
+        )
 
     def test_z_generator_is_idempotent(self):
         tracked_outputs = [ROOT / "index.html", ROOT / "sitemap.xml", LITERATURE / "rss.xml"]

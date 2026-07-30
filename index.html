@@ -8,6 +8,7 @@
 <meta name="author" content="이후">
 <meta name="robots" content="index, follow">
 <meta name="keywords" content="이후, 이후 소설가, 소설가 이후, 李後, 시인 이후, 한국소설, 현대시, 연 소설, 데자뷔, 소나기">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23151A24'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-size='38' fill='%23F4F0E8'%3E%E5%BE%8C%3C/text%3E%3C/svg%3E">
 <link rel="canonical" href="https://xn--hu5b23z.com/">
 <!-- Open Graph (카카오톡/페이스북 공유) -->
 <meta property="og:type" content="website">
@@ -61,10 +62,10 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#fff;--panel:#f7f7f8;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--gold:#b89a5c;--blue:#2f66b1;--red:#8b1a1a}
+:root{--paper:#f4f0e8;--paper-light:#faf8f3;--ink:#151a24;--body-ink:#45413c;--brass:#9c7a45;--font-serif:"Noto Serif KR","Gowun Batang","Batang",serif;--font-sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;--bg:var(--paper);--panel:var(--paper-light);--muted:#625d55;--line:rgba(21,26,36,.16);--gold:var(--brass);--blue:#24354b;--red:#704237}
 html{scroll-behavior:smooth;height:100%}
 body{font-family:"Gowun Batang","Noto Serif KR",serif;background:var(--bg);color:var(--ink);overflow-x:hidden}
 button,input,textarea,select{font:inherit}
@@ -573,35 +574,264 @@ body.stella-open #stellaButton{display:none!important}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-<!-- Stella icon disabled in this public version -->
-<style id="stella-icon-disabled-css">
-  /* Stella 진입 버튼/체크박스 완전 비활성화 */
-  #stellaToggle,
-  #stellaButton {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    touch-action: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
+<style id="editorial-renewal">
+:root{
+  --bg:#f4f0e8;
+  --panel:#faf8f3;
+  --ink:#151a24;
+  --muted:#625d55;
+  --line:rgba(21,26,36,.16);
+  --gold:#9c7a45;
+  --gold-text:#755a2e;
+  --gold-on-dark:#d7bb87;
+  --focus:#a17f49;
+  --blue:#24354b;
+  --red:#704237;
+  --sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --serif:"Noto Serif KR","Gowun Batang","Batang",serif;
+  --page:min(1280px,calc(100vw - 96px));
+}
+html{scroll-padding-top:82px}
+body{
+  font-family:var(--sans);
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(circle at 18% 12%,rgba(156,122,69,.06),transparent 28rem),
+    repeating-linear-gradient(0deg,rgba(21,26,36,.018) 0,rgba(21,26,36,.018) 1px,transparent 1px,transparent 4px);
+  color:var(--ink);
+  line-height:1.7;
+}
+h1,h2,h3,.quote,.nav-logo,.brand-title,.footer h2{font-family:var(--serif)}
+button,input,textarea,select,.site-nav,.mini-link,.tag,.stat,.board-status{font-family:var(--sans)}
+a,button,input,textarea,select,[tabindex]{outline-offset:4px}
+:focus-visible{outline:2px solid var(--focus)!important;outline-offset:4px!important}
+::selection{background:rgba(156,122,69,.26);color:var(--ink)}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
-  /* 혹시 스크립트/체크 상태로 열리더라도 Stella 패널 표시 방지 */
-  #stella,
-  #stella.active,
-  #stellaToggle:checked ~ #stella {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
+.site-nav{
+  height:72px;
+  padding:0 max(32px,calc((100vw - 1280px)/2));
+  background:rgba(244,240,232,.94);
+  border-bottom:1px solid var(--line);
+  box-shadow:none;
+}
+.nav-logo{display:flex;align-items:center;gap:12px;font-size:1.3rem;letter-spacing:.08em}
+.nav-logo::after{content:"李後";font-size:.72rem;font-weight:500;letter-spacing:.18em;color:var(--gold-text)}
+.nav-links{gap:18px;margin-right:154px}
+.nav-links a{font-size:.78rem;font-weight:600;letter-spacing:.035em;color:var(--body,#45413c)}
+.nav-links a::after{content:"";display:block;width:0;height:1px;margin-top:3px;background:var(--gold);transition:width .18s ease}
+.nav-links a:hover::after,.nav-links a:focus-visible::after{width:100%}
+.mobile-nav{display:none;place-items:center;width:46px;height:46px;margin-left:auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--serif);font-size:1.05rem;font-weight:700}
 
-  body.stella-open {
-    overflow: auto !important;
-  }
+#stellaToggle{position:fixed!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
+#stellaButton{
+  top:13px!important;
+  right:max(20px,calc((100vw - 1390px)/2))!important;
+  z-index:9999!important;
+  min-width:136px!important;
+  height:46px!important;
+  padding:0 20px!important;
+  border:1px solid var(--ink)!important;
+  border-radius:2px!important;
+  background:var(--ink)!important;
+  color:var(--bg)!important;
+  box-shadow:none!important;
+  font-family:var(--sans)!important;
+  font-size:.82rem!important;
+  letter-spacing:.08em!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+#stellaButton::before{content:"✦";color:#d7bb87}
+#stellaButton:hover{background:#283040!important}
+
+.hero{
+  width:var(--page);
+  min-height:calc(100svh - 72px);
+  margin:0 auto;
+  grid-template-columns:minmax(0,1.18fr) minmax(340px,.82fr);
+  border:0;
+  border-left:1px solid var(--line);
+  border-right:1px solid var(--line);
+}
+.hero-left{padding:clamp(72px,9vw,132px) clamp(36px,7vw,96px)}
+.eyebrow{margin-bottom:30px;font-family:var(--sans);font-size:.78rem;font-style:normal;font-weight:600;letter-spacing:.14em;color:var(--gold-text)}
+.hero h1{font-size:clamp(5rem,10vw,9rem);font-weight:700;letter-spacing:-.085em}
+.cn{margin-top:18px;color:var(--gold-text);font-family:var(--serif);font-size:1.15rem;letter-spacing:.58em;writing-mode:horizontal-tb}
+.gold-line{width:120px;margin:38px 0;background:var(--gold)}
+.tagline{max-width:590px;color:#45413c;font-family:var(--serif);font-size:clamp(1.08rem,1.6vw,1.42rem);line-height:1.95}
+.hero-tags{gap:0;margin-top:34px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tag{border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;padding:9px 13px;color:#45413c;font-size:.72rem}
+.tag:last-child{border-right:0}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+.hero-cta{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border:1px solid var(--ink);text-decoration:none;font-size:.8rem;font-weight:700;letter-spacing:.04em}
+.hero-cta.primary-cta{background:var(--ink);color:var(--bg)}
+.hero-cta:hover{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.hero-right{border-left:1px solid var(--line);background:rgba(250,248,243,.48)}
+.hero-right::before{font-size:clamp(16rem,28vw,28rem);color:rgba(21,26,36,.045);font-family:var(--serif);transform:translate(7%,-2%)}
+.hero-right::after{content:"LEE HU · WRITER'S EDITION · 2026";position:absolute;right:18px;bottom:24px;color:var(--gold-text);font-family:var(--sans);font-size:.62rem;letter-spacing:.18em;writing-mode:vertical-rl}
+.quote{max-width:470px;padding:46px;font-size:clamp(1.8rem,3vw,3.1rem);font-style:normal;text-align:left}
+.quote::before{content:"“";display:block;margin-bottom:12px;color:var(--gold);font-size:3rem;line-height:.4}
+.quote small{color:var(--gold-text);font-family:var(--sans);font-size:.76rem}
+
+.sec{max-width:var(--page);padding:clamp(76px,9vw,128px) clamp(24px,5vw,72px);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.sec.wide{max-width:var(--page)}
+.sec + .sec{border-top:1px solid var(--line)}
+.sec-title{display:flex;align-items:center;gap:18px;margin-bottom:44px;color:var(--gold-text);font-family:var(--sans);font-size:.73rem;font-style:normal;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+.sec-title::after{content:"";height:1px;flex:1;background:var(--line)}
+.about-grid{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:clamp(44px,8vw,110px)}
+.about h2{font-size:clamp(2.35rem,4vw,4.4rem);font-weight:600;letter-spacing:-.04em}
+.about p{color:#45413c;font-family:var(--serif);font-size:1rem;line-height:2.1}
+.stats{gap:0;border-top:1px solid var(--ink)}
+.stat{min-height:116px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:20px 16px}
+.stat strong{color:var(--ink);font-family:var(--serif);font-size:2rem}
+.stat span{color:var(--muted);font-weight:600;letter-spacing:.03em}
+
+.cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid var(--ink)}
+.card{position:relative;min-height:230px;border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:rgba(250,248,243,.48);padding:26px 24px}
+.card:nth-child(4n){border-right:0}
+.card small{color:var(--gold-text);font-family:var(--sans);font-weight:700}
+.card h3{font-size:1.12rem;font-weight:600}
+.card p{color:#575149;font-family:var(--serif);font-size:.9rem}
+#works .card:nth-child(-n+3){min-height:310px;background:var(--ink);color:var(--bg)}
+#works .card:nth-child(-n+3) small{color:var(--gold-on-dark)}
+#works .card:nth-child(-n+3) p{color:#d6d1c7}
+#works .card:nth-child(-n+3) .mini-link{border-color:rgba(244,240,232,.42);color:var(--bg);background:transparent}
+.mini-link{min-height:36px;border:1px solid var(--line);border-radius:0;background:transparent;color:#45413c;font-weight:600}
+.mini-link:hover{background:var(--ink);color:var(--bg)}
+
+.identity-grid{grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--ink)}
+.identity{min-height:220px;border-top:0;border-right:1px solid var(--line);padding:26px 22px}
+.identity:last-child{border-right:0}
+.identity::before{display:block;margin-bottom:38px;color:var(--gold-text);font-family:var(--serif);font-size:1.7rem}
+.identity:nth-child(1)::before{content:"01"}
+.identity:nth-child(2)::before{content:"02"}
+.identity:nth-child(3)::before{content:"03"}
+.identity:nth-child(4)::before{content:"04"}
+.identity b{font-family:var(--serif);font-size:1.2rem}
+.identity p{color:#575149;font-family:var(--serif);font-size:.9rem}
+
+.table-wrap{border:1px solid var(--ink);border-radius:0;background:rgba(250,248,243,.66)}
+table{font-family:var(--sans);font-size:.82rem}
+th{background:var(--ink);color:var(--bg);font-weight:600;letter-spacing:.04em}
+td{color:#45413c}
+
+#books .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+#books .card{min-height:190px}
+#books .card:nth-child(odd){border-right:1px solid var(--line)}
+#books .card:nth-child(even){border-right:0}
+#music{position:relative;background:var(--ink);color:var(--bg)}
+#music::before{content:"音";position:absolute;right:7%;top:2%;color:rgba(244,240,232,.045);font-family:var(--serif);font-size:17rem;line-height:1}
+#music .sec-title,#music .card small{color:var(--gold-on-dark)}
+#music .card{max-width:820px;min-height:0;border:1px solid rgba(244,240,232,.22);background:transparent}
+#music .card p{color:#d6d1c7}
+#music .mini-link{border-color:rgba(244,240,232,.34);color:var(--bg)}
+
+#sources{padding-top:70px;padding-bottom:70px}
+.source-disclosure{border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}
+.source-disclosure summary{display:flex;align-items:center;justify-content:space-between;min-height:64px;cursor:pointer;font-family:var(--serif);font-size:1.1rem;font-weight:600;list-style:none}
+.source-disclosure summary::-webkit-details-marker{display:none}
+.source-disclosure summary::after{content:"＋";font-family:var(--sans);font-size:1.2rem}
+.source-disclosure[open] summary::after{content:"－"}
+.source-disclosure .cards{border-top:1px solid var(--line);grid-template-columns:repeat(2,minmax(0,1fr))}
+.source-disclosure .card{min-height:190px}
+
+.literature-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:34px}
+.literature-heading h2{font-size:clamp(2rem,4vw,4rem);font-weight:600;letter-spacing:-.04em}
+.literature-heading p{max-width:520px;color:#575149;font-family:var(--serif);line-height:1.9}
+.literature-heading .mini-link{flex:0 0 auto}
+#literature-latest .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+.note-card{display:flex;min-height:260px;flex-direction:column;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:26px 24px;color:inherit;text-decoration:none;background:rgba(250,248,243,.48)}
+.note-card:nth-child(3n){border-right:0}
+.note-card:first-child{grid-column:span 2;background:var(--ink);color:var(--bg)}
+.note-card small{color:var(--gold-text);font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.08em}
+.note-card:first-child small,.note-card:first-child p{color:var(--gold-on-dark)}
+.note-card h3{margin:16px 0 12px;font-family:var(--serif);font-size:1.18rem;line-height:1.55}
+.note-card blockquote{flex:1;color:#575149;font-family:var(--serif);font-size:.88rem;line-height:1.9}
+.note-card:first-child blockquote{color:#d6d1c7}
+.note-card p{margin-top:18px;color:var(--gold-text);font-size:.72rem}
+.note-card:hover{background:#eee7db}
+.note-card:first-child:hover{background:#222a37}
+
+.board-section{min-height:calc(100vh - 72px)}
+.board-copy h2{font-family:var(--serif);font-size:clamp(2.4rem,4vw,4.4rem);font-weight:600}
+.board-panel{border:1px solid var(--ink);border-radius:0;background:rgba(250,248,243,.72)}
+.board-toolbar,.board-form{background:transparent}
+.field-label{display:block;margin:0 0 6px;color:#45413c;font-family:var(--sans);font-size:.75rem;font-weight:700}
+.board-form-row > div{min-width:0}
+.board-form input,.board-form textarea,.board-toolbar input{width:100%;border-radius:0;background:var(--panel)}
+.primary{min-height:46px;border-radius:0;background:var(--ink);color:var(--bg)}
+.post{border-radius:0;background:var(--panel)}
+
+.footer{padding:88px max(24px,calc((100vw - 1160px)/2));border-top:1px solid var(--ink);background:#e9e2d6;color:#45413c;text-align:left}
+.footer h2{font-size:clamp(2.5rem,5vw,5rem);font-weight:600}
+.footer-links{justify-content:flex-start;margin-top:32px;border-top:1px solid var(--line);padding-top:20px}
+.footer-links a{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:8px 2px}
+
+#stella,.auth-screen,.messages,.composer,.sidebar,.chat-top{background:var(--bg)}
+#stella{font-family:var(--sans)}
+#stella.auth-mode #authScreen{display:grid!important}
+#stella.auth-mode #stellaApp{display:none!important}
+#stella.app-mode #authScreen{display:none!important}
+#stella.app-mode #stellaApp{display:grid!important}
+#stella .auth-card,#stella .user-box,#stella .inputbar,#stella .tool-btn,#stella .small-btn,#stella .chat-action-btn,#stella .icon-btn,#stella select{border-radius:2px!important;box-shadow:none}
+#closeStellaAuthBtn{position:absolute;top:16px;right:16px;width:44px;height:44px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:1.4rem}
+#stella .brand-title,#stella .chat-top h3{font-family:var(--serif)}
+#stella .mark{border-radius:2px;background:var(--ink)}
+
+@media(max-width:1180px){
+  :root{--page:calc(100vw - 48px)}
+  .nav-links{display:none}
+  .nav-links.mobile-open{display:block;position:absolute;right:178px;top:62px;width:min(310px,calc(100vw - 32px));padding:12px;background:var(--panel);border:1px solid var(--line);box-shadow:0 18px 50px rgba(21,26,36,.14)}
+  .nav-links.mobile-open a{display:block;min-height:44px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  #stellaButton{right:72px!important}
+  .mobile-nav{position:fixed;top:13px;right:16px;z-index:10000;display:grid;margin:0}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card:nth-child(n){border-right:1px solid var(--line)}
+  .card:nth-child(even){border-right:0}
+  .identity-grid{grid-template-columns:repeat(2,1fr)}
+  .identity:nth-child(2){border-right:0}
+  .identity:nth-child(-n+2){border-bottom:1px solid var(--line)}
+}
+@media(max-width:800px){
+  :root{--page:100vw}
+  html{scroll-padding-top:64px}
+  .site-nav{height:64px;padding:0 12px 0 20px}
+  .nav-logo{font-size:1.05rem}
+  .mobile-nav{top:9px;right:12px}
+  .nav-links.mobile-open{right:12px;top:62px}
+  #stellaButton{top:9px!important;right:64px!important;min-width:122px!important;height:46px!important;padding:0 14px!important}
+  #stella .icon-btn{width:44px!important;height:44px!important}
+  .hero{min-height:auto;grid-template-columns:1fr}
+  .hero-left{padding:72px 24px 64px!important}
+  .hero h1{font-size:clamp(5.4rem,26vw,7.2rem)!important}
+  .hero-right{min-height:300px;border-left:0;border-top:1px solid var(--line)}
+  .quote{padding:44px 30px;font-size:clamp(1.8rem,8vw,2.6rem)}
+  .sec{padding:72px 24px}
+  .about-grid{grid-template-columns:1fr;gap:48px}
+  .cards,#books .cards,.source-disclosure .cards,#literature-latest .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #literature-latest .note-card:first-child{grid-column:span 2}
+  .literature-heading{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:560px){
+  .nav-logo::after{display:none}
+  #stellaButton{min-width:108px!important;padding:0 11px!important;font-size:.74rem!important}
+  .hero-actions{display:grid;grid-template-columns:1fr}
+  .hero-cta{min-height:48px}
+  .hero-tags{display:grid;grid-template-columns:repeat(3,1fr)}
+  .tag{border-right:1px solid var(--line);text-align:center}
+  .tag:nth-child(3n){border-right:0}
+  .cards,#books .cards,.source-disclosure .cards,#literature-latest .cards,.identity-grid{grid-template-columns:1fr}
+  .card:nth-child(n),.identity:nth-child(n),.note-card:nth-child(n){border-right:0}
+  #literature-latest .note-card:first-child{grid-column:auto}
+  .board-form-row{grid-template-columns:1fr}
+  .footer{padding:64px 24px 86px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style>
 
 </head>
@@ -609,7 +839,7 @@ body.stella-open #stellaButton{display:none!important}
 
 <nav class="site-nav">
   <a class="nav-logo" href="#top">이후</a>
-  <ul class="nav-links">
+  <ul id="primaryNav" class="nav-links">
     <li><a href="#about">소개</a></li>
     <li><a href="#works">작품</a></li>
     <li><a href="#identity">활동</a></li>
@@ -620,10 +850,11 @@ body.stella-open #stellaButton{display:none!important}
     <li><a href="#contact">연락</a></li>
     <li><a href="#board">게시판</a></li>
   </ul>
+  <button id="mobileNavToggle" class="mobile-nav" type="button" aria-controls="primaryNav" aria-expanded="false" aria-label="전체 메뉴 열기">目</button>
 </nav>
 <main id="homepageMain" class="homepage-main">
-<input id="stellaToggle" type="checkbox" aria-hidden="true" disabled>
-<label id="stellaButton" for="stellaToggle" role="button" aria-label="Stella AI 열기" aria-disabled="true" style="display:none!important;pointer-events:none!important;">✦ Stella</label>
+<input id="stellaToggle" type="checkbox" aria-hidden="true">
+<label id="stellaButton" for="stellaToggle" role="button" tabindex="0" aria-label="Stella AI 열기" aria-controls="stella" aria-expanded="false">Stella</label>
 
 <header id="top" class="hero">
   <div class="hero-left">
@@ -634,6 +865,10 @@ body.stella-open #stellaButton{display:none!important}
     <p class="tagline">문학과 무도, 공학과 음악 사이에서<br>하나의 이름으로 여러 세계를 건너는 사람.</p>
     <div class="hero-tags">
       <span class="tag">소설가</span><span class="tag">시인</span><span class="tag">공학박사</span><span class="tag">SAP 전문가</span><span class="tag">래퍼</span><span class="tag">무도인</span>
+    </div>
+    <div class="hero-actions">
+      <a class="hero-cta primary-cta" href="#works">대표 작품 보기</a>
+      <a class="hero-cta" href="#about">작가 소개 읽기</a>
     </div>
   </div>
   <div class="hero-right"><div class="quote">"쓰는 것은<br>살아내는 것이다."<small>— 이후 李後</small></div></div>
@@ -725,22 +960,23 @@ body.stella-open #stellaButton{display:none!important}
 
 <section id="sources" class="sec">
   <p class="sec-title">References · 정보 소스 현황</p>
-  <div class="cards">
-    <article class="card"><small>백과 · 검색</small><h3>이후(소설가) 정보 소스</h3><p>소설가 이후에 대한 공개 정보를 백과·포털 전반에서 확인할 수 있습니다.</p><div class="link-row"><a class="mini-link" href="https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">위키백과 ✅</a><a class="mini-link" href="https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">나무위키 ✅</a><a class="mini-link" href="https://search.daum.net/search?w=tot&q=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Daum ✅</a><a class="mini-link" href="https://www.google.com/search?q=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Google ✅</a><a class="mini-link" href="https://search.naver.com/search.naver?query=%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Naver ✅</a></div></article>
-    <article class="card"><small>도서 · 구매</small><h3>저서 구매 채널</h3><p>이후의 소설·시집·전문서를 구매할 수 있는 공식 서점 채널입니다.</p><div class="link-row"><a class="mini-link" href="https://store.kyobobook.co.kr/person/detail/1000809404" target="_blank" rel="noopener">교보문고 ✅</a><a class="mini-link" href="https://www.yes24.com/Product/Search?domain=BOOK&query=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">YES24 ✅</a></div></article>
-  </div>
+  <details class="source-disclosure">
+    <summary>검색엔진 · 외부 출처 · 구매 채널</summary>
+    <div class="cards">
+      <article class="card"><small>백과 · 검색</small><h3>이후(소설가) 정보 소스</h3><p>소설가 이후에 대한 공개 정보를 백과·포털 전반에서 확인할 수 있습니다.</p><div class="link-row"><a class="mini-link" href="https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">위키백과 ✅</a><a class="mini-link" href="https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)" target="_blank" rel="noopener">나무위키 ✅</a><a class="mini-link" href="https://search.daum.net/search?w=tot&q=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Daum ✅</a><a class="mini-link" href="https://www.google.com/search?q=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Google ✅</a><a class="mini-link" href="https://search.naver.com/search.naver?query=%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">Naver ✅</a></div></article>
+      <article class="card"><small>도서 · 구매</small><h3>저서 구매 채널</h3><p>이후의 소설·시집·전문서를 구매할 수 있는 공식 서점 채널입니다.</p><div class="link-row"><a class="mini-link" href="https://store.kyobobook.co.kr/person/detail/1000809404" target="_blank" rel="noopener">교보문고 ✅</a><a class="mini-link" href="https://www.yes24.com/Product/Search?domain=BOOK&query=%EC%86%8C%EC%84%A4%EA%B0%80%EC%9D%B4%ED%9B%84" target="_blank" rel="noopener">YES24 ✅</a></div></article>
+    </div>
+  </details>
 </section>
 
 <section id="literature-latest" class="sec wide">
   <p class="sec-title">Literature Notes · 이후의 문학노트</p>
-  <div class="about-grid" style="margin-bottom:28px">
+  <div class="literature-heading">
     <div>
-      <h2 style="font-size:clamp(2rem,3.2vw,3rem);line-height:1.25">이후의 문학노트</h2>
-      <p class="tagline">고전 문학의 한 문장과<br>그 문장을 바라보는 소설가 이후의 생각</p>
+      <h2>이후의 문학노트</h2>
+      <p>고전 문학의 한 문장과<br>그 문장을 바라보는 소설가 이후의 생각</p>
     </div>
-    <div style="display:flex;align-items:end;justify-content:flex-end">
-      <a class="mini-link" href="/literature/">전체 문학노트 보기</a>
-    </div>
+    <a class="mini-link" href="/literature/">전체 문학노트 보기</a>
   </div>
   <div class="cards">
     <!-- LITERATURE_LATEST_ITEMS:START -->
@@ -794,14 +1030,14 @@ body.stella-open #stellaButton{display:none!important}
   <div class="board-panel" aria-live="polite">
     <form id="publicBoardForm" class="board-form">
       <div class="board-form-row">
-        <input id="publicPostTitle" name="title" maxlength="120" placeholder="제목" required>
-        <input id="publicPostAuthor" name="author" maxlength="40" placeholder="작성자">
+        <div><label class="field-label" for="publicPostTitle">제목</label><input id="publicPostTitle" name="title" maxlength="120" placeholder="제목" required></div>
+        <div><label class="field-label" for="publicPostAuthor">작성자</label><input id="publicPostAuthor" name="author" maxlength="40" placeholder="작성자"></div>
       </div>
-      <textarea id="publicPostBody" name="body" maxlength="5000" placeholder="글이나 좋은 문구를 입력하세요." required></textarea>
+      <div><label class="field-label" for="publicPostBody">내용</label><textarea id="publicPostBody" name="body" maxlength="5000" placeholder="글이나 좋은 문구를 입력하세요." required></textarea></div>
       <button class="primary" type="submit">게시글 등록</button>
     </form>
     <div class="board-toolbar">
-      <input id="publicBoardSearch" type="search" placeholder="게시글 검색" aria-label="게시글 검색">
+      <div style="width:100%"><label class="field-label" for="publicBoardSearch">게시글 검색</label><input id="publicBoardSearch" type="search" placeholder="게시글 검색"></div>
     </div>
     <div id="publicBoardStatus" class="board-status">게시글을 불러오는 중입니다.</div>
     <div id="publicPostList" class="post-list"></div>
@@ -825,10 +1061,12 @@ body.stella-open #stellaButton{display:none!important}
 </footer>
 </main>
 
-<div id="stella">
+<div id="stella" role="dialog" aria-modal="true" aria-labelledby="stellaDialogTitle" tabindex="-1">
+  <h2 id="stellaDialogTitle" class="sr-only">Stella AI 작업공간</h2>
   <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop"></div>
   <div id="authScreen" class="auth-screen">
     <div class="auth-card">
+      <button id="closeStellaAuthBtn" type="button" aria-label="Stella 닫기">×</button>
       <div class="brand"><div class="mark">S</div><div><div class="brand-title">Stella</div><p class="muted">회원 전용 AI 작업공간</p></div></div>
       <p class="muted">회원가입 또는 로그인 후 Stella를 사용할 수 있습니다. 단일 HTML 버전이므로 회원 정보, 채팅방, 게시판은 현재 브라우저에 저장됩니다.</p>
       <div class="auth-tabs">
@@ -858,7 +1096,7 @@ body.stella-open #stellaButton{display:none!important}
       <div id="roomList" class="rooms"></div>
     </aside>
     <main class="chat-main">
-      <div class="chat-top"><div><button id="sidebarToggleBtn" class="icon-btn sidebar-toggle" type="button" aria-label="채팅 목록 열기">☰</button><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div></div><div class="chat-actions"><button id="copyRoomBtn" class="chat-action-btn" type="button">복사</button><button id="duplicateRoomBtn" class="chat-action-btn" type="button">복제</button><button id="deleteRoomBtn" class="chat-action-btn" type="button">삭제</button><select id="moveProjectSelect" title="프로젝트로 이동"></select><label id="closeStellaBtn" class="icon-btn" for="stellaToggle" role="button">×</label></div></div>
+      <div class="chat-top"><div><button id="sidebarToggleBtn" class="icon-btn sidebar-toggle" type="button" aria-label="채팅 목록 열기">☰</button><div><h3 id="activeTitle">새 채팅</h3><p class="muted">파일 첨부와 게시판을 함께 사용할 수 있습니다.</p></div></div><div class="chat-actions"><button id="copyRoomBtn" class="chat-action-btn" type="button">복사</button><button id="duplicateRoomBtn" class="chat-action-btn" type="button">복제</button><button id="deleteRoomBtn" class="chat-action-btn" type="button">삭제</button><select id="moveProjectSelect" title="프로젝트로 이동"></select><button id="closeStellaBtn" class="icon-btn" type="button" aria-label="Stella 닫기">×</button></div></div>
       <div id="messages" class="messages"></div>
       <div class="composer">
         <div id="chips" class="chips"></div>
@@ -1096,8 +1334,44 @@ function syncBoardRoute(){
   }
 }
 
+function wireMobileNavigation(){
+  const toggle = document.getElementById("mobileNavToggle");
+  const nav = document.getElementById("primaryNav");
+  if (!toggle || !nav || toggle.dataset.bound) return;
+  toggle.dataset.bound = "true";
+  const closeMenu = () => {
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "전체 메뉴 열기");
+    toggle.textContent = "目";
+    nav.classList.remove("mobile-open");
+  };
+  toggle.addEventListener("click", () => {
+    const expanded = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!expanded));
+    toggle.setAttribute("aria-label", expanded ? "전체 메뉴 열기" : "전체 메뉴 닫기");
+    toggle.textContent = expanded ? "目" : "閉";
+    nav.classList.toggle("mobile-open", !expanded);
+  });
+  nav.addEventListener("click", event => {
+    if (!event.target.closest("a")) return;
+    closeMenu();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && nav.classList.contains("mobile-open")) {
+      closeMenu();
+      toggle.focus();
+    }
+  });
+  document.addEventListener("click", event => {
+    if (!nav.classList.contains("mobile-open") ||
+        nav.contains(event.target) || toggle.contains(event.target)) return;
+    closeMenu();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", wirePublicBoard);
 document.addEventListener("DOMContentLoaded", syncBoardRoute);
+document.addEventListener("DOMContentLoaded", wireMobileNavigation);
 window.addEventListener("hashchange", syncBoardRoute);
 function stablePasswordHash(text){
   return btoa(unescape(encodeURIComponent(text)));
@@ -1132,33 +1406,20 @@ function setAuthMode(mode){
 function openStella(){
   openStellaDirect();
 }
-
-function openStellaDirect(event){
-  if(event){ event.preventDefault(); event.stopPropagation(); }
-  const stellaPanel = document.getElementById("stella");
-  const stellaBtn = document.getElementById("stellaButton");
-  document.body.classList.add("stella-open");
-  if (stellaBtn) stellaBtn.style.display = "none";
-  if (stellaPanel) stellaPanel.classList.add("active");
-  document.body.style.overflow = "hidden";
-  currentUser = readJson(storeKeys.current, null);
-  currentUser ? showApp() : showAuth();
-}
-function closeStella(){
-  closeMobileSidebar();
-  const stellaPanel = document.getElementById("stella");
-  const stellaBtn = document.getElementById("stellaButton");
-  if (stellaPanel) stellaPanel.classList.remove("active");
-  document.body.classList.remove("stella-open");
-  if (stellaBtn) stellaBtn.style.display = "inline-flex";
-  document.body.style.overflow = "";
-}
 function isMobileStella(){ return window.matchMedia("(max-width:1000px)").matches; }
 function openMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); const backdrop = $("#mobileSidebarBackdrop"); if (sidebar) sidebar.classList.add("mobile-open"); if (backdrop) backdrop.classList.add("active"); }
 function closeMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); const backdrop = $("#mobileSidebarBackdrop"); if (sidebar) sidebar.classList.remove("mobile-open"); if (backdrop) backdrop.classList.remove("active"); }
 function toggleMobileSidebar(){ const sidebar = document.querySelector("#stella .sidebar"); if (!sidebar) return; sidebar.classList.contains("mobile-open") ? closeMobileSidebar() : openMobileSidebar(); }
-function showAuth(){ $("#authScreen").style.display = "grid"; $("#stellaApp").style.display = "none"; setTimeout(() => $("#authEmail").focus(), 50); }
+function showAuth(){
+  $("#stella").classList.add("auth-mode");
+  $("#stella").classList.remove("app-mode");
+  $("#authScreen").style.display = "grid";
+  $("#stellaApp").style.display = "none";
+  setTimeout(() => $("#authEmail").focus(), 50);
+}
 function showApp(){
+  $("#stella").classList.remove("auth-mode");
+  $("#stella").classList.add("app-mode");
   $("#authScreen").style.display = "none";
   $("#stellaApp").style.display = "grid";
   $("#userName").textContent = currentUser.name;
@@ -1674,9 +1935,8 @@ function addAnswerDownloadTools(container, text){
 /* Stella final runtime fix v30 */
 function ensureStellaRuntime(){
   try {
-    currentUser = readJson(storeKeys.current, null) || { name:"이후", email:"guest@stella.local" };
-    writeJson(storeKeys.current, currentUser);
-
+    currentUser = readJson(storeKeys.current, null);
+    if (!currentUser || !currentUser.email) return false;
     rooms = readJson(storeKeys.rooms, []).filter(room => room.owner === currentUser.email);
     projects = readJson(storeKeys.projects, []).filter(project => project.owner === currentUser.email);
 
@@ -1696,11 +1956,6 @@ function ensureStellaRuntime(){
       activeRoomId = rooms[0].id;
     }
 
-    const auth = document.getElementById("authScreen");
-    const app = document.getElementById("stellaApp");
-    if (auth) auth.style.display = "none";
-    if (app) app.style.display = "grid";
-
     if (typeof renderProjects === "function") renderProjects();
     if (typeof renderRooms === "function") renderRooms();
     if (typeof renderMessages === "function") renderMessages();
@@ -1708,8 +1963,10 @@ function ensureStellaRuntime(){
     const title = document.getElementById("activeTitle");
     const room = activeRoom && activeRoom();
     if (title && room) title.textContent = room.name || "새 채팅";
+    return true;
   } catch (e) {
     console.error("ensureStellaRuntime error", e);
+    return false;
   }
 }
 
@@ -1724,7 +1981,17 @@ function openStellaDirect(event){
   }
   document.body.classList.add("stella-open");
   document.body.style.overflow = "hidden";
-  ensureStellaRuntime();
+  document.getElementById("homepageMain")?.setAttribute("inert", "");
+  document.querySelector(".site-nav")?.setAttribute("inert", "");
+  const stellaBtn = document.getElementById("stellaButton");
+  if (stellaBtn) stellaBtn.setAttribute("aria-expanded", "true");
+  currentUser = readJson(storeKeys.current, null);
+  if (currentUser && currentUser.email) {
+    ensureStellaRuntime();
+    showApp();
+  } else {
+    showAuth();
+  }
   return false;
 }
 
@@ -1739,6 +2006,13 @@ function closeStella(){
   }
   document.body.classList.remove("stella-open");
   document.body.style.overflow = "";
+  document.getElementById("homepageMain")?.removeAttribute("inert");
+  document.querySelector(".site-nav")?.removeAttribute("inert");
+  const stellaBtn = document.getElementById("stellaButton");
+  if (stellaBtn) {
+    stellaBtn.setAttribute("aria-expanded", "false");
+    setTimeout(() => stellaBtn.focus(), 0);
+  }
 }
 
 function setSendingState(isSending){
@@ -1828,24 +2102,75 @@ async function STELLA_SAFE_SEND(event){
 }
 
 function wireStellaRuntime(){
-  ensureStellaRuntime();
-
   const stellaButton = document.getElementById("stellaButton");
   if (stellaButton) {
     stellaButton.onclick = openStellaDirect;
     stellaButton.ontouchend = openStellaDirect;
+    if (!stellaButton.dataset.keyboardBound) {
+      stellaButton.dataset.keyboardBound = "true";
+      stellaButton.addEventListener("keydown", function(event){
+        if (event.key === "Enter" || event.key === " ") openStellaDirect(event);
+      });
+    }
   }
+
+  const authForm = document.getElementById("authForm");
+  if (authForm) authForm.onsubmit = handleAuth;
+  const loginTab = document.getElementById("loginTab");
+  if (loginTab) loginTab.onclick = function(){ setAuthMode("login"); };
+  const signupTab = document.getElementById("signupTab");
+  if (signupTab) signupTab.onclick = function(){ setAuthMode("signup"); };
 
   const closeBtn = document.getElementById("closeStellaBtn");
   if (closeBtn) {
     closeBtn.onclick = function(e){ e.preventDefault(); closeStella(); return false; };
     closeBtn.ontouchend = function(e){ e.preventDefault(); closeStella(); return false; };
   }
+  const authCloseBtn = document.getElementById("closeStellaAuthBtn");
+  if (authCloseBtn) {
+    authCloseBtn.onclick = function(e){ e.preventDefault(); closeStella(); return false; };
+    authCloseBtn.ontouchend = function(e){ e.preventDefault(); closeStella(); return false; };
+  }
+
+  if (!document.body.dataset.stellaKeyboardBound) {
+    document.body.dataset.stellaKeyboardBound = "true";
+    document.addEventListener("keydown", function(event){
+      const panel = document.getElementById("stella");
+      if (!panel?.classList.contains("active")) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeStella();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(panel.querySelectorAll(
+        'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])'
+      )).filter(element => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.display !== "none" && style.visibility !== "hidden" &&
+          rect.width > 0 && rect.height > 0;
+      });
+      if (!focusable.length) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
 
   const form = document.getElementById("chatForm");
   if (form) {
     form.onsubmit = STELLA_SAFE_SEND;
-    form.addEventListener("submit", STELLA_SAFE_SEND, true);
   }
 
   const sendBtn = document.getElementById("sendBtn");
@@ -1856,7 +2181,8 @@ function wireStellaRuntime(){
   }
 
   const input = document.getElementById("chatInput");
-  if (input) {
+  if (input && !input.dataset.sendBound) {
+    input.dataset.sendBound = "true";
     input.addEventListener("keydown", function(e){
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -1878,69 +2204,12 @@ setTimeout(wireStellaRuntime, 500);
 
 </script>
 
-<!-- Stella icon disabled runtime guard -->
-<script id="stella-icon-disabled-runtime">
-(function () {
-  function disableStellaIcon() {
-    var toggle = document.getElementById("stellaToggle");
-    if (toggle) {
-      toggle.checked = false;
-      toggle.disabled = true;
-      toggle.setAttribute("aria-hidden", "true");
-    }
-
-    var button = document.getElementById("stellaButton");
-    if (button) {
-      button.setAttribute("aria-disabled", "true");
-      button.style.display = "none";
-      button.style.pointerEvents = "none";
-      var blockStellaButton = function (event) {
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        return false;
-      };
-      button.onclick = blockStellaButton;
-      button.ontouchend = blockStellaButton;
-      button.removeAttribute("for");
-    }
-
-    var panel = document.getElementById("stella");
-    if (panel) {
-      panel.classList.remove("active");
-      panel.style.display = "none";
-      panel.style.visibility = "hidden";
-      panel.style.pointerEvents = "none";
-    }
-
-    document.body.classList.remove("stella-open");
-    document.body.style.overflow = "";
-  }
-
-  window.openStella = function (event) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    disableStellaIcon();
-    return false;
-  };
-
-  window.openStellaDirect = window.openStella;
-
-  document.addEventListener("DOMContentLoaded", disableStellaIcon);
-  window.addEventListener("load", disableStellaIcon);
-  setTimeout(disableStellaIcon, 100);
-})();
-</script>
-
 <!-- nlkio: 우측 하단 장식 모노그램 마크 -->
 <style id="nlkio-style">
 #nlkio-mark{position:fixed;right:16px;bottom:16px;z-index:2147483000;width:40px;height:40px;padding:0;border:none;border-radius:50%;
-  background:#16A34A;color:#fff;cursor:pointer;opacity:.42;transition:opacity .2s ease,transform .2s ease,box-shadow .2s ease;
-  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-tap-highlight-color:transparent}
-#nlkio-mark:hover,#nlkio-mark:focus-visible{opacity:1;transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.28);outline:none}
+  background:#151a24;color:#f4f0e8;cursor:pointer;opacity:.72;transition:opacity .2s ease,transform .2s ease,box-shadow .2s ease;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(21,26,36,.18);-webkit-tap-highlight-color:transparent}
+#nlkio-mark:hover,#nlkio-mark:focus-visible{opacity:1;transform:translateY(-1px);box-shadow:0 4px 14px rgba(21,26,36,.28)}
 #nlkio-mark svg{display:block;width:22px;height:22px}
 @media(max-width:600px){#nlkio-mark{right:12px;bottom:12px;width:38px;height:38px}}
 @media print{#nlkio-mark{display:none}}
