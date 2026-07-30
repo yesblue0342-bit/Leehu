@@ -272,6 +272,18 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn('"/api/board/posts"', server_text)
         self.assertTrue((ROOT / "Dockerfile").is_file())
 
+    def test_homepage_sources_hide_structured_data_description_and_seo_card(self):
+        homepage = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("소설가 이후에 대한 공개 정보를 백과·포털 전반에서 확인할 수 있습니다.", homepage)
+        self.assertNotIn("각 소스는 구조화 데이터", homepage)
+        self.assertNotIn("SEO · 색인 지표", homepage)
+        self.assertNotIn("검색엔진 노출 상태", homepage)
+        self.assertIn('<script type="application/ld+json">', homepage)
+        self.assertIn('"sameAs": [', homepage)
+        self.assertIn('<meta property="og:title"', homepage)
+        self.assertTrue((ROOT / "sitemap.xml").is_file())
+        self.assertTrue((ROOT / "robots.txt").is_file())
+
     def test_z_generator_is_idempotent(self):
         tracked_outputs = [ROOT / "index.html", ROOT / "sitemap.xml", LITERATURE / "rss.xml"]
         tracked_outputs += [LITERATURE / note["slug"] / "index.html" for note in self.notes]
