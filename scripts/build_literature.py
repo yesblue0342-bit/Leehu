@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import shutil
+import stat
+import sys
 import time
 from collections import Counter
 from datetime import datetime
@@ -19,7 +22,17 @@ from xml.etree import ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from literature_index_policy import (  # noqa: E402
+    load_index_policy,
+    partition_indexable_notes,
+)
+
+
 CONTENT_DIR = ROOT / "content" / "literature"
+INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 PAGE_SIZE = 25
@@ -83,6 +96,12 @@ def esc(value: object) -> str:
 
 
 def write_text_atomic(path: Path, text: str) -> None:
+    if path.is_file():
+        try:
+            if path.read_text(encoding="utf-8") == text:
+                return
+        except OSError:
+            pass
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(text, encoding="utf-8")
@@ -105,6 +124,27 @@ def replace_with_retry(source: Path, target: Path) -> None:
             if attempt == 11:
                 raise
             time.sleep(0.25)
+
+
+def remove_tree_with_retry(path: Path) -> None:
+    """Remove generated directories despite brief Windows/OneDrive locks."""
+
+    def clear_readonly(function, target, error) -> None:
+        if not isinstance(error, PermissionError):
+            raise error
+        os.chmod(target, stat.S_IWRITE)
+        function(target)
+
+    for attempt in range(20):
+        try:
+            shutil.rmtree(path, onexc=clear_readonly)
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.5)
 
 
 def normalize(value: object) -> str:
@@ -352,13 +392,19 @@ def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, ob
     return sort_for_publication(notes)
 
 
-def base_head(title: str, description: str, canonical_url: str, extra: str = "") -> str:
+def base_head(
+    title: str,
+    description: str,
+    canonical_url: str,
+    extra: str = "",
+    robots: str = "index, follow",
+) -> str:
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="index, follow">
+<meta name="robots" content="{esc(robots)}">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
 <link rel="canonical" href="{esc(canonical_url)}">
@@ -377,6 +423,7 @@ def nav() -> str:
   <a class="nav-logo" href="/">이후</a>
   <ul class="nav-links">
     <li><a href="/">홈</a></li>
+    <li><a href="/author/">공식 프로필</a></li>
     <li><a href="/literature/">문학노트</a></li>
     <li><a href="/#board">게시판</a></li>
     <li><a href="/#contact">연락</a></li>
@@ -411,7 +458,8 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" type="application/rss+xml" title="이후의 문학노트 RSS" href="/literature/rss.xml">"""
-    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra)}
+    robots = "index, follow" if page == 1 else "noindex, follow"
+    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra, robots)}
 <body>{nav()}
 <header class="hero"><div class="wrap">
   <p class="eyebrow">Literature Notes</p>
@@ -426,7 +474,12 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 """
 
 
-def detail_page(note: dict[str, object], previous: dict[str, object] | None, following: dict[str, object] | None) -> str:
+def detail_page(
+    note: dict[str, object],
+    previous: dict[str, object] | None,
+    following: dict[str, object] | None,
+    indexable: bool = True,
+) -> str:
     url = canonical(note)
     description = re.sub(r"\s+", " ", str(note["commentary"]))[:155]
     published = str(note["published_at"])
@@ -440,8 +493,19 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
         "mainEntityOfPage": url,
         "datePublished": published,
         "dateModified": published,
-        "author": {"@type": "Person", "name": note["author"], "url": f"{ORIGIN}/"},
-        "publisher": {"@type": "Person", "name": note["author"]},
+        "author": {
+            "@type": "Person",
+            "@id": f"{ORIGIN}/#person",
+            "name": "이후",
+            "alternateName": ["소설가 이후", "李後", "Lee Hu"],
+            "url": f"{ORIGIN}/author/",
+        },
+        "publisher": {
+            "@type": "Organization",
+            "@id": f"{ORIGIN}/#organization",
+            "name": "주식회사 소설가이후",
+            "url": f"{ORIGIN}/",
+        },
         "image": f"{ORIGIN}/og-image.jpg",
         "keywords": note["tags"],
         "inLanguage": "ko",
@@ -524,7 +588,8 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
     <a href="{esc(note['source_url'])}" rel="external noopener">{source_link_label}</a><br>
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
     <section class="commentary"><h2>이후의 생각</h2><p>{esc(note['commentary'])}</p></section>"""
-    return f"""{base_head(str(note['title']) + " | 이후의 문학노트", description, url, extra)}
+    robots = "index, follow" if indexable else "noindex, follow"
+    return f"""{base_head(str(note['title']) + " | 이후의 문학노트", description, url, extra, robots)}
 <body>{nav()}
 <main class="article">
   <nav class="breadcrumbs" aria-label="이동 경로"><a href="/">홈</a> / <a href="/literature/">문학노트</a> / {esc(note['title'])}</nav>
@@ -565,7 +630,7 @@ def replace_marker(source: str, marker: str, replacement: str) -> str:
     )
     rendered = f"<!-- {marker}:START -->\n{replacement}\n<!-- {marker}:END -->"
     if block.search(source):
-        return block.sub(rendered, source)
+        return block.sub(lambda _match: rendered, source)
     plain = f"<!-- {marker} -->"
     if plain not in source:
         raise ValueError(f"homepage marker missing: {marker}")
@@ -605,16 +670,16 @@ def write_rss(notes: list[dict[str, object]]) -> None:
     write_xml_atomic(LITERATURE_DIR / "rss.xml", rss)
 
 
-def write_sitemap(notes: list[dict[str, object]], total_pages: int) -> None:
+def write_sitemap(notes: list[dict[str, object]]) -> None:
     namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
     ET.register_namespace("", namespace)
     root = ET.Element(f"{{{namespace}}}urlset")
     latest_date = max(str(note["published_at"])[:10] for note in notes)
-    urls = [(f"{ORIGIN}/", latest_date), (f"{ORIGIN}/literature/", latest_date)]
-    urls.extend(
-        (f"{ORIGIN}/literature/page/{page}/", latest_date)
-        for page in range(2, total_pages + 1)
-    )
+    urls = [
+        (f"{ORIGIN}/", latest_date),
+        (f"{ORIGIN}/author/", latest_date),
+        (f"{ORIGIN}/literature/", latest_date),
+    ]
     urls.extend(
         (canonical(note), str(note["published_at"])[:10]) for note in notes
     )
@@ -644,10 +709,15 @@ def internal_target(href: str) -> Path | None:
     return target
 
 
-def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
+def verify_generated(
+    all_notes: list[dict[str, object]],
+    indexable_notes: list[dict[str, object]],
+    total_pages: int,
+) -> None:
     errors: list[str] = []
-    paths = generated_html_paths(notes, total_pages)
-    notes_by_slug = {str(note["slug"]): note for note in notes}
+    paths = generated_html_paths(all_notes, total_pages)
+    notes_by_slug = {str(note["slug"]): note for note in all_notes}
+    indexable_slugs = {str(note["slug"]) for note in indexable_notes}
     if any(not path.is_file() for path in paths):
         errors.append("missing generated HTML")
     href_re = re.compile(r'href="([^"]+)"')
@@ -661,6 +731,15 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
         if path.parent.name in notes_by_slug:
             note = notes_by_slug.get(path.parent.name)
             if note:
+                expected_robots = (
+                    "index, follow"
+                    if str(note["slug"]) in indexable_slugs
+                    else "noindex, follow"
+                )
+                if f'<meta name="robots" content="{expected_robots}">' not in text:
+                    errors.append(
+                        f"robots policy missing: {path.relative_to(ROOT)}"
+                    )
                 fields = ["title", "quote", "source_author", "source_work", "source_location", "closing"]
                 content_kind = note.get("content_kind", "source_quote")
                 collection_sections = note.get("collection_sections")
@@ -694,13 +773,13 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
                     errors.append(f"invalid JSON-LD: {path.relative_to(ROOT)}: {exc}")
     sitemap = ET.parse(ROOT / "sitemap.xml")
     sitemap_count = len(sitemap.getroot())
-    expected_sitemap = 2 + (total_pages - 1) + len(notes)
+    expected_sitemap = 3 + len(indexable_notes)
     if sitemap_count != expected_sitemap:
         errors.append(f"sitemap count {sitemap_count}, expected {expected_sitemap}")
     rss = ET.parse(LITERATURE_DIR / "rss.xml")
     rss_count = len(rss.findall("./channel/item"))
-    if rss_count != len(notes):
-        errors.append(f"RSS count {rss_count}, expected {len(notes)}")
+    if rss_count != len(indexable_notes):
+        errors.append(f"RSS count {rss_count}, expected {len(indexable_notes)}")
     homepage = (ROOT / "index.html").read_text(encoding="utf-8")
     block = re.search(
         r"<!-- LITERATURE_LATEST_ITEMS:START -->(.*?)<!-- LITERATURE_LATEST_ITEMS:END -->",
@@ -709,14 +788,49 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
     )
     if not block or block.group(1).count('class="note-card"') != 6:
         errors.append("homepage must contain exactly six generated representative note cards")
+    excluded_slugs = {
+        str(note["slug"]) for note in all_notes if str(note["slug"]) not in indexable_slugs
+    }
+    discovery_texts = [homepage, (ROOT / "sitemap.xml").read_text(encoding="utf-8"), (LITERATURE_DIR / "rss.xml").read_text(encoding="utf-8")]
+    discovery_texts.append(
+        (LITERATURE_DIR / "index.html").read_text(encoding="utf-8")
+    )
+    discovery_texts.extend(
+        (LITERATURE_DIR / "page" / str(page) / "index.html").read_text(encoding="utf-8")
+        for page in range(2, total_pages + 1)
+    )
+    for note in indexable_notes:
+        discovery_texts.append(
+            (LITERATURE_DIR / str(note["slug"]) / "index.html").read_text(encoding="utf-8")
+        )
+    discovered_hrefs: set[str] = set()
+    for text in discovery_texts:
+        discovered_hrefs.update(html.unescape(value) for value in href_re.findall(text))
+        discovered_hrefs.update(
+            re.findall(r"https://xn--hu5b23z\.com/literature/([a-z0-9-]+)/", text)
+        )
+    leaked = [
+        slug
+        for slug in excluded_slugs
+        if f"/literature/{slug}/" in discovered_hrefs or slug in discovered_hrefs
+    ]
+    if leaked:
+        errors.append(f"noindex note leaked into discovery surfaces: {leaked[0]}")
+    for page in range(2, total_pages + 1):
+        page_text = (LITERATURE_DIR / "page" / str(page) / "index.html").read_text(encoding="utf-8")
+        if '<meta name="robots" content="noindex, follow">' not in page_text:
+            errors.append(f"archive page {page} must be noindex, follow")
     if errors:
         raise ValueError("generated-site verification failed:\n- " + "\n- ".join(errors))
 
 
 def build(expected_count: int = EXPECTED_COUNT) -> None:
-    notes = load_and_validate(expected_count)
-    total_pages = (len(notes) + PAGE_SIZE - 1) // PAGE_SIZE
-    expected_slugs = {str(note["slug"]) for note in notes}
+    all_notes = load_and_validate(expected_count)
+    policy = load_index_policy(INDEX_POLICY_PATH, all_notes)
+    raw_indexable, _ = partition_indexable_notes(all_notes, policy)
+    indexable_notes = [dict(note) for note in raw_indexable]
+    total_pages = (len(indexable_notes) + PAGE_SIZE - 1) // PAGE_SIZE
+    expected_slugs = {str(note["slug"]) for note in all_notes}
     if LITERATURE_DIR.exists():
         for child in LITERATURE_DIR.iterdir():
             if (
@@ -725,7 +839,7 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
                 and child.name not in expected_slugs
                 and (child / "index.html").exists()
             ):
-                shutil.rmtree(child)
+                remove_tree_with_retry(child)
         page_root = LITERATURE_DIR / "page"
         if page_root.exists():
             for child in page_root.iterdir():
@@ -734,26 +848,48 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
                     and child.name.isdigit()
                     and int(child.name) > total_pages
                 ):
-                    shutil.rmtree(child)
+                    remove_tree_with_retry(child)
     LITERATURE_DIR.mkdir(parents=True, exist_ok=True)
-    write_text_atomic(LITERATURE_DIR / "index.html", list_page(notes, 1, total_pages))
+    write_text_atomic(
+        LITERATURE_DIR / "index.html",
+        list_page(indexable_notes, 1, total_pages),
+    )
     for page in range(2, total_pages + 1):
         target = LITERATURE_DIR / "page" / str(page)
         target.mkdir(parents=True, exist_ok=True)
-        write_text_atomic(target / "index.html", list_page(notes, page, total_pages))
-    for index, note in enumerate(notes):
+        write_text_atomic(
+            target / "index.html",
+            list_page(indexable_notes, page, total_pages),
+        )
+    indexable_positions = {
+        str(note["id"]): position for position, note in enumerate(indexable_notes)
+    }
+    for note in all_notes:
         target = LITERATURE_DIR / str(note["slug"])
         target.mkdir(parents=True, exist_ok=True)
-        previous = notes[index - 1] if index else None
-        following = notes[index + 1] if index + 1 < len(notes) else None
-        write_text_atomic(target / "index.html", detail_page(note, previous, following))
-    write_rss(notes)
-    write_sitemap(notes, total_pages)
-    update_homepage(notes)
-    verify_generated(notes, total_pages)
+        position = indexable_positions.get(str(note["id"]))
+        previous = (
+            indexable_notes[position - 1]
+            if position is not None and position > 0
+            else None
+        )
+        following = (
+            indexable_notes[position + 1]
+            if position is not None and position + 1 < len(indexable_notes)
+            else None
+        )
+        write_text_atomic(
+            target / "index.html",
+            detail_page(note, previous, following, position is not None),
+        )
+    write_rss(indexable_notes)
+    write_sitemap(indexable_notes)
+    update_homepage(indexable_notes)
+    verify_generated(all_notes, indexable_notes, total_pages)
     print(
-        f"built {len(notes)} detail pages, {total_pages} list pages, "
-        f"{len(notes)} RSS items, and {2 + total_pages - 1 + len(notes)} sitemap URLs"
+        f"built {len(all_notes)} detail pages, {total_pages} list pages, "
+        f"{len(indexable_notes)} RSS items, and {3 + len(indexable_notes)} sitemap URLs; "
+        f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )
 
 

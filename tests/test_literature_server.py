@@ -45,11 +45,15 @@ class LiteratureServerTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)
+        self.old_posts_dir = server.POSTS_DIR
+        self.old_literature_posts_dir = server.LITERATURE_POSTS_DIR
         server.POSTS_DIR = root / "board-posts"
         server.LITERATURE_POSTS_DIR = root / "literature-posts"
         server.ensure_dirs()
         self.old_token = server.os.environ.get("LITERATURE_API_TOKEN")
+        self.old_publication_mode = server.os.environ.get("LITERATURE_PUBLICATION_MODE")
         server.os.environ["LITERATURE_API_TOKEN"] = TOKEN
+        server.os.environ["LITERATURE_PUBLICATION_MODE"] = "dynamic"
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.LeehuHandler)
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
@@ -63,6 +67,12 @@ class LiteratureServerTest(unittest.TestCase):
             server.os.environ.pop("LITERATURE_API_TOKEN", None)
         else:
             server.os.environ["LITERATURE_API_TOKEN"] = self.old_token
+        if self.old_publication_mode is None:
+            server.os.environ.pop("LITERATURE_PUBLICATION_MODE", None)
+        else:
+            server.os.environ["LITERATURE_PUBLICATION_MODE"] = self.old_publication_mode
+        server.POSTS_DIR = self.old_posts_dir
+        server.LITERATURE_POSTS_DIR = self.old_literature_posts_dir
         self.tmp.cleanup()
 
     def request(self, method, path, body=None, token=None):
@@ -117,6 +127,16 @@ class LiteratureServerTest(unittest.TestCase):
         self.assertIn(post["title"], text)
         self.assertIn(slug, text)
 
+        status, content_type, homepage = self.request("GET", "/")
+        homepage_text = homepage.decode("utf-8")
+        self.assertEqual(status, 200)
+        self.assertIn("text/html", content_type)
+        self.assertIn(post["title"], homepage_text)
+        self.assertIn(slug, homepage_text)
+        self.assertEqual(
+            homepage_text.count("<!-- LITERATURE_LATEST_ITEMS:START -->"), 1
+        )
+
         status, content_type, html = self.request("GET", f"/literature/{slug}")
         text = html.decode("utf-8")
         self.assertEqual(status, 200)
@@ -128,6 +148,7 @@ class LiteratureServerTest(unittest.TestCase):
         self.assertIn("이후의 생각", text)
         self.assertIn(post["commentary"], text)
         self.assertIn(f'<link rel="canonical" href="{post["canonical_url"]}">', text)
+        self.assertIn('<meta name="robots" content="index, follow">', text)
         self.assertIn('application/ld+json', text)
         self.assertIn('og:type" content="article"', text)
 
@@ -167,6 +188,9 @@ class LiteratureServerTest(unittest.TestCase):
         self.assertEqual(status, 404)
         status, _, sitemap_after = self.request("GET", "/sitemap.xml")
         self.assertNotIn(post["canonical_url"], sitemap_after.decode("utf-8"))
+        status, _, homepage_after = self.request("GET", "/")
+        self.assertEqual(status, 200)
+        self.assertNotIn(slug, homepage_after.decode("utf-8"))
 
     def test_auth_validation_duplicates_and_sequences(self):
         status, _, unauth = self.json_request("POST", "/api/literature/posts", sample_payload())
@@ -252,6 +276,209 @@ class LiteratureServerTest(unittest.TestCase):
         status, _, item = self.json_request("GET", f"/api/literature/posts/{post['slug']}")
         self.assertEqual(status, 200)
         self.assertEqual(item["post"]["slug"], post["slug"])
+
+    def test_dynamic_excluded_post_is_noindex_and_not_discoverable(self):
+        post = self.create_post(
+            id="20260806_leehu_literature_042",
+            slug="20260806-leehu-literature-042-policy-excluded",
+            published_at="2026-08-06T09:00:00+09:00",
+        )
+
+        status, _, detail = self.request("GET", f"/literature/{post['slug']}/")
+        detail_text = detail.decode("utf-8")
+        self.assertEqual(status, 200)
+        self.assertIn('<meta name="robots" content="noindex, follow">', detail_text)
+        self.assertNotIn(">이전 글</a>", detail_text)
+        self.assertNotIn(">다음 글</a>", detail_text)
+
+        for path in ("/", "/literature/", "/literature/rss.xml", "/sitemap.xml"):
+            status, _, body = self.request("GET", path)
+            self.assertEqual(status, 200)
+            self.assertNotIn(post["slug"], body.decode("utf-8"))
+
+    def test_invalid_publication_mode_is_rejected(self):
+        server.os.environ["LITERATURE_PUBLICATION_MODE"] = "statci"
+        with self.assertRaisesRegex(RuntimeError, "static.*dynamic"):
+            server.literature_publication_mode()
+        server.os.environ["LITERATURE_PUBLICATION_MODE"] = "dynamic"
+
+    def test_dynamic_rss_includes_more_than_twenty_indexable_posts(self):
+        posts = []
+        for sequence in range(1, 22):
+            posts.append(
+                self.create_post(
+                    title=f"RSS note {sequence}",
+                    source_author=f"Author {sequence}",
+                    source_work=f"Work {sequence}",
+                    quote=f"A short quote number {sequence}.",
+                )
+            )
+        status, content_type, body = self.request("GET", "/literature/rss.xml")
+        text = body.decode("utf-8")
+        self.assertEqual(status, 200)
+        self.assertIn("application/rss+xml", content_type)
+        self.assertEqual(text.count("<item>"), 21)
+        self.assertIn(posts[0]["slug"], text)
+
+
+class StaticLiteratureProductionTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.notes = {}
+        for path in (server.ROOT / "content" / "literature").glob("*.json"):
+            note = json.loads(path.read_text(encoding="utf-8"))
+            if note.get("id") in {
+                "20260806_leehu_literature_001",
+                "20260806_leehu_literature_499",
+                "20260806_leehu_literature_500",
+            }:
+                cls.notes[note["id"]] = note
+        if len(cls.notes) != 3:
+            raise AssertionError("expected static production fixtures 001, 499, and 500")
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.old_posts_dir = server.POSTS_DIR
+        self.old_literature_posts_dir = server.LITERATURE_POSTS_DIR
+        self.old_token = server.os.environ.get("LITERATURE_API_TOKEN")
+        self.old_publication_mode = server.os.environ.get("LITERATURE_PUBLICATION_MODE")
+        server.POSTS_DIR = root / "board-posts"
+        server.LITERATURE_POSTS_DIR = root / "literature-posts"
+        server.os.environ["LITERATURE_API_TOKEN"] = TOKEN
+        server.os.environ["LITERATURE_PUBLICATION_MODE"] = "static"
+        server.ensure_dirs()
+        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.LeehuHandler)
+        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread.start()
+        self.port = self.httpd.server_address[1]
+
+    def tearDown(self):
+        self.httpd.shutdown()
+        self.thread.join(timeout=5)
+        self.httpd.server_close()
+        server.POSTS_DIR = self.old_posts_dir
+        server.LITERATURE_POSTS_DIR = self.old_literature_posts_dir
+        if self.old_token is None:
+            server.os.environ.pop("LITERATURE_API_TOKEN", None)
+        else:
+            server.os.environ["LITERATURE_API_TOKEN"] = self.old_token
+        if self.old_publication_mode is None:
+            server.os.environ.pop("LITERATURE_PUBLICATION_MODE", None)
+        else:
+            server.os.environ["LITERATURE_PUBLICATION_MODE"] = self.old_publication_mode
+        self.tmp.cleanup()
+
+    def request(self, method, path, body=None, token=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
+        headers = {}
+        payload = None
+        if body is not None:
+            payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        conn.request(method, path, body=payload, headers=headers)
+        response = conn.getresponse()
+        result = (
+            response.status,
+            response.getheader("Content-Type") or "",
+            response.read(),
+            dict(response.getheaders()),
+        )
+        conn.close()
+        return result
+
+    def test_static_outputs_and_redirect_contract(self):
+        excluded_slugs = [
+            self.notes["20260806_leehu_literature_001"]["slug"],
+            self.notes["20260806_leehu_literature_499"]["slug"],
+        ]
+        included_slug = self.notes["20260806_leehu_literature_500"]["slug"]
+
+        for slug in excluded_slugs:
+            status, content_type, body, _ = self.request("GET", f"/literature/{slug}/")
+            self.assertEqual(status, 200)
+            self.assertIn("text/html", content_type)
+            self.assertIn('<meta name="robots" content="noindex, follow">', body.decode("utf-8"))
+        status, _, body, _ = self.request("GET", f"/literature/{included_slug}/")
+        self.assertEqual(status, 200)
+        self.assertIn('<meta name="robots" content="index, follow">', body.decode("utf-8"))
+
+        status, _, page_two, _ = self.request("GET", "/literature/page/2/")
+        self.assertEqual(status, 200)
+        self.assertIn('<meta name="robots" content="noindex, follow">', page_two.decode("utf-8"))
+
+        for path in ("/literature/", "/literature/rss.xml", "/sitemap.xml"):
+            status, content_type, body, _ = self.request("GET", path)
+            text = body.decode("utf-8")
+            self.assertEqual(status, 200)
+            if path.endswith("rss.xml"):
+                self.assertIn("application/rss+xml", content_type)
+            elif path.endswith("sitemap.xml"):
+                self.assertIn("application/xml", content_type)
+            self.assertIn(included_slug, text)
+            for slug in excluded_slugs:
+                self.assertNotIn(slug, text)
+        _, _, sitemap, _ = self.request("GET", "/sitemap.xml")
+        sitemap_text = sitemap.decode("utf-8")
+        self.assertIn(f"{server.CANONICAL_ORIGIN}/author/", sitemap_text)
+        self.assertNotIn("/literature/page/", sitemap_text)
+
+        for source, target in (
+            ("/literature", "/literature/"),
+            ("/author", "/author/"),
+            ("/sitemap", "/sitemap.xml"),
+            ("/literature/page/2", "/literature/page/2/"),
+            (f"/literature/{included_slug}", f"/literature/{included_slug}/"),
+        ):
+            status, _, _, headers = self.request("GET", source)
+            self.assertEqual(status, 301)
+            self.assertEqual(headers.get("Location"), target)
+
+        status, _, author, _ = self.request("GET", "/author/")
+        self.assertEqual(status, 200)
+        self.assertIn(
+            f'<link rel="canonical" href="{server.CANONICAL_ORIGIN}/author/">',
+            author.decode("utf-8"),
+        )
+        status, _, _, _ = self.request("GET", "/literature/%2e%2e/server.py")
+        self.assertEqual(status, 404)
+        for private_path in (
+            "/server.py",
+            "/literature_index_policy.py",
+            "/content/literature-index-policy.json",
+            "/Dockerfile",
+            "/README.md",
+        ):
+            status, _, _, _ = self.request("GET", private_path)
+            self.assertEqual(status, 404, private_path)
+
+    def test_api_write_does_not_change_static_publication(self):
+        payload = sample_payload(
+            title="Static mode stored only",
+            slug="20260727-leehu-literature-01-static-stored-only",
+        )
+        status, _, body, _ = self.request("POST", "/api/literature/posts", payload, TOKEN)
+        self.assertEqual(status, 201, body.decode("utf-8"))
+        post = json.loads(body.decode("utf-8"))["post"]
+        self.assertTrue((server.LITERATURE_POSTS_DIR / f"{post['slug']}.json").is_file())
+
+        status, _, api_body, _ = self.request("GET", f"/api/literature/posts/{post['slug']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(api_body.decode("utf-8"))["post"]["slug"], post["slug"])
+        for path in (
+            "/literature/",
+            f"/literature/{post['slug']}/",
+            "/literature/rss.xml",
+            "/sitemap.xml",
+        ):
+            status, _, public_body, _ = self.request("GET", path)
+            if path.startswith(f"/literature/{post['slug']}"):
+                self.assertEqual(status, 404)
+            else:
+                self.assertEqual(status, 200)
+                self.assertNotIn(post["slug"], public_body.decode("utf-8"))
 
 
 if __name__ == "__main__":

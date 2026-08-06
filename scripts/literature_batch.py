@@ -19,6 +19,8 @@ try:
 except ImportError:
     import build_literature
 
+from literature_index_policy import is_note_indexable, load_index_policy
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = ROOT / "content" / "literature"
@@ -40,6 +42,7 @@ class SiteMetrics:
     """Counts used by the static publishing gate."""
 
     sources: int
+    indexable: int
     details: int
     rss_items: int
     sitemap_urls: int
@@ -146,6 +149,11 @@ def append_manifest(
 
 def site_metrics() -> SiteMetrics:
     source_paths = numbered_paths(CONTENT_DIR)
+    notes = [load_json(path) for path in source_paths]
+    if any(not isinstance(note, dict) for note in notes):
+        raise ValueError("literature source must contain JSON objects")
+    policy = load_index_policy(build_literature.INDEX_POLICY_PATH, notes)
+    indexable = sum(is_note_indexable(note, policy) for note in notes)
     details = sum(
         1
         for child in LITERATURE_DIR.iterdir()
@@ -156,21 +164,25 @@ def site_metrics() -> SiteMetrics:
     )
     rss_items = len(ET.parse(LITERATURE_DIR / "rss.xml").findall("./channel/item"))
     sitemap_urls = len(ET.parse(ROOT / "sitemap.xml").getroot())
-    return SiteMetrics(len(source_paths), details, rss_items, sitemap_urls, list_pages)
+    return SiteMetrics(
+        len(source_paths), indexable, details, rss_items, sitemap_urls, list_pages
+    )
 
 
 def verify_site(expected_count: int | None = None) -> SiteMetrics:
     metrics = site_metrics()
     expected = expected_count if expected_count is not None else metrics.sources
-    expected_pages = math.ceil(expected / build_literature.PAGE_SIZE)
-    expected_sitemap = expected + expected_pages + 1
+    expected_pages = math.ceil(metrics.indexable / build_literature.PAGE_SIZE)
+    expected_sitemap = metrics.indexable + 3
     errors = []
     if metrics.sources != expected:
         errors.append(f"sources={metrics.sources}, expected={expected}")
     if metrics.details != expected:
         errors.append(f"details={metrics.details}, expected={expected}")
-    if metrics.rss_items != expected:
-        errors.append(f"rss_items={metrics.rss_items}, expected={expected}")
+    if metrics.rss_items != metrics.indexable:
+        errors.append(
+            f"rss_items={metrics.rss_items}, expected={metrics.indexable}"
+        )
     if metrics.list_pages != expected_pages:
         errors.append(f"list_pages={metrics.list_pages}, expected={expected_pages}")
     if metrics.sitemap_urls != expected_sitemap:
@@ -183,6 +195,7 @@ def verify_site(expected_count: int | None = None) -> SiteMetrics:
 def print_metrics(metrics: SiteMetrics) -> None:
     print(
         f"sources={metrics.sources} details={metrics.details} "
+        f"indexable={metrics.indexable} "
         f"rss_items={metrics.rss_items} sitemap_urls={metrics.sitemap_urls} "
         f"list_pages={metrics.list_pages}"
     )

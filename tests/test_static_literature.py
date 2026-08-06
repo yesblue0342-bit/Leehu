@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 
 from scripts import append_love_literature_20260806 as append_love_batch
 from scripts import build_literature
+from literature_index_policy import is_note_indexable, load_index_policy
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,9 +20,11 @@ CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 TARGET_COUNT = 1966
+TARGET_INDEXABLE_COUNT = 1467
+TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 79
-TARGET_SITEMAP_URLS = 2046
+TARGET_LIST_PAGES = 59
+TARGET_SITEMAP_URLS = 1470
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -86,6 +89,14 @@ class StaticLiteratureTest(unittest.TestCase):
         cls.notes = [
             json.loads(path.read_text(encoding="utf-8")) for path in cls.paths
         ]
+        cls.index_policy = load_index_policy(build_literature.INDEX_POLICY_PATH, cls.notes)
+        cls.indexable_notes = [
+            note for note in cls.notes if is_note_indexable(note, cls.index_policy)
+        ]
+        cls.noindex_notes = [
+            note for note in cls.notes if not is_note_indexable(note, cls.index_policy)
+        ]
+        cls.indexable_ids = {note["id"] for note in cls.indexable_notes}
         cls.homepage = (ROOT / "index.html").read_text(encoding="utf-8")
         cls.homepage_parser = HomepageContractParser()
         cls.homepage_parser.feed(cls.homepage)
@@ -152,6 +163,20 @@ class StaticLiteratureTest(unittest.TestCase):
             sum(note.get("content_kind") == "source_quote" for note in batch),
             499,
         )
+
+    def test_versioned_index_policy_keeps_collection_and_excludes_repetitive_batch(self) -> None:
+        self.assertEqual(self.index_policy.version, 1)
+        self.assertTrue(self.index_policy.default_indexable)
+        self.assertEqual(len(self.indexable_notes), TARGET_INDEXABLE_COUNT)
+        self.assertEqual(len(self.noindex_notes), TARGET_NOINDEX_COUNT)
+        self.assertEqual(
+            {note["id"] for note in self.noindex_notes},
+            {
+                f"20260806_leehu_literature_{sequence:03d}"
+                for sequence in range(1, 500)
+            },
+        )
+        self.assertIn("20260806_leehu_literature_500", self.indexable_ids)
 
     def test_20260806_batch_avoids_repeated_boilerplate_and_raw_anchor_titles(self) -> None:
         batch = [
@@ -373,11 +398,30 @@ class StaticLiteratureTest(unittest.TestCase):
         ]
         self.assertTrue(all(path.is_file() for path in list_paths))
         self.assertIn('id="literatureSearch"', list_paths[0].read_text(encoding="utf-8"))
-        last_page_cards = TARGET_COUNT % PAGE_SIZE or PAGE_SIZE
+        last_page_cards = TARGET_INDEXABLE_COUNT % PAGE_SIZE or PAGE_SIZE
         expected_cards = [PAGE_SIZE] * (TARGET_LIST_PAGES - 1) + [last_page_cards]
-        for path, expected in zip(list_paths, expected_cards):
+        for page_number, (path, expected) in enumerate(
+            zip(list_paths, expected_cards), 1
+        ):
             text = path.read_text(encoding="utf-8")
             self.assertEqual(text.count('class="note-card"'), expected)
+            expected_robots = "index, follow" if page_number == 1 else "noindex, follow"
+            self.assertIn(
+                f'<meta name="robots" content="{expected_robots}">', text
+            )
+        card_slugs = []
+        for path in list_paths:
+            card_slugs.extend(
+                re.findall(
+                    r'<a class="note-card" href="/literature/([^/]+)/">',
+                    path.read_text(encoding="utf-8"),
+                )
+            )
+        self.assertEqual(len(card_slugs), TARGET_INDEXABLE_COUNT)
+        self.assertEqual(len(card_slugs), len(set(card_slugs)))
+        self.assertEqual(
+            set(card_slugs), {note["slug"] for note in self.indexable_notes}
+        )
 
         json_ld_re = re.compile(
             r'<script type="application/ld\+json">(.*?)</script>', re.S
@@ -390,6 +434,14 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertIn('<meta name="twitter:card" content="summary_large_image">', text)
             self.assertIn('property="article:published_time"', text)
             self.assertIn('property="article:author"', text)
+            expected_robots = (
+                "index, follow"
+                if note["id"] in self.indexable_ids
+                else "noindex, follow"
+            )
+            self.assertIn(
+                f'<meta name="robots" content="{expected_robots}">', text
+            )
             self.assertIn("전체 목록", text)
             self.assertIn('href="/"', text)
             if note.get("content_kind") == "collection_reflection":
@@ -410,7 +462,16 @@ class StaticLiteratureTest(unittest.TestCase):
                 {entry["@type"] for entry in graph},
                 {"BlogPosting", "BreadcrumbList"},
             )
+            article = next(entry for entry in graph if entry["@type"] == "BlogPosting")
+            self.assertEqual(article["author"]["@id"], f"{ORIGIN}/#person")
+            self.assertEqual(article["author"]["url"], f"{ORIGIN}/author/")
             self.assertIn(html.escape(note["quote"], quote=True), text)
+            if note["id"] not in self.indexable_ids:
+                post_nav = re.search(
+                    r'<nav class="post-nav".*?</nav>', text, re.S
+                )
+                self.assertIsNotNone(post_nav)
+                self.assertNotIn('href="/literature/', post_nav.group(0))
 
     def test_generated_detail_directories_match_source_slugs(self) -> None:
         expected = {note["slug"] for note in self.notes}
@@ -434,36 +495,50 @@ class StaticLiteratureTest(unittest.TestCase):
             for node in sitemap.findall("s:url", namespace)
         }
         latest_date = max(note["published_at"][:10] for note in self.notes)
-        latest_note = build_literature.sort_for_publication(self.notes)[0]
+        latest_note = build_literature.sort_for_publication(self.indexable_notes)[0]
         self.assertEqual(sitemap_dates[f"{ORIGIN}/"], latest_date)
+        self.assertIn(f"{ORIGIN}/author/", locations)
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],
         )
         self.assertEqual(
-            sum(url == f"{ORIGIN}/literature/{note['slug']}/" for url in locations for note in self.notes),
-            TARGET_COUNT,
+            {
+                url
+                for url in locations
+                if url.startswith(f"{ORIGIN}/literature/")
+                and url != f"{ORIGIN}/literature/"
+            },
+            {
+                f"{ORIGIN}/literature/{note['slug']}/"
+                for note in self.indexable_notes
+            },
         )
+        self.assertFalse(any("/literature/page/" in url for url in locations))
 
         rss = ET.parse(LITERATURE / "rss.xml")
         items = rss.findall("./channel/item")
-        self.assertEqual(len(items), TARGET_COUNT)
-        latest_note = build_literature.sort_for_publication(self.notes)[0]
+        self.assertEqual(len(items), TARGET_INDEXABLE_COUNT)
+        latest_note = build_literature.sort_for_publication(self.indexable_notes)[0]
         self.assertEqual(
             items[0].findtext("link"),
             f"{ORIGIN}/literature/{latest_note['slug']}/",
         )
         self.assertEqual(
             len({item.findtext("guid") for item in items}),
-            TARGET_COUNT,
+            TARGET_INDEXABLE_COUNT,
         )
         rss_descriptions = {
             item.findtext("guid"): item.findtext("description") for item in items
         }
-        for note in self.notes:
+        for note in self.indexable_notes:
             self.assertEqual(
                 rss_descriptions[f"{ORIGIN}/literature/{note['slug']}/"],
                 note["commentary"],
+            )
+        for note in self.noindex_notes:
+            self.assertNotIn(
+                f"{ORIGIN}/literature/{note['slug']}/", rss_descriptions
             )
 
         href_re = re.compile(r'href="([^"]+)"')
@@ -479,6 +554,44 @@ class StaticLiteratureTest(unittest.TestCase):
                 if local.endswith("/"):
                     target /= "index.html"
                 self.assertTrue(target.exists(), f"{source_path}: {href}")
+
+    def test_noindex_notes_are_absent_from_every_indexable_discovery_surface(self) -> None:
+        discovery_paths = [
+            ROOT / "index.html",
+            ROOT / "sitemap.xml",
+            LITERATURE / "rss.xml",
+            LITERATURE / "index.html",
+        ]
+        discovery_paths.extend((LITERATURE / "page").glob("*/index.html"))
+        discovery_paths.extend(
+            LITERATURE / note["slug"] / "index.html"
+            for note in self.indexable_notes
+        )
+        discovered = "\n".join(
+            path.read_text(encoding="utf-8") for path in discovery_paths
+        )
+        for note in self.noindex_notes:
+            self.assertNotIn(f"/literature/{note['slug']}/", discovered)
+
+    def test_filtered_detail_navigation_uses_only_immediate_indexable_neighbors(self) -> None:
+        ordered = build_literature.sort_for_publication(self.indexable_notes)
+        for position, note in enumerate(ordered):
+            page = (LITERATURE / note["slug"] / "index.html").read_text(
+                encoding="utf-8"
+            )
+            navigation = re.search(
+                r'<nav class="post-nav".*?</nav>', page, re.S
+            )
+            self.assertIsNotNone(navigation)
+            actual = re.findall(
+                r'href="/literature/([^/]+)/"', navigation.group(0)
+            )
+            expected = []
+            if position > 0:
+                expected.append(ordered[position - 1]["slug"])
+            if position + 1 < len(ordered):
+                expected.append(ordered[position + 1]["slug"])
+            self.assertEqual(actual, expected, note["id"])
 
     def test_homepage_six_notes_and_board_regression(self):
         homepage = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -507,7 +620,9 @@ class StaticLiteratureTest(unittest.TestCase):
 
     def test_homepage_sources_hide_structured_data_description_and_seo_card(self):
         homepage = self.homepage
-        self.assertIn("소설가 이후에 대한 공개 정보를 백과·포털 전반에서 확인할 수 있습니다.", homepage)
+        self.assertIn("공식 작가 프로필", homepage)
+        self.assertIn("https://blog.naver.com/yesblue0342", homepage)
+        self.assertIn("https://www.youtube.com/@Yesblue1234", homepage)
         self.assertNotIn("각 소스는 구조화 데이터", homepage)
         self.assertNotIn("SEO · 색인 지표", homepage)
         self.assertNotIn("검색엔진 노출 상태", homepage)
@@ -537,6 +652,42 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn("Person", graph_types)
         self.assertIn("WebSite", graph_types)
         self.assertGreaterEqual(graph_types.count("Book"), 3)
+        person = next(entry for entry in graph if entry["@type"] == "Person")
+        self.assertEqual(person["@id"], f"{ORIGIN}/#person")
+        self.assertEqual(person["url"], f"{ORIGIN}/author/")
+        self.assertEqual(
+            set(person["sameAs"]),
+            {
+                "https://blog.naver.com/yesblue0342",
+                "https://www.youtube.com/@Yesblue1234",
+                "https://store.kyobobook.co.kr/person/detail/1000809404",
+                "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
+            },
+        )
+        for forbidden_property in (
+            "legalName", "birthName", "givenName", "familyName"
+        ):
+            self.assertNotIn(forbidden_property, self.homepage)
+        self.assertNotIn("mailto:", self.homepage)
+        self.assertNotRegex(
+            self.homepage,
+            r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}",
+        )
+
+    def test_author_profile_is_canonical_pseudonym_only_and_linked(self) -> None:
+        author_page = (ROOT / "author" / "index.html").read_text(encoding="utf-8")
+        self.assertIn(
+            f'<link rel="canonical" href="{ORIGIN}/author/">', author_page
+        )
+        self.assertIn('<meta name="robots" content="index, follow">', author_page)
+        self.assertIn(f'"@id": "{ORIGIN}/#person"', author_page)
+        self.assertIn('href="/author/"', self.homepage)
+        self.assertNotIn("mailto:", author_page)
+        self.assertNotRegex(author_page, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+        for forbidden_property in (
+            "legalName", "birthName", "givenName", "familyName"
+        ):
+            self.assertNotIn(forbidden_property, author_page)
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
@@ -666,7 +817,7 @@ class StaticLiteratureTest(unittest.TestCase):
         )
         self.assertIsNotNone(hero_actions)
         self.assertIn('href="#works"', hero_actions.group("body"))
-        self.assertIn('href="#about"', hero_actions.group("body"))
+        self.assertIn('href="/author/"', hero_actions.group("body"))
         self.assertIn('getElementById("mobileNavToggle")', homepage)
         self.assertIn('getElementById("primaryNav")', homepage)
 
@@ -720,6 +871,8 @@ class StaticLiteratureTest(unittest.TestCase):
 
     def test_z_generator_is_idempotent(self):
         tracked_outputs = [ROOT / "index.html", ROOT / "sitemap.xml", LITERATURE / "rss.xml"]
+        tracked_outputs += [LITERATURE / "index.html"]
+        tracked_outputs += list((LITERATURE / "page").glob("*/index.html"))
         tracked_outputs += [LITERATURE / note["slug"] / "index.html" for note in self.notes]
         before = {path: path.read_bytes() for path in tracked_outputs}
         completed = subprocess.run(
@@ -728,7 +881,7 @@ class StaticLiteratureTest(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=600,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn(f"built {TARGET_COUNT} detail pages", completed.stdout)
