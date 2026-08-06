@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
+from scripts import append_love_literature_20260806 as append_love_batch
 from scripts import build_literature
 
 
@@ -17,10 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 1466
+TARGET_COUNT = 1966
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 59
-TARGET_SITEMAP_URLS = 1526
+TARGET_LIST_PAGES = 79
+TARGET_SITEMAP_URLS = 2046
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -63,6 +64,22 @@ class HomepageContractParser(HTMLParser):
 
 
 class StaticLiteratureTest(unittest.TestCase):
+    def test_collection_url_allowlist_rejects_userinfo_and_unknown_hosts(self) -> None:
+        hosts = build_literature.COLLECTION_SOURCE_HOSTS
+        self.assertTrue(
+            build_literature.is_allowed_https_url(
+                "https://product.kyobobook.co.kr/detail/example", hosts
+            )
+        )
+        self.assertFalse(
+            build_literature.is_allowed_https_url(
+                "https://trusted.example@attacker.example/x", hosts
+            )
+        )
+        self.assertFalse(
+            build_literature.is_allowed_https_url("https://attacker.example/x", hosts)
+        )
+
     @classmethod
     def setUpClass(cls):
         cls.paths = sorted(CONTENT.glob("*.json"), key=lambda item: int(item.stem))
@@ -118,6 +135,79 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(sum(note.get("content_kind") == "original_reflection" for note in batch), 90)
         self.assertTrue(all(set(note["tags"]) & {"사랑", "애정", "연애", "헌신", "기다림", "관계", "신뢰", "기억", "갈망", "돌봄"} for note in batch))
 
+    def test_20260806_love_batch_count_ids_and_collection(self) -> None:
+        batch = self.notes[1466:1966]
+        self.assertEqual(len(batch), 500)
+        self.assertEqual(
+            {note["id"] for note in batch},
+            {f"20260806_leehu_literature_{sequence:03d}" for sequence in range(1, 501)},
+        )
+        collection = next(
+            note for note in batch if note["title"] == "사랑에 관한 소설과 시집 10선"
+        )
+        self.assertEqual(collection["id"], "20260806_leehu_literature_500")
+        self.assertEqual(collection["content_kind"], "collection_reflection")
+        self.assertEqual(len(collection["collection_sections"]), 10)
+        self.assertEqual(
+            sum(note.get("content_kind") == "source_quote" for note in batch),
+            499,
+        )
+
+    def test_20260806_batch_avoids_repeated_boilerplate_and_raw_anchor_titles(self) -> None:
+        batch = [
+            note for note in self.notes[1466:1966]
+            if note.get("content_kind") == "source_quote"
+        ]
+        forbidden_phrases = (
+            "사랑을 추상적인 선언으로 밀어 올리기보다",
+            "가까워지고 싶은 마음과 자기 자리를 지키려는 마음",
+            "사랑을 소유가 아니라 타인의 시간과 선택을 존중하는 태도",
+            "빠른 확신보다 관계의 맥락을 살피게 한다",
+        )
+        for note in batch:
+            combined = note["commentary"] + " " + " ".join(note["seo_sections"].values())
+            self.assertTrue(all(phrase not in combined for phrase in forbidden_phrases))
+            self.assertNotRegex(note["title"], r"에서 [A-Za-z'-]+와 [A-Za-z'-]+로 읽는")
+            self.assertNotRegex(note["quote"].strip(), r":(?:—|-)?[’”\"]?$")
+
+    def test_append_batch_verifier_rejects_any_changed_note(self) -> None:
+        expected = [
+            {"id": "20260806_leehu_literature_500", "title": "collection"},
+            {"id": "20260806_leehu_literature_001", "title": "quote"},
+        ]
+        changed = [dict(note) for note in expected]
+        changed[1]["title"] = "tampered"
+        errors = append_love_batch.batch_mismatches(expected, changed)
+        self.assertEqual(errors, ["20260806_leehu_literature_001"])
+
+    def test_relationship_theme_rejects_ambiguous_general_words(self) -> None:
+        for sentence in (
+            "The shoal was very long and uninterrupted.",
+            "Take care to close the door.",
+            "I remember the old road.",
+            "I hope the weather improves.",
+            "The criminal had a child-brain.",
+            "The mistress ordered the household to work.",
+            "I remembered my once affectionate old mistress.",
+            "The officer's wife took the children to school.",
+        ):
+            with self.assertRaises(ValueError):
+                append_love_batch.keyword_theme(sentence, 1)
+        self.assertEqual(
+            append_love_batch.keyword_theme("They protected their friendship through winter.", 1),
+            ("우정", "friendship"),
+        )
+        self.assertEqual(
+            append_love_batch.keyword_theme("He married her in spring.", 1),
+            ("동반", "companionship"),
+        )
+        self.assertEqual(
+            append_love_batch.keyword_theme("Her father loved her mother.", 1),
+            ("가족 사랑", "family-love"),
+        )
+        with self.assertRaises(ValueError):
+            append_love_batch.keyword_theme("Her father and mother waited at home.", 1)
+
     def test_reflection_pages_do_not_claim_project_gutenberg_source(self) -> None:
         reflection = next(note for note in self.notes if note.get("content_kind") == "original_reflection")
         page = (LITERATURE / reflection["slug"] / "index.html").read_text(encoding="utf-8")
@@ -130,6 +220,72 @@ class StaticLiteratureTest(unittest.TestCase):
         for heading in ("작품 소개", "왜 지금도 읽히는가", "나의 감상", "오늘 우리에게 주는 의미"):
             self.assertIn(f"<h2>{heading}</h2>", page)
         self.assertIn("『예언자(The Prophet)』", page)
+
+    def test_collection_detail_page_renders_ten_work_sections(self) -> None:
+        note = dict(self.notes[-1])
+        note.update({
+            "content_kind": "collection_reflection",
+            "title": "사랑에 관한 소설과 시집 10선",
+            "quote": "사랑을 서로 다른 열 개의 목소리로 읽어 보는 큐레이션입니다.",
+            "rights_note": "모든 보호 작품에 대해 원문과 번역문을 직접 인용하지 않음.",
+            "collection_introduction": "사랑은 기억과 선택, 기다림과 상실 속에서 다른 얼굴을 드러냅니다.",
+            "collection_closing": "열 권의 책은 사랑을 하나의 정답 대신 오래 남는 질문으로 돌려줍니다.",
+            "collection_sections": [
+                {
+                    "title": f"작품 {index}",
+                    "author": f"작가 {index}",
+                    "country_genre": "국가 / 소설",
+                    "core_theme": f"핵심 주제 {index}",
+                    "summary": f"주요 내용 {index}",
+                    "love_form": f"사랑의 형태 {index}",
+                    "literary_question": f"문학적으로 생각할 점 {index}",
+                    "one_line": f"한 줄 감상 {index}",
+                    "source_url": "https://www.penguin.co.uk/",
+                }
+                for index in range(1, 11)
+            ],
+        })
+
+        page = build_literature.detail_page(note, None, None)
+
+        self.assertEqual(page.count('class="collection-work"'), 10)
+        self.assertIn("<h2>1. 작품 1</h2>", page)
+        self.assertIn("<dt>작품의 핵심 주제</dt>", page)
+        self.assertIn("<dt>문학노트 한 줄 감상</dt>", page)
+        self.assertIn("열 권의 책은 사랑을 하나의 정답", page)
+        self.assertIn("저작권 안내", page)
+        self.assertIn("모든 보호 작품에 대해 원문과 번역문을 직접 인용하지 않음", page)
+        self.assertIn('class="collection-deck"', page)
+
+    def test_collection_validation_accepts_complete_ten_work_payload(self) -> None:
+        note = {
+            "collection_introduction": "사랑을 읽는 열 가지 길을 소개합니다.",
+            "collection_closing": "열 권의 책이 남긴 질문을 오래 기억합니다.",
+            "collection_sections": [
+                {
+                    "title": f"작품 {index}",
+                    "author": f"작가 {index}",
+                    "country_genre": "국가 / 소설",
+                    "core_theme": f"주제 {index}",
+                    "summary": f"내용 {index}",
+                    "love_form": f"사랑 {index}",
+                    "literary_question": f"생각 {index}",
+                    "one_line": f"감상 {index}",
+                    "source_url": "https://www.penguin.co.uk/",
+                }
+                for index in range(1, 11)
+            ],
+        }
+        errors = []
+
+        build_literature.validate_collection_note(note, "sample.json", errors)
+
+        self.assertEqual(errors, [])
+
+        note["collection_sections"][0]["source_url"] = "https://attacker.example/phish"
+        errors = []
+        build_literature.validate_collection_note(note, "sample.json", errors)
+        self.assertTrue(any("approved host" in error for error in errors))
 
     def test_search_component_waits_for_document_and_indexes_author_work(self) -> None:
         page = (LITERATURE / "index.html").read_text(encoding="utf-8")
@@ -178,11 +334,17 @@ class StaticLiteratureTest(unittest.TestCase):
             openings.append(re.sub(r"\W+", "", sentences[0]).casefold())
             closings.append(re.sub(r"\W+", "", sentences[-1]).casefold())
             parsed = urlparse(note["source_url"])
-            if note.get("content_kind", "source_quote") == "source_quote":
+            content_kind = note.get("content_kind", "source_quote")
+            if content_kind == "source_quote":
                 self.assertEqual(parsed.scheme, "https")
                 self.assertIn(parsed.netloc, {"www.gutenberg.org", "ko.wikisource.org"})
                 self.assertIn(note["source_language"], {"en", "ko"})
                 self.assertTrue("퍼블릭 도메인" in note["rights_note"] or "copyright: false" in note["rights_note"])
+            elif content_kind == "collection_reflection":
+                self.assertEqual(parsed.scheme, "https")
+                self.assertIn("직접 인용 없음", note["rights_note"])
+                self.assertEqual(len(note["collection_sections"]), 10)
+                self.assertTrue(all(urlparse(work["source_url"]).scheme == "https" for work in note["collection_sections"]))
             else:
                 self.assertEqual(parsed.scheme, "https")
                 self.assertIn(parsed.netloc, {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"})
@@ -230,7 +392,13 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertIn('property="article:author"', text)
             self.assertIn("전체 목록", text)
             self.assertIn('href="/"', text)
-            if isinstance(note.get("seo_sections"), dict):
+            if note.get("content_kind") == "collection_reflection":
+                self.assertIn(html.escape(note["collection_introduction"], quote=True), text)
+                self.assertIn(html.escape(note["collection_closing"], quote=True), text)
+                self.assertEqual(text.count('class="collection-work"'), 10)
+                for work in note["collection_sections"]:
+                    self.assertIn(html.escape(work["one_line"], quote=True), text)
+            elif isinstance(note.get("seo_sections"), dict):
                 for section_text in note["seo_sections"].values():
                     self.assertIn(html.escape(section_text, quote=True), text)
             else:
@@ -244,12 +412,34 @@ class StaticLiteratureTest(unittest.TestCase):
             )
             self.assertIn(html.escape(note["quote"], quote=True), text)
 
+    def test_generated_detail_directories_match_source_slugs(self) -> None:
+        expected = {note["slug"] for note in self.notes}
+        actual = {
+            path.parent.name
+            for path in LITERATURE.glob("*/index.html")
+            if path.parent.name != "page"
+        }
+        self.assertEqual(actual, expected)
+
     def test_sitemap_rss_and_static_links(self):
         sitemap = ET.parse(ROOT / "sitemap.xml").getroot()
         namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         locations = [node.text for node in sitemap.findall("s:url/s:loc", namespace)]
         self.assertEqual(len(locations), TARGET_SITEMAP_URLS)
         self.assertEqual(len(locations), len(set(locations)))
+        sitemap_dates = {
+            node.findtext("s:loc", namespaces=namespace): node.findtext(
+                "s:lastmod", namespaces=namespace
+            )
+            for node in sitemap.findall("s:url", namespace)
+        }
+        latest_date = max(note["published_at"][:10] for note in self.notes)
+        latest_note = build_literature.sort_for_publication(self.notes)[0]
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/"], latest_date)
+        self.assertEqual(
+            sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
+            latest_note["published_at"][:10],
+        )
         self.assertEqual(
             sum(url == f"{ORIGIN}/literature/{note['slug']}/" for url in locations for note in self.notes),
             TARGET_COUNT,

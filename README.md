@@ -13,10 +13,9 @@
 ### 구조
 
 ```text
-content/literature/001.json … 1466.json  원본 데이터
+content/literature/001.json … NNN.json   원본 데이터
 scripts/curate_literature.py              기존 공공영역 원문 큐레이션 도구
-scripts/append_love_literature.py         사랑 주제 확장 배치 생성 도구
-scripts/append_world_love_literature.py   세계문학 사랑 주제 확장 배치 생성 도구
+scripts/literature_batch.py               manifest append·build·verify 범용 CLI
 scripts/build_literature.py               검증 및 정적 사이트 생성기
 literature/index.html                     목록 첫 페이지
 literature/page/N/index.html              페이지네이션
@@ -31,19 +30,18 @@ sitemap.xml                               전체 사이트맵
 
 ```bash
 cd C:\codex\Leehu
-python scripts/build_literature.py
-python -m unittest
+python scripts/literature_batch.py build --expected-count 1966 --test
 ```
 
 출력 예시:
 
 ```text
-built 1466 detail pages, 59 list pages, 1466 RSS items, and 1526 sitemap URLs
+built 1966 detail pages, 79 list pages, 1966 RSS items, and 2046 sitemap URLs
 ```
 
 생성기는 다음을 중단 조건으로 검증합니다.
 
-- 정확히 1,466개 JSON 및 내부 ID/파일명 대응
+- 설정된 기대 수량의 JSON 및 내부 ID/파일명 대응
 - 원문 인용은 Project Gutenberg·위키문헌의 확인된 퍼블릭 도메인 원전만 허용하고, 권리가 남아 있는 작가의 항목은 `original_reflection` 모드에서 직접 인용 없이 공개
 - slug·제목·인용문·canonical 중복 및 유사도
 - 출처 URL·필수 필드·인용문 대비 해설 길이
@@ -51,13 +49,22 @@ built 1466 detail pages, 59 list pages, 1466 RSS items, and 1526 sitemap URLs
 - 작가·작품·태그 편중
 - 정적 내부 링크, HTML escape, JSON-LD, RSS, sitemap
 
-### 새 문학노트 추가 또는 코퍼스 재생성
+### 새 문학노트 빠른 배치 추가
 
-1. `content/literature/`에 필수 필드를 갖춘 새 JSON을 추가하거나, 공공영역 원문을 다시 큐레이션합니다.
-2. `python scripts/build_literature.py`를 실행합니다.
-3. `python -m unittest`로 전체 정적·기존 게시판 회귀 테스트를 실행합니다.
-4. 생성된 `literature/`, `literature/rss.xml`, `sitemap.xml`, 홈페이지 카드 변경을 확인합니다.
-5. 커밋하고 `main`에 push합니다.
+완성된 문학노트를 JSON 배열 manifest로 준비합니다. 각 객체는 기존 `content/literature/*.json`과 같은 schema를 사용합니다.
+
+```bash
+# 1. 쓰지 않고 schema·ID·slug·기존 충돌·예정 파일명 확인
+python scripts/literature_batch.py append batch-manifest.json
+
+# 2. 검토 후에만 연속 번호로 atomic append
+python scripts/literature_batch.py append batch-manifest.json --apply
+
+# 3. 정적 생성, 수량 검증, 전체 테스트
+python scripts/literature_batch.py build --expected-count <새로운_총수량> --test
+```
+
+`append`는 기본적으로 dry-run입니다. `--apply` 중 오류가 발생하면 이번 실행에서 만든 파일만 rollback하며 기존 JSON은 덮어쓰지 않습니다. 생성 후 `literature/`, `literature/rss.xml`, `sitemap.xml`, 홈페이지 최신 카드 변경을 확인하고 `main`에 push합니다.
 
 ```bash
 git add -A

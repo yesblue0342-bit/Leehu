@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
 import re
@@ -22,7 +23,7 @@ CONTENT_DIR = ROOT / "content" / "literature"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 1466
+EXPECTED_COUNT = 1966
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -49,6 +50,7 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 .article{width:min(820px,calc(100% - 40px));margin:0 auto;padding:64px 0}.breadcrumbs{font-size:.82rem;color:var(--muted);margin-bottom:32px}.article h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.25;margin:12px 0 18px}
 .meta{color:var(--muted);font-size:.88rem}.article blockquote{margin:42px 0 20px;padding:30px;border-left:3px solid var(--gold);background:var(--panel);font-size:clamp(1.25rem,3vw,1.8rem);line-height:1.7;font-style:italic}
 .source{font-size:.9rem;color:var(--muted);margin-bottom:42px}.source a{text-underline-offset:3px}.commentary h2{font-size:1.2rem;margin-bottom:14px}.commentary p{font-size:1.04rem;line-height:2.05;white-space:normal}
+.collection-introduction{margin:34px 0 18px;font-size:1.08rem;line-height:2}.collection-deck{margin:0 0 24px;color:#374151;font-size:1.05rem;line-height:1.95}.rights-note{margin:0 0 36px;padding:18px 20px;background:var(--panel);border-radius:12px;color:var(--muted);font-size:.9rem;line-height:1.8}.collection-work{margin:46px 0;padding-top:34px;border-top:1px solid var(--line)}.collection-work h2{font-size:1.45rem;line-height:1.5}.collection-meta{margin:6px 0 22px;color:var(--muted)}.collection-work dl{display:grid;gap:18px}.collection-work dt{font-weight:700;color:var(--red)}.collection-work dd{margin-top:4px;line-height:1.9}.collection-closing{margin:46px 0;padding:28px;background:var(--panel);border-radius:16px;line-height:2}
 .tags{display:flex;gap:8px;flex-wrap:wrap;margin:30px 0}.tag{border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:.78rem}
 .related{border-top:1px solid var(--line);padding-top:24px}.post-nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:42px}.post-nav a{border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none}.post-nav .next{text-align:right}
 .site-links{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px}.site-links a{text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#fff}
@@ -113,6 +115,60 @@ def canonical(note: dict[str, object]) -> str:
     return f"{ORIGIN}/literature/{note['slug']}/"
 
 
+COLLECTION_WORK_FIELDS = (
+    "title", "author", "country_genre", "core_theme", "summary",
+    "love_form", "literary_question", "one_line", "source_url",
+)
+COLLECTION_SOURCE_HOSTS = {
+    "ebook-product.kyobobook.co.kr",
+    "m.yes24.com",
+    "openlibrary.org",
+    "product.kyobobook.co.kr",
+    "search.kyobobook.co.kr",
+    "store.kyobobook.co.kr",
+    "www.aladin.co.kr",
+    "www.goodreads.com",
+    "www.gutenberg.org",
+    "www.penguin.co.uk",
+}
+
+
+def is_allowed_https_url(value: object, allowed_hosts: set[str]) -> bool:
+    parsed = urlparse(str(value))
+    return (
+        parsed.scheme == "https"
+        and parsed.hostname in allowed_hosts
+        and parsed.username is None
+        and parsed.password is None
+    )
+
+
+def validate_collection_note(
+    note: dict[str, object], path_name: str, errors: list[str]
+) -> None:
+    """Validate the ten-work payload used by collection reflection pages."""
+    for field in ("collection_introduction", "collection_closing"):
+        if not isinstance(note.get(field), str) or not str(note[field]).strip():
+            errors.append(f"{path_name}: missing {field}")
+    sections = note.get("collection_sections")
+    if not isinstance(sections, list) or len(sections) != 10:
+        errors.append(f"{path_name}: collection_sections must contain 10 works")
+        return
+    for position, work in enumerate(sections, 1):
+        if not isinstance(work, dict):
+            errors.append(f"{path_name}: collection work {position} must be an object")
+            continue
+        for field in COLLECTION_WORK_FIELDS:
+            if not isinstance(work.get(field), str) or not str(work[field]).strip():
+                errors.append(
+                    f"{path_name}: collection work {position} missing {field}"
+                )
+        if not is_allowed_https_url(work.get("source_url", ""), COLLECTION_SOURCE_HOSTS):
+            errors.append(
+                f"{path_name}: collection work {position} source URL must use an approved host"
+            )
+
+
 def sentence_edges(commentary: str) -> tuple[str, str]:
     sentences = [
         item.strip()
@@ -169,11 +225,11 @@ def sort_for_publication(notes: list[dict[str, object]]) -> list[dict[str, objec
     )
 
 
-def load_and_validate() -> list[dict[str, object]]:
+def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, object]]:
     paths = sorted(CONTENT_DIR.glob("*.json"), key=lambda item: int(item.stem))
     errors: list[str] = []
-    if len(paths) != EXPECTED_COUNT:
-        errors.append(f"expected {EXPECTED_COUNT} source files, found {len(paths)}")
+    if len(paths) != expected_count:
+        errors.append(f"expected {expected_count} source files, found {len(paths)}")
     notes: list[dict[str, object]] = []
     for position, path in enumerate(paths, 1):
         expected_name = f"{position:03d}.json"
@@ -205,14 +261,29 @@ def load_and_validate() -> list[dict[str, object]]:
         content_kind = str(data.get("content_kind", "source_quote"))
         parsed_url = urlparse(str(data["source_url"]))
         allowed_hosts = {"www.gutenberg.org", "ko.wikisource.org"}
-        if content_kind == "original_reflection":
+        if content_kind == "collection_reflection":
+            validate_collection_note(data, path.name, errors)
+            if "직접 인용 없음" not in str(data["rights_note"]):
+                errors.append(
+                    f"{path.name}: collection_reflection must disclose no direct quote"
+                )
+            if not is_allowed_https_url(data["source_url"], COLLECTION_SOURCE_HOSTS):
+                errors.append(f"{path.name}: invalid collection source URL")
+        elif content_kind == "original_reflection":
             allowed_hosts = {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"}
             if "직접 인용 없음" not in str(data["rights_note"]):
                 errors.append(f"{path.name}: original_reflection must disclose no direct quote")
-        elif content_kind != "source_quote":
+            if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
+                errors.append(f"{path.name}: invalid source URL for content kind")
+        elif content_kind == "source_quote":
+            if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
+                errors.append(f"{path.name}: invalid source URL for content kind")
+        else:
             errors.append(f"{path.name}: invalid content_kind")
-        if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
-            errors.append(f"{path.name}: invalid source URL for content kind")
+        if isinstance(data.get("related_work"), dict) and not is_allowed_https_url(
+            data["related_work"].get("url", ""), COLLECTION_SOURCE_HOSTS
+        ):
+            errors.append(f"{path.name}: invalid related_work URL")
         try:
             published_at = datetime.fromisoformat(str(data["published_at"]))
         except ValueError:
@@ -411,8 +482,32 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
         f'<a class="next" href="/literature/{esc(following["slug"])}/">{esc(following["title"])} →</a>'
         if following else "<span></span>"
     )
+    content_kind = str(note.get("content_kind", "source_quote"))
+    collection_sections = note.get("collection_sections")
     seo_sections = note.get("seo_sections")
-    if isinstance(seo_sections, dict) and {"work_introduction", "why_read_now", "personal_reflection", "meaning_today"} <= set(seo_sections):
+    if content_kind == "collection_reflection" and isinstance(collection_sections, list):
+        collection_blocks = []
+        for position, work in enumerate(collection_sections, 1):
+            collection_blocks.append(f"""
+    <section class="collection-work">
+      <h2>{position}. {esc(work['title'])}</h2>
+      <p class="collection-meta">{esc(work['author'])} · {esc(work['country_genre'])}</p>
+      <dl>
+        <div><dt>작품의 핵심 주제</dt><dd>{esc(work['core_theme'])}</dd></div>
+        <div><dt>주요 내용</dt><dd>{esc(work['summary'])}</dd></div>
+        <div><dt>작품에서 표현되는 사랑의 형태</dt><dd>{esc(work['love_form'])}</dd></div>
+        <div><dt>문학적으로 생각해볼 점</dt><dd>{esc(work['literary_question'])}</dd></div>
+        <div><dt>문학노트 한 줄 감상</dt><dd>{esc(work['one_line'])}</dd></div>
+      </dl>
+      <p class="source"><a href="{esc(work['source_url'])}" rel="external noopener">작품 정보 확인</a></p>
+    </section>""")
+        article_body = f"""
+    <p class="collection-introduction">{esc(note['collection_introduction'])}</p>
+    <p class="collection-deck">{esc(note['quote'])}</p>
+    <p class="rights-note"><strong>저작권 안내</strong><br>{esc(note['rights_note'])}</p>
+{''.join(collection_blocks)}
+    <p class="collection-closing">{esc(note['collection_closing'])}</p>"""
+    elif isinstance(seo_sections, dict) and {"work_introduction", "why_read_now", "personal_reflection", "meaning_today"} <= set(seo_sections):
         article_body = f"""
     <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
     <blockquote>{esc(note['quote'])}</blockquote>
@@ -514,13 +609,19 @@ def write_sitemap(notes: list[dict[str, object]], total_pages: int) -> None:
     namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
     ET.register_namespace("", namespace)
     root = ET.Element(f"{{{namespace}}}urlset")
-    urls = [f"{ORIGIN}/", f"{ORIGIN}/literature/"]
-    urls.extend(f"{ORIGIN}/literature/page/{page}/" for page in range(2, total_pages + 1))
-    urls.extend(canonical(note) for note in notes)
-    for url in urls:
+    latest_date = max(str(note["published_at"])[:10] for note in notes)
+    urls = [(f"{ORIGIN}/", latest_date), (f"{ORIGIN}/literature/", latest_date)]
+    urls.extend(
+        (f"{ORIGIN}/literature/page/{page}/", latest_date)
+        for page in range(2, total_pages + 1)
+    )
+    urls.extend(
+        (canonical(note), str(note["published_at"])[:10]) for note in notes
+    )
+    for url, last_modified in urls:
         node = ET.SubElement(root, f"{{{namespace}}}url")
         ET.SubElement(node, f"{{{namespace}}}loc").text = url
-        ET.SubElement(node, f"{{{namespace}}}lastmod").text = "2026-07-27"
+        ET.SubElement(node, f"{{{namespace}}}lastmod").text = last_modified
     write_xml_atomic(ROOT / "sitemap.xml", root)
 
 
@@ -561,8 +662,20 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
             note = notes_by_slug.get(path.parent.name)
             if note:
                 fields = ["title", "quote", "source_author", "source_work", "source_location", "closing"]
+                content_kind = note.get("content_kind", "source_quote")
+                collection_sections = note.get("collection_sections")
                 seo_sections = note.get("seo_sections")
-                if isinstance(seo_sections, dict):
+                if content_kind == "collection_reflection" and isinstance(collection_sections, list):
+                    expected_values = [
+                        note["title"], note["quote"], note["closing"],
+                        note["collection_introduction"], note["collection_closing"],
+                        note["rights_note"],
+                    ]
+                    for work in collection_sections:
+                        expected_values.extend(
+                            work[field] for field in COLLECTION_WORK_FIELDS[:-1]
+                        )
+                elif isinstance(seo_sections, dict):
                     expected_values = [note[field] for field in fields] + list(seo_sections.values())
                 else:
                     expected_values = [note[field] for field in fields + ["commentary"]]
@@ -600,18 +713,17 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
         raise ValueError("generated-site verification failed:\n- " + "\n- ".join(errors))
 
 
-def build() -> None:
-    notes = load_and_validate()
+def build(expected_count: int = EXPECTED_COUNT) -> None:
+    notes = load_and_validate(expected_count)
     total_pages = (len(notes) + PAGE_SIZE - 1) // PAGE_SIZE
     expected_slugs = {str(note["slug"]) for note in notes}
     if LITERATURE_DIR.exists():
         for child in LITERATURE_DIR.iterdir():
-            if child.name == "index.html":
-                continue
             if (
                 child.is_dir()
-                and child.name.startswith("20260727-leehu-literature-")
+                and child.name != "page"
                 and child.name not in expected_slugs
+                and (child / "index.html").exists()
             ):
                 shutil.rmtree(child)
         page_root = LITERATURE_DIR / "page"
@@ -646,4 +758,6 @@ def build() -> None:
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description="Build the static literature site")
+    parser.add_argument("--expected-count", type=int, default=EXPECTED_COUNT)
+    build(parser.parse_args().expected_count)
