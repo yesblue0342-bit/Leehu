@@ -656,8 +656,17 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(person["@id"], f"{ORIGIN}/#person")
         self.assertEqual(person["url"], f"{ORIGIN}/author/")
         self.assertEqual(
+            person["identifier"],
+            {
+                "@type": "PropertyValue",
+                "propertyID": "Naver Person ID",
+                "value": "215161",
+            },
+        )
+        self.assertEqual(
             set(person["sameAs"]),
             {
+                "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
                 "https://blog.naver.com/yesblue0342",
                 "https://www.youtube.com/@Yesblue1234",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
@@ -681,6 +690,20 @@ class StaticLiteratureTest(unittest.TestCase):
         )
         self.assertIn('<meta name="robots" content="index, follow">', author_page)
         self.assertIn(f'"@id": "{ORIGIN}/#person"', author_page)
+        self.assertIn('"propertyID": "Naver Person ID"', author_page)
+        self.assertIn('"value": "215161"', author_page)
+        self.assertIn(
+            '<link rel="alternate" type="application/rss+xml" '
+            'title="이후의 문학노트 RSS" '
+            f'href="{ORIGIN}/literature/rss.xml">',
+            author_page,
+        )
+        self.assertIn(
+            '<link rel="alternate" type="application/rss+xml" '
+            'title="이후의 문학노트 RSS" '
+            f'href="{ORIGIN}/literature/rss.xml">',
+            self.homepage,
+        )
         self.assertIn('href="/author/"', self.homepage)
         self.assertNotIn("mailto:", author_page)
         self.assertNotRegex(author_page, r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
@@ -688,6 +711,16 @@ class StaticLiteratureTest(unittest.TestCase):
             "legalName", "birthName", "givenName", "familyName"
         ):
             self.assertNotIn(forbidden_property, author_page)
+
+        sitemap = ET.parse(ROOT / "sitemap.xml")
+        namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        lastmods = {
+            node.findtext("sm:loc", namespaces=namespace):
+            node.findtext("sm:lastmod", namespaces=namespace)
+            for node in sitemap.getroot().findall("sm:url", namespace)
+        }
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-08")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-08")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage

@@ -35,6 +35,7 @@ CONTENT_DIR = ROOT / "content" / "literature"
 INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
+CORE_PAGE_LASTMOD = "2026-08-08"
 PAGE_SIZE = 25
 EXPECTED_COUNT = 1966
 REQUIRED_FIELDS = (
@@ -675,9 +676,10 @@ def write_sitemap(notes: list[dict[str, object]]) -> None:
     ET.register_namespace("", namespace)
     root = ET.Element(f"{{{namespace}}}urlset")
     latest_date = max(str(note["published_at"])[:10] for note in notes)
+    core_page_date = max(latest_date, CORE_PAGE_LASTMOD)
     urls = [
-        (f"{ORIGIN}/", latest_date),
-        (f"{ORIGIN}/author/", latest_date),
+        (f"{ORIGIN}/", core_page_date),
+        (f"{ORIGIN}/author/", core_page_date),
         (f"{ORIGIN}/literature/", latest_date),
     ]
     urls.extend(
