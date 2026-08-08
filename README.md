@@ -77,6 +77,18 @@ git commit -m "content: add new literature notes"
 git push
 ```
 
+### 네이버 IndexNow 갱신 알림
+
+공개 소유권 키 파일이 배포된 뒤 변경된 핵심 URL을 네이버에 알립니다. 기본 실행은 홈페이지와 공식 작가 프로필만 제출하며, 외부 호스트·HTTP·userinfo·fragment가 포함된 URL은 거부합니다.
+
+```bash
+# 제출 전 JSON 확인
+python scripts/submit_indexnow.py --dry-run
+
+# 네이버 IndexNow 제출
+python scripts/submit_indexnow.py
+```
+
 ### 권리 및 출처 처리
 
 원문 인용은 Project Gutenberg와 위키문헌에서 직접 확인한 퍼블릭 도메인 텍스트만 사용합니다. 현대 한국어 번역문을 저장하거나 장문 전재하지 않습니다. 권리가 남아 있는 작가의 작품은 `original_reflection`으로 구분하고, 원문·번역문·대사·상세 줄거리를 인용하지 않은 독창적 감상만 공개합니다.
