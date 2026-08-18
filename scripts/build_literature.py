@@ -37,7 +37,7 @@ LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-08-08"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 1966
+EXPECTED_COUNT = 1971
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -45,6 +45,16 @@ REQUIRED_FIELDS = (
     "related_work", "published_at",
 )
 SENTENCE_RE = re.compile(r"(?<=[.!?。])\s+")
+PROTECTED_ABBREVIATION_RE = re.compile(
+    r"\b(?:Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr|[A-Z])\."
+)
+WORK_TITLE_RE = re.compile(r"《[^》]*》")
+TITLE_PUNCTUATION_TO_PLACEHOLDER = str.maketrans(
+    {".": "\u2024", "!": "\ufe15", "?": "\ufe16", "。": "\uff61"}
+)
+TITLE_PLACEHOLDER_TO_PUNCTUATION = str.maketrans(
+    {"\u2024": ".", "\ufe15": "!", "\ufe16": "?", "\uff61": "。"}
+)
 
 STYLE = """
 *{box-sizing:border-box;margin:0;padding:0}
@@ -172,6 +182,20 @@ COLLECTION_SOURCE_HOSTS = {
     "www.gutenberg.org",
     "www.penguin.co.uk",
 }
+ORIGINAL_REFLECTION_HOSTS = {
+    "ebook-product.kyobobook.co.kr",
+    "library.ltikorea.or.kr",
+    "ko.wikisource.org",
+    "www.gutenberg.org",
+    "www.lepetitprince.com",
+    "www.penguin.co.uk",
+}
+SEO_SECTION_KEYS = {
+    "work_introduction",
+    "why_read_now",
+    "personal_reflection",
+    "meaning_today",
+}
 
 
 def is_allowed_https_url(value: object, allowed_hosts: set[str]) -> bool:
@@ -217,6 +241,26 @@ def sentence_edges(commentary: str) -> tuple[str, str]:
         if item.strip()
     ]
     return (normalize(sentences[0]), normalize(sentences[-1])) if sentences else ("", "")
+
+
+def prose_sentences(text: str) -> list[str]:
+    protected_titles = WORK_TITLE_RE.sub(
+        lambda match: match.group(0).translate(TITLE_PUNCTUATION_TO_PLACEHOLDER),
+        text,
+    )
+    protected = PROTECTED_ABBREVIATION_RE.sub(
+        lambda match: match.group(0)[:-1] + "\u2024",
+        protected_titles,
+    )
+    return [
+        part.translate(TITLE_PLACEHOLDER_TO_PUNCTUATION).strip()
+        for part in SENTENCE_RE.split(protected)
+        if part.strip()
+    ]
+
+
+def prose_sentence_count(text: str) -> int:
+    return len(prose_sentences(text))
 
 
 def similar(a: str, b: str, threshold: float) -> bool:
@@ -311,10 +355,11 @@ def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, ob
             if not is_allowed_https_url(data["source_url"], COLLECTION_SOURCE_HOSTS):
                 errors.append(f"{path.name}: invalid collection source URL")
         elif content_kind == "original_reflection":
-            allowed_hosts = {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"}
             if "직접 인용 없음" not in str(data["rights_note"]):
                 errors.append(f"{path.name}: original_reflection must disclose no direct quote")
-            if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
+            if not is_allowed_https_url(
+                data["source_url"], ORIGINAL_REFLECTION_HOSTS
+            ):
                 errors.append(f"{path.name}: invalid source URL for content kind")
         elif content_kind == "source_quote":
             if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
@@ -334,10 +379,19 @@ def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, ob
                 errors.append(f"{path.name}: id date must match published_at")
         quote = str(data["quote"]).strip()
         commentary = str(data["commentary"]).strip()
+        seo_sections = data.get("seo_sections")
+        if seo_sections is not None:
+            if not isinstance(seo_sections, dict) or set(seo_sections) != SEO_SECTION_KEYS:
+                errors.append(f"{path.name}: invalid seo_sections keys")
+            elif any(
+                not isinstance(value, str) or len(value.strip()) < 80
+                for value in seo_sections.values()
+            ):
+                errors.append(f"{path.name}: seo_sections values too short")
         minimum_quote_length = 12 if str(data["source_language"]) == "ko" and content_kind == "source_quote" else 50
         if not minimum_quote_length <= len(quote) <= 260:
             errors.append(f"{path.name}: quote length out of range")
-        if len(SENTENCE_RE.split(quote)) > 2:
+        if prose_sentence_count(quote) > 2:
             errors.append(f"{path.name}: quote exceeds two sentences")
         # Curated commentary is Korean declarative prose; counting Korean
         # sentence endings avoids treating initials/titles inside citations as
@@ -572,7 +626,20 @@ def detail_page(
     <p class="rights-note"><strong>저작권 안내</strong><br>{esc(note['rights_note'])}</p>
 {''.join(collection_blocks)}
     <p class="collection-closing">{esc(note['collection_closing'])}</p>"""
-    elif isinstance(seo_sections, dict) and {"work_introduction", "why_read_now", "personal_reflection", "meaning_today"} <= set(seo_sections):
+    elif (
+        content_kind == "original_reflection"
+        and isinstance(seo_sections, dict)
+        and SEO_SECTION_KEYS <= set(seo_sections)
+    ):
+        article_body = f"""
+    <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
+    <p class="reflection-deck">{esc(note['quote'])}</p>
+    <p class="source"><a href="{esc(note['source_url'])}" rel="external noopener">작품 정보 확인</a><br>
+    {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
+    <section class="commentary"><h2>왜 지금도 읽히는가</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
+    <section class="commentary"><h2>나의 감상</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
+    <section class="commentary"><h2>오늘 우리에게 주는 의미</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
+    elif isinstance(seo_sections, dict) and SEO_SECTION_KEYS <= set(seo_sections):
         article_body = f"""
     <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
     <blockquote>{esc(note['quote'])}</blockquote>
@@ -756,6 +823,18 @@ def verify_generated(
                         expected_values.extend(
                             work[field] for field in COLLECTION_WORK_FIELDS[:-1]
                         )
+                elif (
+                    content_kind == "original_reflection"
+                    and isinstance(seo_sections, dict)
+                ):
+                    expected_values = [
+                        note["title"],
+                        note["quote"],
+                        note["closing"],
+                        note["source_url"],
+                        note["translation_note"],
+                        note["rights_note"],
+                    ] + list(seo_sections.values())
                 elif isinstance(seo_sections, dict):
                     expected_values = [note[field] for field in fields] + list(seo_sections.values())
                 else:

@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 1966
-TARGET_INDEXABLE_COUNT = 1467
+TARGET_COUNT = 1971
+TARGET_INDEXABLE_COUNT = 1472
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 59
-TARGET_SITEMAP_URLS = 1470
+TARGET_SITEMAP_URLS = 1475
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -372,7 +372,16 @@ class StaticLiteratureTest(unittest.TestCase):
                 self.assertTrue(all(urlparse(work["source_url"]).scheme == "https" for work in note["collection_sections"]))
             else:
                 self.assertEqual(parsed.scheme, "https")
-                self.assertIn(parsed.netloc, {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"})
+                self.assertIn(
+                    parsed.netloc,
+                    {
+                        "ebook-product.kyobobook.co.kr",
+                        "library.ltikorea.or.kr",
+                        "ko.wikisource.org",
+                        "www.penguin.co.uk",
+                        "www.lepetitprince.com",
+                    },
+                )
                 self.assertIn("직접 인용 없음", note["rights_note"])
             self.assertNotIn("번역:", note["quote"])
         self.assertEqual(len(openings), len(set(openings)))
@@ -719,8 +728,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-08")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-08")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-18")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-18")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
