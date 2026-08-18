@@ -1053,6 +1053,7 @@ body[data-stella-ui="dormant"] .nav-links{margin-right:0}
       </div>
       <div><label class="field-label" for="publicPostBody">내용</label><textarea id="publicPostBody" name="body" maxlength="5000" placeholder="글이나 좋은 문구를 입력하세요." required></textarea></div>
       <button class="primary" type="submit">게시글 등록</button>
+      <p class="muted">게시판 서버에 연결할 수 없을 때에는 글이 현재 브라우저에만 저장됩니다.</p>
     </form>
     <div class="board-toolbar">
       <div style="width:100%"><label class="field-label" for="publicBoardSearch">게시글 검색</label><input id="publicBoardSearch" type="search" placeholder="게시글 검색"></div>
@@ -1204,7 +1205,48 @@ function stripAttachmentPlaceholders(text){
   return String(text || "").replace(/\[붙여넣은 이미지\/파일(?: \d+개)? 첨부됨\]\s*/g, "").trim();
 }
 const BOARD_API_URL = "/api/board/posts";
+const LOCAL_BOARD_KEY = "leehu_public_board_posts_v1";
 let publicBoardSearchTimer = null;
+let publicBoardMode = "api";
+
+function localBoardPosts(){
+  return readJson(LOCAL_BOARD_KEY, []).filter(post => post && !post.deleted);
+}
+
+function saveLocalBoardPosts(posts){
+  writeJson(LOCAL_BOARD_KEY, posts.slice(0, 200));
+}
+
+function localBoardId(){
+  const value = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `local-${value}`;
+}
+
+function filteredLocalBoardPosts(query = ""){
+  const needle = query.trim().toLocaleLowerCase("ko-KR");
+  return localBoardPosts()
+    .filter(post => !needle || [post.title, post.body, post.author].join(" ").toLocaleLowerCase("ko-KR").includes(needle))
+    .sort((a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")));
+}
+
+function showLocalBoard(query = ""){
+  publicBoardMode = "local";
+  const posts = filteredLocalBoardPosts(query);
+  renderPublicPosts(posts);
+  setBoardStatus(query ? `이 브라우저의 검색 결과 ${posts.length}건` : `이 브라우저에 저장된 게시글 ${posts.length}건`);
+}
+
+function boardApiUnavailable(status){
+  return [404, 405, 501].includes(Number(status));
+}
+
+function createLocalBoardPost(form, title, body, author){
+  const createdAt = new Date().toISOString();
+  saveLocalBoardPosts([{ id:localBoardId(), title, body, author, source:"browser", created_at:createdAt, updated_at:createdAt }, ...localBoardPosts()]);
+  form.reset();
+  showLocalBoard();
+  setBoardStatus("게시글이 이 브라우저에 등록되었습니다.");
+}
 
 function setBoardStatus(message, isError = false){
   const status = document.getElementById("publicBoardStatus");
@@ -1240,12 +1282,25 @@ async function loadPublicPosts(){
   try {
     const response = await fetch(url, { headers:{ "Accept":"application/json" }, cache:"no-store" });
     const data = await response.json().catch(() => ({}));
+    if (boardApiUnavailable(response.status)) {
+      showLocalBoard(query);
+      return;
+    }
     if (!response.ok) throw new Error(data.error || "load_failed");
-    renderPublicPosts(Array.isArray(data.posts) ? data.posts : []);
-    setBoardStatus(query ? `검색 결과 ${data.posts?.length || 0}건` : `게시글 ${data.posts?.length || 0}건`);
+    publicBoardMode = "api";
+    const remotePosts = Array.isArray(data.posts) ? data.posts : [];
+    const localPosts = filteredLocalBoardPosts(query);
+    const posts = [...localPosts, ...remotePosts.filter(post => !localPosts.some(local => local.id === post.id))];
+    renderPublicPosts(posts);
+    const localNotice = localPosts.length ? ` · 이 브라우저 저장 ${localPosts.length}건` : "";
+    setBoardStatus(query ? `검색 결과 ${posts.length}건${localNotice}` : `게시글 ${posts.length}건${localNotice}`);
   } catch (error) {
+    if (error instanceof TypeError) {
+      showLocalBoard(query);
+      return;
+    }
     list.innerHTML = "";
-    setBoardStatus("", true);
+    setBoardStatus("게시글을 불러오지 못했습니다.", true);
   }
 }
 
@@ -1281,12 +1336,21 @@ async function submitPublicPost(event){
 
   setBoardStatus("게시글을 등록하는 중입니다.");
   try {
+    if (publicBoardMode === "local") {
+      createLocalBoardPost(form, title, body, author);
+      return;
+    }
     const response = await fetch(BOARD_API_URL, {
       method:"POST",
       headers:{ "Content-Type":"application/json", "Accept":"application/json" },
       body: JSON.stringify({ title, body, author, source:"website" })
     });
     const data = await response.json().catch(() => ({}));
+    if (boardApiUnavailable(response.status)) {
+      publicBoardMode = "local";
+      createLocalBoardPost(form, title, body, author);
+      return;
+    }
     if (!response.ok) throw new Error(data.error || "게시글을 등록하지 못했습니다.");
     form.reset();
     await loadPublicPosts();
@@ -1300,11 +1364,23 @@ async function deletePublicPost(id){
   if (!id) return;
   setBoardStatus("게시글을 삭제하는 중입니다.");
   try {
+    if (publicBoardMode === "local" || id.startsWith("local-")) {
+      saveLocalBoardPosts(localBoardPosts().filter(post => post.id !== id));
+      if (publicBoardMode === "api") await loadPublicPosts();
+      else showLocalBoard(document.getElementById("publicBoardSearch")?.value || "");
+      setBoardStatus("게시글이 이 브라우저에서 삭제되었습니다.");
+      return;
+    }
     const response = await fetch(`${BOARD_API_URL}/${encodeURIComponent(id)}`, {
       method:"DELETE",
       headers:{ "Accept":"application/json" }
     });
     const data = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      await loadPublicPosts();
+      setBoardStatus("이미 삭제된 게시글입니다.");
+      return;
+    }
     if (!response.ok) throw new Error(data.error || "게시글을 삭제하지 못했습니다.");
     await loadPublicPosts();
     setBoardStatus("게시글이 삭제되었습니다.");
