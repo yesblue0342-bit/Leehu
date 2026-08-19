@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 1971
-TARGET_INDEXABLE_COUNT = 1472
+TARGET_COUNT = 2071
+TARGET_INDEXABLE_COUNT = 1572
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 59
-TARGET_SITEMAP_URLS = 1475
+TARGET_LIST_PAGES = 63
+TARGET_SITEMAP_URLS = 1578
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -163,6 +163,67 @@ class StaticLiteratureTest(unittest.TestCase):
             sum(note.get("content_kind") == "source_quote" for note in batch),
             499,
         )
+
+    def test_20260819_leehu_own_work_batch_is_complete_and_structured(self) -> None:
+        batch = self.notes[1971:2071]
+        self.assertEqual(len(batch), 100)
+        self.assertEqual(
+            {note["id"] for note in batch},
+            {
+                f"20260819_leehu_literature_{sequence:03d}"
+                for sequence in range(1, 101)
+            },
+        )
+        self.assertEqual(
+            Counter(note["source_work"] for note in batch),
+            Counter(
+                {
+                    "연(戀)": 20,
+                    "데자뷔": 20,
+                    "소나기": 20,
+                    "환상": 20,
+                    "별이 빛나는 밤에": 20,
+                }
+            ),
+        )
+        self.assertTrue(all(note["source_author"] == "이후" for note in batch))
+        self.assertTrue(all(note["author"] == "소설가 이후" for note in batch))
+        self.assertTrue(
+            all(note.get("content_kind") == "original_reflection" for note in batch)
+        )
+        self.assertTrue(
+            all("직접 인용 없음" in note["rights_note"] for note in batch)
+        )
+        self.assertTrue(
+            all(set(note.get("seo_sections", {})) == build_literature.SEO_SECTION_KEYS for note in batch)
+        )
+        long_sentences = []
+        for note in batch:
+            public_prose = [
+                note["quote"],
+                note["commentary"],
+                *note["seo_sections"].values(),
+            ]
+            self.assertTrue(
+                all(
+                    marker not in " ".join(public_prose)
+                    for marker in (
+                        "공식 카탈로그",
+                        "주제표목",
+                        "확인된 관계 초점",
+                        "원문 확인 필요",
+                    )
+                )
+            )
+            for prose in public_prose:
+                long_sentences.extend(
+                    normalized
+                    for sentence in build_literature.prose_sentences(prose)
+                    if len(
+                        normalized := re.sub(r"\W+", "", sentence).casefold()
+                    ) >= 25
+                )
+        self.assertEqual(len(long_sentences), len(set(long_sentences)))
 
     def test_versioned_index_policy_keeps_collection_and_excludes_repetitive_batch(self) -> None:
         self.assertEqual(self.index_policy.version, 1)
@@ -491,6 +552,22 @@ class StaticLiteratureTest(unittest.TestCase):
         }
         self.assertEqual(actual, expected)
 
+    def test_seo_update_pages_are_preserved_in_generated_sitemap(self):
+        self.assertEqual(
+            build_literature.additional_sitemap_urls(),
+            [
+                (f"{ORIGIN}/seo-updates/", "2026-08-19"),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
+                    "2026-08-18",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-19-leehu-44b78db6/",
+                    "2026-08-19",
+                ),
+            ],
+        )
+
     def test_sitemap_rss_and_static_links(self):
         sitemap = ET.parse(ROOT / "sitemap.xml").getroot()
         namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -728,8 +805,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-18")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-18")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-19")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-19")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage

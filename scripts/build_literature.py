@@ -37,7 +37,7 @@ LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-08-08"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 1971
+EXPECTED_COUNT = 2071
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -738,6 +738,27 @@ def write_rss(notes: list[dict[str, object]]) -> None:
     write_xml_atomic(LITERATURE_DIR / "rss.xml", rss)
 
 
+def additional_sitemap_urls() -> list[tuple[str, str]]:
+    """Return independently published static pages that literature builds must preserve."""
+    update_root = ROOT / "seo-updates"
+    if not (update_root / "index.html").is_file():
+        return []
+    updates: list[tuple[str, str]] = []
+    for child in sorted(update_root.iterdir(), key=lambda path: path.name):
+        match = re.fullmatch(r"(?P<date>\d{4}-\d{2}-\d{2})-[a-z0-9-]+", child.name)
+        if not match or not child.is_dir() or not (child / "index.html").is_file():
+            continue
+        try:
+            datetime.fromisoformat(match.group("date"))
+        except ValueError:
+            continue
+        updates.append(
+            (f"{ORIGIN}/seo-updates/{child.name}/", match.group("date"))
+        )
+    index_date = max((date for _, date in updates), default=CORE_PAGE_LASTMOD)
+    return [(f"{ORIGIN}/seo-updates/", index_date), *updates]
+
+
 def write_sitemap(notes: list[dict[str, object]]) -> None:
     namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
     ET.register_namespace("", namespace)
@@ -752,6 +773,7 @@ def write_sitemap(notes: list[dict[str, object]]) -> None:
     urls.extend(
         (canonical(note), str(note["published_at"])[:10]) for note in notes
     )
+    urls.extend(additional_sitemap_urls())
     for url, last_modified in urls:
         node = ET.SubElement(root, f"{{{namespace}}}url")
         ET.SubElement(node, f"{{{namespace}}}loc").text = url
@@ -854,7 +876,7 @@ def verify_generated(
                     errors.append(f"invalid JSON-LD: {path.relative_to(ROOT)}: {exc}")
     sitemap = ET.parse(ROOT / "sitemap.xml")
     sitemap_count = len(sitemap.getroot())
-    expected_sitemap = 3 + len(indexable_notes)
+    expected_sitemap = 3 + len(indexable_notes) + len(additional_sitemap_urls())
     if sitemap_count != expected_sitemap:
         errors.append(f"sitemap count {sitemap_count}, expected {expected_sitemap}")
     rss = ET.parse(LITERATURE_DIR / "rss.xml")
@@ -969,7 +991,8 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
     verify_generated(all_notes, indexable_notes, total_pages)
     print(
         f"built {len(all_notes)} detail pages, {total_pages} list pages, "
-        f"{len(indexable_notes)} RSS items, and {3 + len(indexable_notes)} sitemap URLs; "
+        f"{len(indexable_notes)} RSS items, and "
+        f"{3 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
         f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )
 

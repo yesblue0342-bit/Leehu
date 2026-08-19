@@ -173,7 +173,9 @@ def verify_site(expected_count: int | None = None) -> SiteMetrics:
     metrics = site_metrics()
     expected = expected_count if expected_count is not None else metrics.sources
     expected_pages = math.ceil(metrics.indexable / build_literature.PAGE_SIZE)
-    expected_sitemap = metrics.indexable + 3
+    expected_sitemap = (
+        metrics.indexable + 3 + len(build_literature.additional_sitemap_urls())
+    )
     errors = []
     if metrics.sources != expected:
         errors.append(f"sources={metrics.sources}, expected={expected}")
