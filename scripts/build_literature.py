@@ -666,6 +666,7 @@ def detail_page(
     <p class="meta">글 {esc(note['author'])} · <time datetime="{esc(published)}">{datetime.fromisoformat(published).year}년 {datetime.fromisoformat(published).month}월 {datetime.fromisoformat(published).day}일</time></p></header>
 {article_body}
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>
+    <p class="related">글쓴이: <a href="/author/">소설가 이후 공식 프로필</a></p>
     <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
     <p class="meta" style="margin-top:28px">{esc(note['closing'])}</p>
   </article>

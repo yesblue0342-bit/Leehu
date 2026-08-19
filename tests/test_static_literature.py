@@ -535,6 +535,9 @@ class StaticLiteratureTest(unittest.TestCase):
             article = next(entry for entry in graph if entry["@type"] == "BlogPosting")
             self.assertEqual(article["author"]["@id"], f"{ORIGIN}/#person")
             self.assertEqual(article["author"]["url"], f"{ORIGIN}/author/")
+            self.assertIn(
+                'href="/author/">소설가 이후 공식 프로필</a>', text
+            )
             self.assertIn(html.escape(note["quote"], quote=True), text)
             if note["id"] not in self.indexable_ids:
                 post_nav = re.search(
