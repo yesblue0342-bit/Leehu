@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
+import os
 import re
 import shutil
+import stat
+import sys
 import time
 from collections import Counter
 from datetime import datetime
@@ -18,11 +22,22 @@ from xml.etree import ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from literature_index_policy import (  # noqa: E402
+    load_index_policy,
+    partition_indexable_notes,
+)
+
+
 CONTENT_DIR = ROOT / "content" / "literature"
+INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
+CORE_PAGE_LASTMOD = "2026-08-08"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 1466
+EXPECTED_COUNT = 2071
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -30,6 +45,16 @@ REQUIRED_FIELDS = (
     "related_work", "published_at",
 )
 SENTENCE_RE = re.compile(r"(?<=[.!?。])\s+")
+PROTECTED_ABBREVIATION_RE = re.compile(
+    r"\b(?:Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr|[A-Z])\."
+)
+WORK_TITLE_RE = re.compile(r"《[^》]*》")
+TITLE_PUNCTUATION_TO_PLACEHOLDER = str.maketrans(
+    {".": "\u2024", "!": "\ufe15", "?": "\ufe16", "。": "\uff61"}
+)
+TITLE_PLACEHOLDER_TO_PUNCTUATION = str.maketrans(
+    {"\u2024": ".", "\ufe15": "!", "\ufe16": "?", "\uff61": "。"}
+)
 
 STYLE = """
 *{box-sizing:border-box;margin:0;padding:0}
@@ -49,6 +74,7 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 .article{width:min(820px,calc(100% - 40px));margin:0 auto;padding:64px 0}.breadcrumbs{font-size:.82rem;color:var(--muted);margin-bottom:32px}.article h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.25;margin:12px 0 18px}
 .meta{color:var(--muted);font-size:.88rem}.article blockquote{margin:42px 0 20px;padding:30px;border-left:3px solid var(--gold);background:var(--panel);font-size:clamp(1.25rem,3vw,1.8rem);line-height:1.7;font-style:italic}
 .source{font-size:.9rem;color:var(--muted);margin-bottom:42px}.source a{text-underline-offset:3px}.commentary h2{font-size:1.2rem;margin-bottom:14px}.commentary p{font-size:1.04rem;line-height:2.05;white-space:normal}
+.collection-introduction{margin:34px 0 18px;font-size:1.08rem;line-height:2}.collection-deck{margin:0 0 24px;color:#374151;font-size:1.05rem;line-height:1.95}.rights-note{margin:0 0 36px;padding:18px 20px;background:var(--panel);border-radius:12px;color:var(--muted);font-size:.9rem;line-height:1.8}.collection-work{margin:46px 0;padding-top:34px;border-top:1px solid var(--line)}.collection-work h2{font-size:1.45rem;line-height:1.5}.collection-meta{margin:6px 0 22px;color:var(--muted)}.collection-work dl{display:grid;gap:18px}.collection-work dt{font-weight:700;color:var(--red)}.collection-work dd{margin-top:4px;line-height:1.9}.collection-closing{margin:46px 0;padding:28px;background:var(--panel);border-radius:16px;line-height:2}
 .tags{display:flex;gap:8px;flex-wrap:wrap;margin:30px 0}.tag{border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:.78rem}
 .related{border-top:1px solid var(--line);padding-top:24px}.post-nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:42px}.post-nav a{border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none}.post-nav .next{text-align:right}
 .site-links{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px}.site-links a{text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#fff}
@@ -81,6 +107,12 @@ def esc(value: object) -> str:
 
 
 def write_text_atomic(path: Path, text: str) -> None:
+    if path.is_file():
+        try:
+            if path.read_text(encoding="utf-8") == text:
+                return
+        except OSError:
+            pass
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(text, encoding="utf-8")
@@ -105,12 +137,101 @@ def replace_with_retry(source: Path, target: Path) -> None:
             time.sleep(0.25)
 
 
+def remove_tree_with_retry(path: Path) -> None:
+    """Remove generated directories despite brief Windows/OneDrive locks."""
+
+    def clear_readonly(function, target, error) -> None:
+        if not isinstance(error, PermissionError):
+            raise error
+        os.chmod(target, stat.S_IWRITE)
+        function(target)
+
+    for attempt in range(20):
+        try:
+            shutil.rmtree(path, onexc=clear_readonly)
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.5)
+
+
 def normalize(value: object) -> str:
     return re.sub(r"[\W_]+", "", str(value).casefold())
 
 
 def canonical(note: dict[str, object]) -> str:
     return f"{ORIGIN}/literature/{note['slug']}/"
+
+
+COLLECTION_WORK_FIELDS = (
+    "title", "author", "country_genre", "core_theme", "summary",
+    "love_form", "literary_question", "one_line", "source_url",
+)
+COLLECTION_SOURCE_HOSTS = {
+    "ebook-product.kyobobook.co.kr",
+    "m.yes24.com",
+    "openlibrary.org",
+    "product.kyobobook.co.kr",
+    "search.kyobobook.co.kr",
+    "store.kyobobook.co.kr",
+    "www.aladin.co.kr",
+    "www.goodreads.com",
+    "www.gutenberg.org",
+    "www.penguin.co.uk",
+}
+ORIGINAL_REFLECTION_HOSTS = {
+    "ebook-product.kyobobook.co.kr",
+    "library.ltikorea.or.kr",
+    "ko.wikisource.org",
+    "www.gutenberg.org",
+    "www.lepetitprince.com",
+    "www.penguin.co.uk",
+}
+SEO_SECTION_KEYS = {
+    "work_introduction",
+    "why_read_now",
+    "personal_reflection",
+    "meaning_today",
+}
+
+
+def is_allowed_https_url(value: object, allowed_hosts: set[str]) -> bool:
+    parsed = urlparse(str(value))
+    return (
+        parsed.scheme == "https"
+        and parsed.hostname in allowed_hosts
+        and parsed.username is None
+        and parsed.password is None
+    )
+
+
+def validate_collection_note(
+    note: dict[str, object], path_name: str, errors: list[str]
+) -> None:
+    """Validate the ten-work payload used by collection reflection pages."""
+    for field in ("collection_introduction", "collection_closing"):
+        if not isinstance(note.get(field), str) or not str(note[field]).strip():
+            errors.append(f"{path_name}: missing {field}")
+    sections = note.get("collection_sections")
+    if not isinstance(sections, list) or len(sections) != 10:
+        errors.append(f"{path_name}: collection_sections must contain 10 works")
+        return
+    for position, work in enumerate(sections, 1):
+        if not isinstance(work, dict):
+            errors.append(f"{path_name}: collection work {position} must be an object")
+            continue
+        for field in COLLECTION_WORK_FIELDS:
+            if not isinstance(work.get(field), str) or not str(work[field]).strip():
+                errors.append(
+                    f"{path_name}: collection work {position} missing {field}"
+                )
+        if not is_allowed_https_url(work.get("source_url", ""), COLLECTION_SOURCE_HOSTS):
+            errors.append(
+                f"{path_name}: collection work {position} source URL must use an approved host"
+            )
 
 
 def sentence_edges(commentary: str) -> tuple[str, str]:
@@ -120,6 +241,26 @@ def sentence_edges(commentary: str) -> tuple[str, str]:
         if item.strip()
     ]
     return (normalize(sentences[0]), normalize(sentences[-1])) if sentences else ("", "")
+
+
+def prose_sentences(text: str) -> list[str]:
+    protected_titles = WORK_TITLE_RE.sub(
+        lambda match: match.group(0).translate(TITLE_PUNCTUATION_TO_PLACEHOLDER),
+        text,
+    )
+    protected = PROTECTED_ABBREVIATION_RE.sub(
+        lambda match: match.group(0)[:-1] + "\u2024",
+        protected_titles,
+    )
+    return [
+        part.translate(TITLE_PLACEHOLDER_TO_PUNCTUATION).strip()
+        for part in SENTENCE_RE.split(protected)
+        if part.strip()
+    ]
+
+
+def prose_sentence_count(text: str) -> int:
+    return len(prose_sentences(text))
 
 
 def similar(a: str, b: str, threshold: float) -> bool:
@@ -169,11 +310,11 @@ def sort_for_publication(notes: list[dict[str, object]]) -> list[dict[str, objec
     )
 
 
-def load_and_validate() -> list[dict[str, object]]:
+def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, object]]:
     paths = sorted(CONTENT_DIR.glob("*.json"), key=lambda item: int(item.stem))
     errors: list[str] = []
-    if len(paths) != EXPECTED_COUNT:
-        errors.append(f"expected {EXPECTED_COUNT} source files, found {len(paths)}")
+    if len(paths) != expected_count:
+        errors.append(f"expected {expected_count} source files, found {len(paths)}")
     notes: list[dict[str, object]] = []
     for position, path in enumerate(paths, 1):
         expected_name = f"{position:03d}.json"
@@ -205,14 +346,30 @@ def load_and_validate() -> list[dict[str, object]]:
         content_kind = str(data.get("content_kind", "source_quote"))
         parsed_url = urlparse(str(data["source_url"]))
         allowed_hosts = {"www.gutenberg.org", "ko.wikisource.org"}
-        if content_kind == "original_reflection":
-            allowed_hosts = {"library.ltikorea.or.kr", "ko.wikisource.org", "www.penguin.co.uk", "www.lepetitprince.com"}
+        if content_kind == "collection_reflection":
+            validate_collection_note(data, path.name, errors)
+            if "직접 인용 없음" not in str(data["rights_note"]):
+                errors.append(
+                    f"{path.name}: collection_reflection must disclose no direct quote"
+                )
+            if not is_allowed_https_url(data["source_url"], COLLECTION_SOURCE_HOSTS):
+                errors.append(f"{path.name}: invalid collection source URL")
+        elif content_kind == "original_reflection":
             if "직접 인용 없음" not in str(data["rights_note"]):
                 errors.append(f"{path.name}: original_reflection must disclose no direct quote")
-        elif content_kind != "source_quote":
+            if not is_allowed_https_url(
+                data["source_url"], ORIGINAL_REFLECTION_HOSTS
+            ):
+                errors.append(f"{path.name}: invalid source URL for content kind")
+        elif content_kind == "source_quote":
+            if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
+                errors.append(f"{path.name}: invalid source URL for content kind")
+        else:
             errors.append(f"{path.name}: invalid content_kind")
-        if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_hosts:
-            errors.append(f"{path.name}: invalid source URL for content kind")
+        if isinstance(data.get("related_work"), dict) and not is_allowed_https_url(
+            data["related_work"].get("url", ""), COLLECTION_SOURCE_HOSTS
+        ):
+            errors.append(f"{path.name}: invalid related_work URL")
         try:
             published_at = datetime.fromisoformat(str(data["published_at"]))
         except ValueError:
@@ -222,10 +379,19 @@ def load_and_validate() -> list[dict[str, object]]:
                 errors.append(f"{path.name}: id date must match published_at")
         quote = str(data["quote"]).strip()
         commentary = str(data["commentary"]).strip()
+        seo_sections = data.get("seo_sections")
+        if seo_sections is not None:
+            if not isinstance(seo_sections, dict) or set(seo_sections) != SEO_SECTION_KEYS:
+                errors.append(f"{path.name}: invalid seo_sections keys")
+            elif any(
+                not isinstance(value, str) or len(value.strip()) < 80
+                for value in seo_sections.values()
+            ):
+                errors.append(f"{path.name}: seo_sections values too short")
         minimum_quote_length = 12 if str(data["source_language"]) == "ko" and content_kind == "source_quote" else 50
         if not minimum_quote_length <= len(quote) <= 260:
             errors.append(f"{path.name}: quote length out of range")
-        if len(SENTENCE_RE.split(quote)) > 2:
+        if prose_sentence_count(quote) > 2:
             errors.append(f"{path.name}: quote exceeds two sentences")
         # Curated commentary is Korean declarative prose; counting Korean
         # sentence endings avoids treating initials/titles inside citations as
@@ -281,13 +447,19 @@ def load_and_validate() -> list[dict[str, object]]:
     return sort_for_publication(notes)
 
 
-def base_head(title: str, description: str, canonical_url: str, extra: str = "") -> str:
+def base_head(
+    title: str,
+    description: str,
+    canonical_url: str,
+    extra: str = "",
+    robots: str = "index, follow",
+) -> str:
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="index, follow">
+<meta name="robots" content="{esc(robots)}">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
 <link rel="canonical" href="{esc(canonical_url)}">
@@ -306,6 +478,7 @@ def nav() -> str:
   <a class="nav-logo" href="/">이후</a>
   <ul class="nav-links">
     <li><a href="/">홈</a></li>
+    <li><a href="/author/">공식 프로필</a></li>
     <li><a href="/literature/">문학노트</a></li>
     <li><a href="/#board">게시판</a></li>
     <li><a href="/#contact">연락</a></li>
@@ -340,7 +513,8 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" type="application/rss+xml" title="이후의 문학노트 RSS" href="/literature/rss.xml">"""
-    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra)}
+    robots = "index, follow" if page == 1 else "noindex, follow"
+    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra, robots)}
 <body>{nav()}
 <header class="hero"><div class="wrap">
   <p class="eyebrow">Literature Notes</p>
@@ -355,7 +529,12 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 """
 
 
-def detail_page(note: dict[str, object], previous: dict[str, object] | None, following: dict[str, object] | None) -> str:
+def detail_page(
+    note: dict[str, object],
+    previous: dict[str, object] | None,
+    following: dict[str, object] | None,
+    indexable: bool = True,
+) -> str:
     url = canonical(note)
     description = re.sub(r"\s+", " ", str(note["commentary"]))[:155]
     published = str(note["published_at"])
@@ -369,8 +548,19 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
         "mainEntityOfPage": url,
         "datePublished": published,
         "dateModified": published,
-        "author": {"@type": "Person", "name": note["author"], "url": f"{ORIGIN}/"},
-        "publisher": {"@type": "Person", "name": note["author"]},
+        "author": {
+            "@type": "Person",
+            "@id": f"{ORIGIN}/#person",
+            "name": "이후",
+            "alternateName": ["소설가 이후", "李後", "Lee Hu"],
+            "url": f"{ORIGIN}/author/",
+        },
+        "publisher": {
+            "@type": "Organization",
+            "@id": f"{ORIGIN}/#organization",
+            "name": "주식회사 소설가이후",
+            "url": f"{ORIGIN}/",
+        },
         "image": f"{ORIGIN}/og-image.jpg",
         "keywords": note["tags"],
         "inLanguage": "ko",
@@ -411,8 +601,45 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
         f'<a class="next" href="/literature/{esc(following["slug"])}/">{esc(following["title"])} →</a>'
         if following else "<span></span>"
     )
+    content_kind = str(note.get("content_kind", "source_quote"))
+    collection_sections = note.get("collection_sections")
     seo_sections = note.get("seo_sections")
-    if isinstance(seo_sections, dict) and {"work_introduction", "why_read_now", "personal_reflection", "meaning_today"} <= set(seo_sections):
+    if content_kind == "collection_reflection" and isinstance(collection_sections, list):
+        collection_blocks = []
+        for position, work in enumerate(collection_sections, 1):
+            collection_blocks.append(f"""
+    <section class="collection-work">
+      <h2>{position}. {esc(work['title'])}</h2>
+      <p class="collection-meta">{esc(work['author'])} · {esc(work['country_genre'])}</p>
+      <dl>
+        <div><dt>작품의 핵심 주제</dt><dd>{esc(work['core_theme'])}</dd></div>
+        <div><dt>주요 내용</dt><dd>{esc(work['summary'])}</dd></div>
+        <div><dt>작품에서 표현되는 사랑의 형태</dt><dd>{esc(work['love_form'])}</dd></div>
+        <div><dt>문학적으로 생각해볼 점</dt><dd>{esc(work['literary_question'])}</dd></div>
+        <div><dt>문학노트 한 줄 감상</dt><dd>{esc(work['one_line'])}</dd></div>
+      </dl>
+      <p class="source"><a href="{esc(work['source_url'])}" rel="external noopener">작품 정보 확인</a></p>
+    </section>""")
+        article_body = f"""
+    <p class="collection-introduction">{esc(note['collection_introduction'])}</p>
+    <p class="collection-deck">{esc(note['quote'])}</p>
+    <p class="rights-note"><strong>저작권 안내</strong><br>{esc(note['rights_note'])}</p>
+{''.join(collection_blocks)}
+    <p class="collection-closing">{esc(note['collection_closing'])}</p>"""
+    elif (
+        content_kind == "original_reflection"
+        and isinstance(seo_sections, dict)
+        and SEO_SECTION_KEYS <= set(seo_sections)
+    ):
+        article_body = f"""
+    <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
+    <p class="reflection-deck">{esc(note['quote'])}</p>
+    <p class="source"><a href="{esc(note['source_url'])}" rel="external noopener">작품 정보 확인</a><br>
+    {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
+    <section class="commentary"><h2>왜 지금도 읽히는가</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
+    <section class="commentary"><h2>나의 감상</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
+    <section class="commentary"><h2>오늘 우리에게 주는 의미</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
+    elif isinstance(seo_sections, dict) and SEO_SECTION_KEYS <= set(seo_sections):
         article_body = f"""
     <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
     <blockquote>{esc(note['quote'])}</blockquote>
@@ -429,7 +656,8 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
     <a href="{esc(note['source_url'])}" rel="external noopener">{source_link_label}</a><br>
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
     <section class="commentary"><h2>이후의 생각</h2><p>{esc(note['commentary'])}</p></section>"""
-    return f"""{base_head(str(note['title']) + " | 이후의 문학노트", description, url, extra)}
+    robots = "index, follow" if indexable else "noindex, follow"
+    return f"""{base_head(str(note['title']) + " | 이후의 문학노트", description, url, extra, robots)}
 <body>{nav()}
 <main class="article">
   <nav class="breadcrumbs" aria-label="이동 경로"><a href="/">홈</a> / <a href="/literature/">문학노트</a> / {esc(note['title'])}</nav>
@@ -438,6 +666,7 @@ def detail_page(note: dict[str, object], previous: dict[str, object] | None, fol
     <p class="meta">글 {esc(note['author'])} · <time datetime="{esc(published)}">{datetime.fromisoformat(published).year}년 {datetime.fromisoformat(published).month}월 {datetime.fromisoformat(published).day}일</time></p></header>
 {article_body}
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>
+    <p class="related">글쓴이: <a href="/author/">소설가 이후 공식 프로필</a></p>
     <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
     <p class="meta" style="margin-top:28px">{esc(note['closing'])}</p>
   </article>
@@ -470,7 +699,7 @@ def replace_marker(source: str, marker: str, replacement: str) -> str:
     )
     rendered = f"<!-- {marker}:START -->\n{replacement}\n<!-- {marker}:END -->"
     if block.search(source):
-        return block.sub(rendered, source)
+        return block.sub(lambda _match: rendered, source)
     plain = f"<!-- {marker} -->"
     if plain not in source:
         raise ValueError(f"homepage marker missing: {marker}")
@@ -510,17 +739,46 @@ def write_rss(notes: list[dict[str, object]]) -> None:
     write_xml_atomic(LITERATURE_DIR / "rss.xml", rss)
 
 
-def write_sitemap(notes: list[dict[str, object]], total_pages: int) -> None:
+def additional_sitemap_urls() -> list[tuple[str, str]]:
+    """Return independently published static pages that literature builds must preserve."""
+    update_root = ROOT / "seo-updates"
+    if not (update_root / "index.html").is_file():
+        return []
+    updates: list[tuple[str, str]] = []
+    for child in sorted(update_root.iterdir(), key=lambda path: path.name):
+        match = re.fullmatch(r"(?P<date>\d{4}-\d{2}-\d{2})-[a-z0-9-]+", child.name)
+        if not match or not child.is_dir() or not (child / "index.html").is_file():
+            continue
+        try:
+            datetime.fromisoformat(match.group("date"))
+        except ValueError:
+            continue
+        updates.append(
+            (f"{ORIGIN}/seo-updates/{child.name}/", match.group("date"))
+        )
+    index_date = max((date for _, date in updates), default=CORE_PAGE_LASTMOD)
+    return [(f"{ORIGIN}/seo-updates/", index_date), *updates]
+
+
+def write_sitemap(notes: list[dict[str, object]]) -> None:
     namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
     ET.register_namespace("", namespace)
     root = ET.Element(f"{{{namespace}}}urlset")
-    urls = [f"{ORIGIN}/", f"{ORIGIN}/literature/"]
-    urls.extend(f"{ORIGIN}/literature/page/{page}/" for page in range(2, total_pages + 1))
-    urls.extend(canonical(note) for note in notes)
-    for url in urls:
+    latest_date = max(str(note["published_at"])[:10] for note in notes)
+    core_page_date = max(latest_date, CORE_PAGE_LASTMOD)
+    urls = [
+        (f"{ORIGIN}/", core_page_date),
+        (f"{ORIGIN}/author/", core_page_date),
+        (f"{ORIGIN}/literature/", latest_date),
+    ]
+    urls.extend(
+        (canonical(note), str(note["published_at"])[:10]) for note in notes
+    )
+    urls.extend(additional_sitemap_urls())
+    for url, last_modified in urls:
         node = ET.SubElement(root, f"{{{namespace}}}url")
         ET.SubElement(node, f"{{{namespace}}}loc").text = url
-        ET.SubElement(node, f"{{{namespace}}}lastmod").text = "2026-07-27"
+        ET.SubElement(node, f"{{{namespace}}}lastmod").text = last_modified
     write_xml_atomic(ROOT / "sitemap.xml", root)
 
 
@@ -543,10 +801,15 @@ def internal_target(href: str) -> Path | None:
     return target
 
 
-def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
+def verify_generated(
+    all_notes: list[dict[str, object]],
+    indexable_notes: list[dict[str, object]],
+    total_pages: int,
+) -> None:
     errors: list[str] = []
-    paths = generated_html_paths(notes, total_pages)
-    notes_by_slug = {str(note["slug"]): note for note in notes}
+    paths = generated_html_paths(all_notes, total_pages)
+    notes_by_slug = {str(note["slug"]): note for note in all_notes}
+    indexable_slugs = {str(note["slug"]) for note in indexable_notes}
     if any(not path.is_file() for path in paths):
         errors.append("missing generated HTML")
     href_re = re.compile(r'href="([^"]+)"')
@@ -560,9 +823,42 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
         if path.parent.name in notes_by_slug:
             note = notes_by_slug.get(path.parent.name)
             if note:
+                expected_robots = (
+                    "index, follow"
+                    if str(note["slug"]) in indexable_slugs
+                    else "noindex, follow"
+                )
+                if f'<meta name="robots" content="{expected_robots}">' not in text:
+                    errors.append(
+                        f"robots policy missing: {path.relative_to(ROOT)}"
+                    )
                 fields = ["title", "quote", "source_author", "source_work", "source_location", "closing"]
+                content_kind = note.get("content_kind", "source_quote")
+                collection_sections = note.get("collection_sections")
                 seo_sections = note.get("seo_sections")
-                if isinstance(seo_sections, dict):
+                if content_kind == "collection_reflection" and isinstance(collection_sections, list):
+                    expected_values = [
+                        note["title"], note["quote"], note["closing"],
+                        note["collection_introduction"], note["collection_closing"],
+                        note["rights_note"],
+                    ]
+                    for work in collection_sections:
+                        expected_values.extend(
+                            work[field] for field in COLLECTION_WORK_FIELDS[:-1]
+                        )
+                elif (
+                    content_kind == "original_reflection"
+                    and isinstance(seo_sections, dict)
+                ):
+                    expected_values = [
+                        note["title"],
+                        note["quote"],
+                        note["closing"],
+                        note["source_url"],
+                        note["translation_note"],
+                        note["rights_note"],
+                    ] + list(seo_sections.values())
+                elif isinstance(seo_sections, dict):
                     expected_values = [note[field] for field in fields] + list(seo_sections.values())
                 else:
                     expected_values = [note[field] for field in fields + ["commentary"]]
@@ -581,13 +877,13 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
                     errors.append(f"invalid JSON-LD: {path.relative_to(ROOT)}: {exc}")
     sitemap = ET.parse(ROOT / "sitemap.xml")
     sitemap_count = len(sitemap.getroot())
-    expected_sitemap = 2 + (total_pages - 1) + len(notes)
+    expected_sitemap = 3 + len(indexable_notes) + len(additional_sitemap_urls())
     if sitemap_count != expected_sitemap:
         errors.append(f"sitemap count {sitemap_count}, expected {expected_sitemap}")
     rss = ET.parse(LITERATURE_DIR / "rss.xml")
     rss_count = len(rss.findall("./channel/item"))
-    if rss_count != len(notes):
-        errors.append(f"RSS count {rss_count}, expected {len(notes)}")
+    if rss_count != len(indexable_notes):
+        errors.append(f"RSS count {rss_count}, expected {len(indexable_notes)}")
     homepage = (ROOT / "index.html").read_text(encoding="utf-8")
     block = re.search(
         r"<!-- LITERATURE_LATEST_ITEMS:START -->(.*?)<!-- LITERATURE_LATEST_ITEMS:END -->",
@@ -596,24 +892,58 @@ def verify_generated(notes: list[dict[str, object]], total_pages: int) -> None:
     )
     if not block or block.group(1).count('class="note-card"') != 6:
         errors.append("homepage must contain exactly six generated representative note cards")
+    excluded_slugs = {
+        str(note["slug"]) for note in all_notes if str(note["slug"]) not in indexable_slugs
+    }
+    discovery_texts = [homepage, (ROOT / "sitemap.xml").read_text(encoding="utf-8"), (LITERATURE_DIR / "rss.xml").read_text(encoding="utf-8")]
+    discovery_texts.append(
+        (LITERATURE_DIR / "index.html").read_text(encoding="utf-8")
+    )
+    discovery_texts.extend(
+        (LITERATURE_DIR / "page" / str(page) / "index.html").read_text(encoding="utf-8")
+        for page in range(2, total_pages + 1)
+    )
+    for note in indexable_notes:
+        discovery_texts.append(
+            (LITERATURE_DIR / str(note["slug"]) / "index.html").read_text(encoding="utf-8")
+        )
+    discovered_hrefs: set[str] = set()
+    for text in discovery_texts:
+        discovered_hrefs.update(html.unescape(value) for value in href_re.findall(text))
+        discovered_hrefs.update(
+            re.findall(r"https://xn--hu5b23z\.com/literature/([a-z0-9-]+)/", text)
+        )
+    leaked = [
+        slug
+        for slug in excluded_slugs
+        if f"/literature/{slug}/" in discovered_hrefs or slug in discovered_hrefs
+    ]
+    if leaked:
+        errors.append(f"noindex note leaked into discovery surfaces: {leaked[0]}")
+    for page in range(2, total_pages + 1):
+        page_text = (LITERATURE_DIR / "page" / str(page) / "index.html").read_text(encoding="utf-8")
+        if '<meta name="robots" content="noindex, follow">' not in page_text:
+            errors.append(f"archive page {page} must be noindex, follow")
     if errors:
         raise ValueError("generated-site verification failed:\n- " + "\n- ".join(errors))
 
 
-def build() -> None:
-    notes = load_and_validate()
-    total_pages = (len(notes) + PAGE_SIZE - 1) // PAGE_SIZE
-    expected_slugs = {str(note["slug"]) for note in notes}
+def build(expected_count: int = EXPECTED_COUNT) -> None:
+    all_notes = load_and_validate(expected_count)
+    policy = load_index_policy(INDEX_POLICY_PATH, all_notes)
+    raw_indexable, _ = partition_indexable_notes(all_notes, policy)
+    indexable_notes = [dict(note) for note in raw_indexable]
+    total_pages = (len(indexable_notes) + PAGE_SIZE - 1) // PAGE_SIZE
+    expected_slugs = {str(note["slug"]) for note in all_notes}
     if LITERATURE_DIR.exists():
         for child in LITERATURE_DIR.iterdir():
-            if child.name == "index.html":
-                continue
             if (
                 child.is_dir()
-                and child.name.startswith("20260727-leehu-literature-")
+                and child.name != "page"
                 and child.name not in expected_slugs
+                and (child / "index.html").exists()
             ):
-                shutil.rmtree(child)
+                remove_tree_with_retry(child)
         page_root = LITERATURE_DIR / "page"
         if page_root.exists():
             for child in page_root.iterdir():
@@ -622,28 +952,53 @@ def build() -> None:
                     and child.name.isdigit()
                     and int(child.name) > total_pages
                 ):
-                    shutil.rmtree(child)
+                    remove_tree_with_retry(child)
     LITERATURE_DIR.mkdir(parents=True, exist_ok=True)
-    write_text_atomic(LITERATURE_DIR / "index.html", list_page(notes, 1, total_pages))
+    write_text_atomic(
+        LITERATURE_DIR / "index.html",
+        list_page(indexable_notes, 1, total_pages),
+    )
     for page in range(2, total_pages + 1):
         target = LITERATURE_DIR / "page" / str(page)
         target.mkdir(parents=True, exist_ok=True)
-        write_text_atomic(target / "index.html", list_page(notes, page, total_pages))
-    for index, note in enumerate(notes):
+        write_text_atomic(
+            target / "index.html",
+            list_page(indexable_notes, page, total_pages),
+        )
+    indexable_positions = {
+        str(note["id"]): position for position, note in enumerate(indexable_notes)
+    }
+    for note in all_notes:
         target = LITERATURE_DIR / str(note["slug"])
         target.mkdir(parents=True, exist_ok=True)
-        previous = notes[index - 1] if index else None
-        following = notes[index + 1] if index + 1 < len(notes) else None
-        write_text_atomic(target / "index.html", detail_page(note, previous, following))
-    write_rss(notes)
-    write_sitemap(notes, total_pages)
-    update_homepage(notes)
-    verify_generated(notes, total_pages)
+        position = indexable_positions.get(str(note["id"]))
+        previous = (
+            indexable_notes[position - 1]
+            if position is not None and position > 0
+            else None
+        )
+        following = (
+            indexable_notes[position + 1]
+            if position is not None and position + 1 < len(indexable_notes)
+            else None
+        )
+        write_text_atomic(
+            target / "index.html",
+            detail_page(note, previous, following, position is not None),
+        )
+    write_rss(indexable_notes)
+    write_sitemap(indexable_notes)
+    update_homepage(indexable_notes)
+    verify_generated(all_notes, indexable_notes, total_pages)
     print(
-        f"built {len(notes)} detail pages, {total_pages} list pages, "
-        f"{len(notes)} RSS items, and {2 + total_pages - 1 + len(notes)} sitemap URLs"
+        f"built {len(all_notes)} detail pages, {total_pages} list pages, "
+        f"{len(indexable_notes)} RSS items, and "
+        f"{3 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
+        f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description="Build the static literature site")
+    parser.add_argument("--expected-count", type=int, default=EXPECTED_COUNT)
+    build(parser.parse_args().expected_count)

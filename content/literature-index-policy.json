@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "default_indexable": true,
+  "rules": [
+    {
+      "id_prefix": "20260806_leehu_literature_",
+      "sequence_start": 1,
+      "sequence_end": 499,
+      "indexable": false,
+      "reason": "반복 형식의 대량 배치를 직접 접근용으로 보존하되 검색 색인과 자동 발견 경로에서는 제외"
+    }
+  ]
+}

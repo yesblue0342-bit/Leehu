@@ -10,14 +10,28 @@ import time
 import uuid
 from datetime import datetime, timezone
 from email.utils import format_datetime
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 from zoneinfo import ZoneInfo
 
+from literature_index_policy import is_note_indexable, load_index_policy
+
 
 ROOT = Path(__file__).resolve().parent
+LITERATURE_INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
+PUBLIC_STATIC_FILES = {
+    "/index.html",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/404.html",
+    "/og-image.jpg",
+    "/google17ccaa674b8b790b.html",
+    "/naver7a6895689b825b13f6abd14a77c7c18a.html",
+}
+PUBLIC_STATIC_ROOTS = ("/author", "/literature")
 CANONICAL_ORIGIN = "https://xn--hu5b23z.com"
 OG_IMAGE = f"{CANONICAL_ORIGIN}/og-image.jpg"
 MAX_BODY_BYTES = 128 * 1024
@@ -30,8 +44,8 @@ POSTS_DIR = Path(os.environ.get(
 ))
 LITERATURE_POSTS_DIR = Path(os.environ.get("LITERATURE_POSTS_DIR", "/data/literature-posts"))
 
-LITERATURE_ID_RE = re.compile(r"^\d{8}_leehu_literature_\d{2}$")
-LITERATURE_SLUG_RE = re.compile(r"^\d{8}-leehu-literature-\d{2}-[a-z0-9][a-z0-9-]*$")
+LITERATURE_ID_RE = re.compile(r"^\d{8}_leehu_literature_\d{2,}$")
+LITERATURE_SLUG_RE = re.compile(r"^\d{8}-leehu-literature-\d{2,}-[a-z0-9][a-z0-9-]*$")
 TOPIC_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 STATUS_VALUES = {"draft", "published", "archived", "deleted"}
 LITERATURE_WRITE_LOCK = threading.Lock()
@@ -40,6 +54,24 @@ LITERATURE_WRITE_LOCK = threading.Lock()
 def ensure_dirs():
     POSTS_DIR.mkdir(parents=True, exist_ok=True)
     LITERATURE_POSTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def literature_publication_mode():
+    mode = os.environ.get("LITERATURE_PUBLICATION_MODE", "static").strip().lower()
+    if mode not in {"static", "dynamic"}:
+        raise RuntimeError(
+            "LITERATURE_PUBLICATION_MODE must be exactly 'static' or 'dynamic'"
+        )
+    return mode
+
+
+@lru_cache(maxsize=1)
+def literature_index_policy():
+    return load_index_policy(LITERATURE_INDEX_POLICY_PATH)
+
+
+def literature_post_is_indexable(post):
+    return is_note_indexable(post, literature_index_policy())
 
 
 def clipped(value, limit):
@@ -189,6 +221,8 @@ def published_literature_posts(query="", limit=50, offset=0):
     needle = query.casefold()
     posts = []
     for post in all_literature_posts(include_private=False):
+        if not literature_post_is_indexable(post):
+            continue
         haystack = " ".join([
             post.get("title", ""),
             post.get("quote", ""),
@@ -245,14 +279,14 @@ def normalize_literature_post(data):
 def next_literature_sequence(date_prefix):
     max_seq = 0
     for post in all_literature_posts(include_private=True):
-        match = re.match(rf"^{re.escape(date_prefix)}_leehu_literature_(\d{{2}})$", post["id"])
+        match = re.match(rf"^{re.escape(date_prefix)}_leehu_literature_(\d{{2,}})$", post["id"])
         if match:
             max_seq = max(max_seq, int(match.group(1)))
     return max_seq + 1
 
 
 def literature_url(slug):
-    return f"{CANONICAL_ORIGIN}/literature/{slug}"
+    return f"{CANONICAL_ORIGIN}/literature/{slug}/"
 
 
 def build_literature_identity(payload, existing=None):
@@ -379,6 +413,7 @@ def render_common_nav():
 <nav class="site-nav">
   <a class="nav-logo" href="/">이후</a>
   <ul class="nav-links">
+    <li><a href="/author/">공식 프로필</a></li>
     <li><a href="/#about">소개</a></li>
     <li><a href="/#works">작품</a></li>
     <li><a href="/#identity">활동</a></li>
@@ -464,12 +499,14 @@ def literature_json_ld(post):
                 "mainEntityOfPage": post["canonical_url"],
                 "author": {
                     "@type": "Person",
+                    "@id": f"{CANONICAL_ORIGIN}/#person",
                     "name": "이후",
                     "alternateName": ["소설가 이후", "Lee Hu", "李後"],
-                    "url": f"{CANONICAL_ORIGIN}/",
+                    "url": f"{CANONICAL_ORIGIN}/author/",
                 },
                 "publisher": {
                     "@type": "Organization",
+                    "@id": f"{CANONICAL_ORIGIN}/#organization",
                     "name": "주식회사 소설가이후",
                     "url": f"{CANONICAL_ORIGIN}/",
                 },
@@ -511,9 +548,11 @@ def render_literature_list(query="", limit=20, offset=0):
             },
         ],
     }
+    robots = "index, follow" if not query and offset == 0 else "noindex, follow"
     head = f"""
 <title>이후의 문학노트 | 소설가 이후</title>
 <meta name="description" content="{escape(description)}">
+<meta name="robots" content="{robots}">
 <link rel="canonical" href="{canonical}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="이후의 문학노트">
@@ -554,7 +593,7 @@ def render_literature_list(query="", limit=20, offset=0):
 def render_note_card(post, heading="h3"):
     tags = "".join(f'<span class="tag">{escape(tag)}</span>' for tag in post.get("tags", [])[:5])
     return f"""
-<a class="note-card" href="/literature/{escape(post['slug'])}">
+<a class="note-card" href="/literature/{escape(post['slug'])}/">
   <{heading}>{escape(post['title'])}</{heading}>
   <div class="note-meta">{escape(format_display_date(post['published_at']))} · {escape(post['source_author'])} · {escape(post['source_work'])}</div>
   <p class="note-summary">{escape(text_excerpt(post['commentary'], 120))}</p>
@@ -571,11 +610,12 @@ def format_display_date(value):
 
 
 def render_literature_detail(post):
-    posts = all_literature_posts(include_private=False)
+    indexable = literature_post_is_indexable(post)
+    posts = [item for item in all_literature_posts(include_private=False) if literature_post_is_indexable(item)]
     ordered = sorted(posts, key=lambda item: item.get("published_at", ""))
     index = next((idx for idx, item in enumerate(ordered) if item["slug"] == post["slug"]), -1)
-    prev_post = ordered[index - 1] if index > 0 else None
-    next_post = ordered[index + 1] if 0 <= index < len(ordered) - 1 else None
+    prev_post = ordered[index - 1] if indexable and index > 0 else None
+    next_post = ordered[index + 1] if indexable and 0 <= index < len(ordered) - 1 else None
     description = text_excerpt(post["commentary"], 155)
     tags_meta = "\n".join(f'<meta property="article:tag" content="{escape(tag)}">' for tag in post.get("tags", []))
     tags = "".join(f'<span class="tag">{escape(tag)}</span>' for tag in post.get("tags", []))
@@ -600,12 +640,13 @@ def render_literature_detail(post):
             related = f'<p style="margin-top:22px">관련 작품: {escape(post["related_work"]["name"])}</p>'
     prev_next = []
     if prev_post:
-        prev_next.append(f'<a href="/literature/{escape(prev_post["slug"])}">이전 글</a>')
+        prev_next.append(f'<a href="/literature/{escape(prev_post["slug"])}/">이전 글</a>')
     if next_post:
-        prev_next.append(f'<a href="/literature/{escape(next_post["slug"])}">다음 글</a>')
+        prev_next.append(f'<a href="/literature/{escape(next_post["slug"])}/">다음 글</a>')
     head = f"""
 <title>{escape(post['title'])} | 소설가 이후 문학노트</title>
 <meta name="description" content="{escape(description)}">
+<meta name="robots" content="{'index, follow' if indexable else 'noindex, follow'}">
 <link rel="canonical" href="{escape(post['canonical_url'])}">
 <meta property="og:type" content="article">
 <meta property="og:title" content="{escape(post['title'])}">
@@ -657,12 +698,12 @@ def latest_literature_cards(count=4):
 
 def render_home_note_card(post):
     return f"""
-<article class="card">
-  <small>{escape(format_display_date(post['published_at']))} · {escape(post['source_author'])}</small>
-  <h3>{escape(post['title'])}</h3>
-  <p>{escape(text_excerpt(post['commentary'], 110))}</p>
-  <div class="link-row"><a class="mini-link" href="/literature/{escape(post['slug'])}">자세히 읽기</a></div>
-</article>
+<a class="note-card" href="/literature/{escape(post['slug'])}/">
+  <small>{escape(post['source_author'])} · {escape(post['source_work'])}</small>
+  <h2>{escape(post['title'])}</h2>
+  <blockquote>{escape(post['quote'])}</blockquote>
+  <p>{' · '.join(escape(tag) for tag in post['tags'])}</p>
+</a>
 """
 
 
@@ -671,15 +712,36 @@ def latest_literature_links(count=3):
     if not posts:
         return '<div class="empty-posts">아직 공개된 문학노트가 없습니다.</div>'
     return "".join(
-        f'<a class="note-card" href="/literature/{escape(post["slug"])}"><h3>{escape(post["title"])}</h3><p class="note-summary">{escape(text_excerpt(post["commentary"], 90))}</p></a>'
+        f'<a href="/literature/{escape(post["slug"])}/"><strong>{escape(post["title"])}</strong>'
+        f'<span>{escape(post["source_author"])} · {escape(post["source_work"])}</span></a>'
         for post in posts
     )
 
 
+def replace_homepage_marker(content, marker, replacement):
+    block = re.compile(
+        rf"<!-- {re.escape(marker)}:START -->.*?<!-- {re.escape(marker)}:END -->",
+        re.S,
+    )
+    rendered = (
+        f"<!-- {marker}:START -->\n{replacement}\n<!-- {marker}:END -->"
+    )
+    if block.search(content):
+        return block.sub(lambda _match: rendered, content)
+    plain = f"<!-- {marker} -->"
+    if plain not in content:
+        raise ValueError(f"homepage marker missing: {marker}")
+    return content.replace(plain, rendered)
+
+
 def render_homepage():
     content = (ROOT / "index.html").read_text(encoding="utf-8")
-    content = content.replace("<!-- LITERATURE_LATEST_ITEMS -->", latest_literature_cards(4))
-    content = content.replace("<!-- BOARD_LITERATURE_ITEMS -->", latest_literature_links(3))
+    content = replace_homepage_marker(
+        content, "LITERATURE_LATEST_ITEMS", latest_literature_cards(6)
+    )
+    content = replace_homepage_marker(
+        content, "BOARD_LITERATURE_ITEMS", latest_literature_links(3)
+    )
     return content
 
 
@@ -687,6 +749,7 @@ def render_sitemap():
     posts, _ = published_literature_posts(limit=10000, offset=0)
     urls = [
         (f"{CANONICAL_ORIGIN}/", "weekly", "1.0", None),
+        (f"{CANONICAL_ORIGIN}/author/", "monthly", "0.8", None),
         (f"{CANONICAL_ORIGIN}/literature/", "daily", "0.9", None),
     ]
     for post in posts:
@@ -705,7 +768,7 @@ def render_sitemap():
 
 
 def render_rss():
-    posts, _ = published_literature_posts(limit=20, offset=0)
+    posts, _ = published_literature_posts(limit=1000000, offset=0)
     items = []
     for post in posts:
         parsed = parse_datetime(post.get("published_at"))
@@ -756,10 +819,33 @@ class LeehuHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path in ("/", "/index.html"):
-            self.html_response(render_homepage())
+        if parsed.path == "/literature":
+            self.redirect_permanently("/literature/")
             return
-        if parsed.path in ("/sitemap.xml", "/sitemap"):
+        if parsed.path == "/author":
+            self.redirect_permanently("/author/")
+            return
+        if parsed.path == "/sitemap":
+            self.redirect_permanently("/sitemap.xml")
+            return
+        if parsed.path in ("/", "/index.html"):
+            if literature_publication_mode() == "static":
+                self.serve_static("/index.html")
+            else:
+                self.html_response(render_homepage())
+            return
+        if parsed.path == "/author/":
+            self.serve_static(parsed.path)
+            return
+        if literature_publication_mode() == "static" and (
+            parsed.path == "/sitemap.xml"
+            or parsed.path == "/literature/rss.xml"
+            or parsed.path == "/literature/"
+            or parsed.path.startswith("/literature/")
+        ):
+            self.serve_static(parsed.path)
+            return
+        if parsed.path == "/sitemap.xml":
             self.text_response(render_sitemap(), "application/xml; charset=utf-8")
             return
         if parsed.path == "/literature/rss.xml":
@@ -1000,16 +1086,48 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def redirect_permanently(self, location):
+        self.send_response(HTTPStatus.MOVED_PERMANENTLY)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def serve_static(self, request_path):
-        path = posixpath.normpath(unquote(request_path.split("?", 1)[0]))
-        if path in ("", "/", "."):
-            self.html_response(render_homepage())
-            return
-        target = (ROOT / path.lstrip("/")).resolve()
-        if not str(target).startswith(str(ROOT)) or not target.is_file():
+        decoded_path = unquote(request_path.split("?", 1)[0])
+        if ".." in decoded_path.replace("\\", "/").split("/"):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
-        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        path = posixpath.normpath(decoded_path)
+        if path in ("", "/", "."):
+            path = "/index.html"
+        if path not in PUBLIC_STATIC_FILES and not any(
+            path == root or path.startswith(root + "/")
+            for root in PUBLIC_STATIC_ROOTS
+        ):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        target = (ROOT / path.lstrip("/")).resolve()
+        try:
+            target.relative_to(ROOT.resolve())
+        except ValueError:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        if target.is_dir():
+            if not decoded_path.endswith("/"):
+                self.redirect_permanently(urlparse(self.path).path + "/")
+                return
+            target = target / "index.html"
+        if not target.is_file():
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        if path == "/literature/rss.xml":
+            content_type = "application/rss+xml; charset=utf-8"
+        elif target.suffix.lower() == ".xml":
+            content_type = "application/xml; charset=utf-8"
+        else:
+            content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+            if content_type.startswith("text/"):
+                content_type += "; charset=utf-8"
         content = target.read_bytes()
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
@@ -1020,7 +1138,11 @@ class LeehuHandler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     ensure_dirs()
+    publication_mode = literature_publication_mode()
     port = int(os.environ.get("PORT", "80"))
     server = ThreadingHTTPServer(("0.0.0.0", port), LeehuHandler)
-    print(f"Leehu server listening on :{port}", flush=True)
+    print(
+        f"Leehu server listening on :{port} ({publication_mode} publication)",
+        flush=True,
+    )
     server.serve_forever()
