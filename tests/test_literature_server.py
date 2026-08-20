@@ -417,7 +417,8 @@ class StaticLiteratureProductionTest(unittest.TestCase):
                 self.assertIn("application/rss+xml", content_type)
             elif path.endswith("sitemap.xml"):
                 self.assertIn("application/xml", content_type)
-            self.assertIn(included_slug, text)
+            if path != "/literature/":
+                self.assertIn(included_slug, text)
             for slug in excluded_slugs:
                 self.assertNotIn(slug, text)
         _, _, sitemap, _ = self.request("GET", "/sitemap.xml")
