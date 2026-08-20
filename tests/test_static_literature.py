@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 2071
-TARGET_INDEXABLE_COUNT = 1572
+TARGET_COUNT = 2121
+TARGET_INDEXABLE_COUNT = 1622
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 63
-TARGET_SITEMAP_URLS = 1578
+TARGET_LIST_PAGES = 65
+TARGET_SITEMAP_URLS = 1628
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -758,6 +758,7 @@ class StaticLiteratureTest(unittest.TestCase):
                 "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
                 "https://blog.naver.com/yesblue0342",
                 "https://www.youtube.com/@Yesblue1234",
+                "https://github.com/yesblue0342-bit/Leehu",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
                 "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
             },
@@ -808,8 +809,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-19")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-19")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-20")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-20")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
