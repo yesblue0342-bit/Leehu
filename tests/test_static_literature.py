@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 2121
-TARGET_INDEXABLE_COUNT = 1622
+TARGET_COUNT = 2171
+TARGET_INDEXABLE_COUNT = 1672
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 65
-TARGET_SITEMAP_URLS = 1628
+TARGET_LIST_PAGES = 67
+TARGET_SITEMAP_URLS = 1678
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -810,8 +810,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-20")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-20")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-21")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-21")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
