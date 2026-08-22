@@ -1,10 +1,16 @@
 # Leehu
 
-소설가 이후 공식 홈페이지입니다.
+소설가 이후(李後, Lee Hu) 공식 홈페이지입니다.
 
-- 운영 도메인: https://xn--hu5b23z.com/
-- 한글 표시 도메인: https://이후.com/
-- 저장소: https://github.com/yesblue0342-bit/Leehu
+## 공식 채널
+
+- [소설가 이후 공식 홈페이지](https://xn--hu5b23z.com/)
+- [소설가 이후 공식 작가 프로필](https://xn--hu5b23z.com/author/)
+- [소설가 이후 네이버 블로그](https://blog.naver.com/yesblue0342)
+- [소설가 이후 YouTube](https://www.youtube.com/@Yesblue1234)
+- [교보문고 작가정보](https://store.kyobobook.co.kr/person/detail/1000809404)
+- [Wikipedia: 이후 (소설가)](https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80))
+- 한글 표시 도메인: [이후.com](https://이후.com/)
 
 ## 문학노트 정적 발행
 
