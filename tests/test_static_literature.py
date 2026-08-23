@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 2771
-TARGET_INDEXABLE_COUNT = 2272
+TARGET_COUNT = 2781
+TARGET_INDEXABLE_COUNT = 2282
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 91
-TARGET_SITEMAP_URLS = 2278
+TARGET_LIST_PAGES = 92
+TARGET_SITEMAP_URLS = 2288
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",

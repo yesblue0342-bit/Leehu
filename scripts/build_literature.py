@@ -37,7 +37,7 @@ LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-08-23"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 2771
+EXPECTED_COUNT = 2781
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
