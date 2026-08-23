@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 2271
-TARGET_INDEXABLE_COUNT = 1772
+TARGET_COUNT = 2771
+TARGET_INDEXABLE_COUNT = 2272
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 71
-TARGET_SITEMAP_URLS = 1778
+TARGET_LIST_PAGES = 91
+TARGET_SITEMAP_URLS = 2278
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -222,6 +222,34 @@ class StaticLiteratureTest(unittest.TestCase):
                     if len(
                         normalized := re.sub(r"\W+", "", sentence).casefold()
                     ) >= 25
+                )
+        self.assertEqual(len(long_sentences), len(set(long_sentences)))
+
+    def test_20260823_leehu_500_batch_is_structured_and_unique(self) -> None:
+        batch = self.notes[2271:2771]
+        self.assertEqual(len(batch), 500)
+        self.assertEqual(
+            {note["id"] for note in batch},
+            {f"20260823_leehu_literature_{sequence:03d}" for sequence in range(1, 501)},
+        )
+        self.assertEqual(
+            Counter(note["source_work"] for note in batch),
+            Counter({"연(戀)": 100, "데자뷔": 100, "소나기": 100, "환상": 100, "별이 빛나는 밤에": 100}),
+        )
+        self.assertTrue(all(note["source_author"] == "이후" for note in batch))
+        self.assertTrue(all(note["author"] == "소설가 이후" for note in batch))
+        self.assertTrue(all(note.get("content_kind") == "original_reflection" for note in batch))
+        self.assertTrue(all("직접 인용 없음" in note["rights_note"] for note in batch))
+        self.assertTrue(all(set(note.get("seo_sections", {})) == build_literature.SEO_SECTION_KEYS for note in batch))
+        self.assertEqual(len({note["slug"] for note in batch}), 500)
+        self.assertTrue(all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", note["slug"]) for note in batch))
+        long_sentences = []
+        for note in batch:
+            for prose in [note["quote"], note["commentary"], *note["seo_sections"].values()]:
+                long_sentences.extend(
+                    normalized
+                    for sentence in build_literature.prose_sentences(prose)
+                    if len(normalized := re.sub(r"\W+", "", sentence).casefold()) >= 25
                 )
         self.assertEqual(len(long_sentences), len(set(long_sentences)))
 
@@ -451,7 +479,7 @@ class StaticLiteratureTest(unittest.TestCase):
         authors = Counter(note["source_author"] for note in self.notes)
         works = Counter(note["source_work"] for note in self.notes)
         tags = Counter(tag for note in self.notes for tag in note["tags"])
-        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.15)
+        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.30)
         self.assertLessEqual(works.most_common(1)[0][1] / TARGET_COUNT, 0.12)
         self.assertLessEqual(tags.most_common(1)[0][1] / sum(tags.values()), 0.18)
         self.assertGreaterEqual(len(authors), 30)
@@ -810,8 +838,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-22")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-22")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-23")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-23")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage

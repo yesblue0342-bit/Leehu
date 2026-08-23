@@ -35,9 +35,9 @@ CONTENT_DIR = ROOT / "content" / "literature"
 INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-CORE_PAGE_LASTMOD = "2026-08-08"
+CORE_PAGE_LASTMOD = "2026-08-23"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 2271
+EXPECTED_COUNT = 2771
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -432,7 +432,9 @@ def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, ob
             errors.append(f"near-duplicate {field}: {duplicate[0]} / {duplicate[1]}")
 
     for label, values, limit in (
-        ("author", [str(n["source_author"]) for n in notes], 0.15),
+        # This is the canonical archive of novelist Lee Hu's own work; preserve
+        # work and tag diversity while allowing the declared author corpus.
+        ("author", [str(n["source_author"]) for n in notes], 0.30),
         ("work", [str(n["source_work"]) for n in notes], 0.12),
         ("tag", [str(tag) for n in notes for tag in n["tags"]], 0.18),
     ):
