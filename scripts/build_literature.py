@@ -106,6 +106,14 @@ def esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
+def seo_title(value: object, suffix: str = " | 이후의 문학노트", limit: int = 60) -> str:
+    title = re.sub(r"\s+", " ", str(value)).strip()
+    available = limit - len(suffix)
+    if len(title) > available:
+        title = title[: available - 1].rstrip() + "…"
+    return title + suffix
+
+
 def write_text_atomic(path: Path, text: str) -> None:
     if path.is_file():
         try:
@@ -467,6 +475,11 @@ def base_head(
 <link rel="canonical" href="{esc(canonical_url)}">
 <meta property="og:site_name" content="소설가 이후">
 <meta property="og:image" content="{ORIGIN}/og-image.jpg">
+<meta property="og:image:secure_url" content="{ORIGIN}/og-image.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 {extra}
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
@@ -514,6 +527,10 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 <meta property="og:description" content="퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록">
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{esc(title)}">
+<meta name="twitter:description" content="퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록">
+<meta name="twitter:image" content="{ORIGIN}/og-image.jpg">
+<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <link rel="alternate" type="application/rss+xml" title="이후의 문학노트 RSS" href="/literature/rss.xml">"""
     robots = "index, follow" if page == 1 else "noindex, follow"
     return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra, robots)}
@@ -539,6 +556,7 @@ def detail_page(
 ) -> str:
     url = canonical(note)
     description = re.sub(r"\s+", " ", str(note["commentary"]))[:155]
+    search_title = seo_title(note["title"])
     published = str(note["published_at"])
     source_link_label = "작품 정보 확인" if str(note.get("content_kind", "source_quote")) == "original_reflection" else "원문 확인"
     article_ld = {
@@ -563,7 +581,12 @@ def detail_page(
             "name": "주식회사 소설가이후",
             "url": f"{ORIGIN}/",
         },
-        "image": f"{ORIGIN}/og-image.jpg",
+        "image": {
+            "@type": "ImageObject",
+            "url": f"{ORIGIN}/og-image.jpg",
+            "width": 1200,
+            "height": 630,
+        },
         "keywords": note["tags"],
         "inLanguage": "ko",
         "citation": {
@@ -584,16 +607,17 @@ def detail_page(
     }
     json_ld = json.dumps([article_ld, breadcrumb_ld], ensure_ascii=False).replace("</", "<\\/")
     extra = f"""<meta property="og:type" content="article">
-<meta property="og:title" content="{esc(note['title'])}">
+<meta property="og:title" content="{esc(search_title)}">
 <meta property="og:description" content="{esc(description)}">
 <meta property="og:url" content="{url}">
 <meta property="article:published_time" content="{esc(published)}">
 <meta property="article:author" content="{esc(note['author'])}">
 {''.join(f'<meta property="article:tag" content="{esc(tag)}">' for tag in note['tags'])}
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{esc(note['title'])}">
+<meta name="twitter:title" content="{esc(search_title)}">
 <meta name="twitter:description" content="{esc(description)}">
 <meta name="twitter:image" content="{ORIGIN}/og-image.jpg">
+<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <script type="application/ld+json">{json_ld}</script>"""
     prev_link = (
         f'<a href="/literature/{esc(previous["slug"])}/">← {esc(previous["title"])}</a>'
@@ -659,7 +683,7 @@ def detail_page(
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
     <section class="commentary"><h2>이후의 생각</h2><p>{esc(note['commentary'])}</p></section>"""
     robots = "index, follow" if indexable else "noindex, follow"
-    return f"""{base_head(str(note['title']) + " | 이후의 문학노트", description, url, extra, robots)}
+    return f"""{base_head(search_title, description, url, extra, robots)}
 <body>{nav()}
 <main class="article">
   <nav class="breadcrumbs" aria-label="이동 경로"><a href="/">홈</a> / <a href="/literature/">문학노트</a> / {esc(note['title'])}</nav>

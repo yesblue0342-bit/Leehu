@@ -89,6 +89,10 @@ def text_excerpt(value, limit=150):
     return text[: limit - 1].rstrip() + "…"
 
 
+def seo_title(value, suffix=" | 이후의 문학노트", limit=60):
+    return text_excerpt(value, limit - len(suffix)) + suffix
+
+
 def parse_int(value, default, minimum, maximum):
     try:
         number = int(value)
@@ -510,6 +514,12 @@ def literature_json_ld(post):
                     "name": "주식회사 소설가이후",
                     "url": f"{CANONICAL_ORIGIN}/",
                 },
+                "image": {
+                    "@type": "ImageObject",
+                    "url": OG_IMAGE,
+                    "width": 1200,
+                    "height": 630,
+                },
                 "keywords": post.get("tags", []),
                 "citation": citation,
                 "about": [post["source_author"], post["source_work"], "고전문학", "한국문학", "소설가 이후"],
@@ -560,10 +570,16 @@ def render_literature_list(query="", limit=20, offset=0):
 <meta property="og:url" content="{canonical}">
 <meta property="og:site_name" content="소설가 이후">
 <meta property="og:image" content="{OG_IMAGE}">
+<meta property="og:image:secure_url" content="{OG_IMAGE}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="이후의 문학노트">
 <meta name="twitter:description" content="{escape(description)}">
 <meta name="twitter:image" content="{OG_IMAGE}">
+<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <script type="application/ld+json">{json_script(ld)}</script>
 """
     cards = "\n".join(render_note_card(post, heading="h2") for post in posts)
@@ -617,6 +633,7 @@ def render_literature_detail(post):
     prev_post = ordered[index - 1] if indexable and index > 0 else None
     next_post = ordered[index + 1] if indexable and 0 <= index < len(ordered) - 1 else None
     description = text_excerpt(post["commentary"], 155)
+    search_title = seo_title(post["title"])
     tags_meta = "\n".join(f'<meta property="article:tag" content="{escape(tag)}">' for tag in post.get("tags", []))
     tags = "".join(f'<span class="tag">{escape(tag)}</span>' for tag in post.get("tags", []))
     source_parts = [
@@ -644,20 +661,26 @@ def render_literature_detail(post):
     if next_post:
         prev_next.append(f'<a href="/literature/{escape(next_post["slug"])}/">다음 글</a>')
     head = f"""
-<title>{escape(post['title'])} | 소설가 이후 문학노트</title>
+<title>{escape(search_title)}</title>
 <meta name="description" content="{escape(description)}">
 <meta name="robots" content="{'index, follow' if indexable else 'noindex, follow'}">
 <link rel="canonical" href="{escape(post['canonical_url'])}">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{escape(post['title'])}">
+<meta property="og:title" content="{escape(search_title)}">
 <meta property="og:description" content="{escape(description)}">
 <meta property="og:url" content="{escape(post['canonical_url'])}">
 <meta property="og:site_name" content="소설가 이후">
 <meta property="og:image" content="{OG_IMAGE}">
+<meta property="og:image:secure_url" content="{OG_IMAGE}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{escape(post['title'])}">
+<meta name="twitter:title" content="{escape(search_title)}">
 <meta name="twitter:description" content="{escape(description)}">
 <meta name="twitter:image" content="{OG_IMAGE}">
+<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <meta property="article:published_time" content="{escape(post['published_at'])}">
 <meta property="article:modified_time" content="{escape(post['updated_at'])}">
 <meta property="article:author" content="{escape(post['author'])}">

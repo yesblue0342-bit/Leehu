@@ -24,7 +24,7 @@ TARGET_INDEXABLE_COUNT = 2282
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 92
-TARGET_SITEMAP_URLS = 2288
+TARGET_SITEMAP_URLS = 2292
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -507,6 +507,8 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertIn(
                 f'<meta name="robots" content="{expected_robots}">', text
             )
+            self.assertIn('<meta name="twitter:image" content="https://xn--hu5b23z.com/og-image.jpg">', text)
+            self.assertIn('<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">', text)
         card_slugs = []
         for path in list_paths:
             card_slugs.extend(
@@ -527,9 +529,24 @@ class StaticLiteratureTest(unittest.TestCase):
         for note, path in zip(self.notes, detail_paths):
             text = path.read_text(encoding="utf-8")
             canonical = f"{ORIGIN}/literature/{note['slug']}/"
+            search_title = build_literature.seo_title(note["title"])
+            self.assertIn(f"<title>{html.escape(search_title)}</title>", text)
+            self.assertLessEqual(len(search_title), 60)
+            self.assertIn(
+                f'<meta property="og:title" content="{html.escape(search_title)}">',
+                text,
+            )
+            self.assertIn(
+                f'<meta name="twitter:title" content="{html.escape(search_title)}">',
+                text,
+            )
             self.assertIn(f'<link rel="canonical" href="{canonical}">', text)
             self.assertIn('<meta property="og:type" content="article">', text)
             self.assertIn('<meta name="twitter:card" content="summary_large_image">', text)
+            self.assertIn('<meta property="og:image:width" content="1200">', text)
+            self.assertIn('<meta property="og:image:height" content="630">', text)
+            self.assertIn('<meta property="og:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">', text)
+            self.assertIn('<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">', text)
             self.assertIn('property="article:published_time"', text)
             self.assertIn('property="article:author"', text)
             expected_robots = (
@@ -563,6 +580,15 @@ class StaticLiteratureTest(unittest.TestCase):
             article = next(entry for entry in graph if entry["@type"] == "BlogPosting")
             self.assertEqual(article["author"]["@id"], f"{ORIGIN}/#person")
             self.assertEqual(article["author"]["url"], f"{ORIGIN}/author/")
+            self.assertEqual(
+                article["image"],
+                {
+                    "@type": "ImageObject",
+                    "url": f"{ORIGIN}/og-image.jpg",
+                    "width": 1200,
+                    "height": 630,
+                },
+            )
             self.assertIn(
                 'href="/author/">소설가 이후 공식 프로필</a>', text
             )
@@ -587,7 +613,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(
             build_literature.additional_sitemap_urls(),
             [
-                (f"{ORIGIN}/seo-updates/", "2026-08-19"),
+                (f"{ORIGIN}/seo-updates/", "2026-08-26"),
                 (
                     f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
                     "2026-08-18",
@@ -595,6 +621,22 @@ class StaticLiteratureTest(unittest.TestCase):
                 (
                     f"{ORIGIN}/seo-updates/2026-08-19-leehu-44b78db6/",
                     "2026-08-19",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-23-leehu-80c783be/",
+                    "2026-08-23",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-24-leehu-ef782845/",
+                    "2026-08-24",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-25-leehu-1cf75bdb/",
+                    "2026-08-25",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-26-leehu-022406d5/",
+                    "2026-08-26",
                 ),
             ],
         )
@@ -757,7 +799,8 @@ class StaticLiteratureTest(unittest.TestCase):
         )
         for property_name in (
             "og:type", "og:site_name", "og:title", "og:description",
-            "og:url", "og:image", "og:locale",
+            "og:url", "og:image", "og:image:secure_url", "og:image:type",
+            "og:image:width", "og:image:height", "og:image:alt", "og:locale",
         ):
             self.assertRegex(
                 homepage,
@@ -769,6 +812,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn("Person", graph_types)
         self.assertIn("WebSite", graph_types)
         self.assertGreaterEqual(graph_types.count("Book"), 3)
+        self.assertIn('<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">', homepage)
         person = next(entry for entry in graph if entry["@type"] == "Person")
         self.assertEqual(person["@id"], f"{ORIGIN}/#person")
         self.assertEqual(person["url"], f"{ORIGIN}/author/")
