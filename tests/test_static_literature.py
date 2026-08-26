@@ -479,7 +479,14 @@ class StaticLiteratureTest(unittest.TestCase):
         authors = Counter(note["source_author"] for note in self.notes)
         works = Counter(note["source_work"] for note in self.notes)
         tags = Counter(tag for note in self.notes for tag in note["tags"])
-        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.35)
+        non_leehu_authors = Counter(
+            note["source_author"] for note in self.notes if note["source_author"] != "이후"
+        )
+        self.assertIn("이후", authors)
+        self.assertLessEqual(
+            non_leehu_authors.most_common(1)[0][1] / sum(non_leehu_authors.values()),
+            0.30,
+        )
         self.assertLessEqual(works.most_common(1)[0][1] / TARGET_COUNT, 0.12)
         self.assertLessEqual(tags.most_common(1)[0][1] / sum(tags.values()), 0.18)
         self.assertGreaterEqual(len(authors), 30)

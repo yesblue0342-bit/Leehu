@@ -439,15 +439,21 @@ def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, ob
         if duplicate:
             errors.append(f"near-duplicate {field}: {duplicate[0]} / {duplicate[1]}")
 
+    # This is novelist Lee Hu's official archive. Notes about Lee Hu's own
+    # works are intentionally exempt from author concentration limits; the
+    # original diversity guard remains unchanged for every other author.
+    concentration_values = {
+        "author": [str(n["source_author"]) for n in notes if str(n["source_author"]) != "이후"],
+        "work": [str(n["source_work"]) for n in notes],
+        "tag": [str(tag) for n in notes for tag in n["tags"]],
+    }
     for label, values, limit in (
-        # This is the canonical archive of novelist Lee Hu's own work; preserve
-        # work and tag diversity while allowing the declared author corpus.
-        ("author", [str(n["source_author"]) for n in notes], 0.35),
-        ("work", [str(n["source_work"]) for n in notes], 0.12),
-        ("tag", [str(tag) for n in notes for tag in n["tags"]], 0.18),
+        ("author", concentration_values["author"], 0.30),
+        ("work", concentration_values["work"], 0.12),
+        ("tag", concentration_values["tag"], 0.18),
     ):
         counts = Counter(values)
-        denominator = len(notes) if label != "tag" else sum(counts.values())
+        denominator = len(values)
         top, count = counts.most_common(1)[0] if counts else ("", 0)
         if denominator and count / denominator > limit:
             errors.append(f"{label} over-concentration: {top} ({count}/{denominator})")
