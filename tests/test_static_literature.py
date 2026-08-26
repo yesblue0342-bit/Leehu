@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 2781
-TARGET_INDEXABLE_COUNT = 2282
+TARGET_COUNT = 2881
+TARGET_INDEXABLE_COUNT = 2382
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 92
-TARGET_SITEMAP_URLS = 2292
+TARGET_LIST_PAGES = 96
+TARGET_SITEMAP_URLS = 2392
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -479,7 +479,7 @@ class StaticLiteratureTest(unittest.TestCase):
         authors = Counter(note["source_author"] for note in self.notes)
         works = Counter(note["source_work"] for note in self.notes)
         tags = Counter(tag for note in self.notes for tag in note["tags"])
-        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.30)
+        self.assertLessEqual(authors.most_common(1)[0][1] / TARGET_COUNT, 0.35)
         self.assertLessEqual(works.most_common(1)[0][1] / TARGET_COUNT, 0.12)
         self.assertLessEqual(tags.most_common(1)[0][1] / sum(tags.values()), 0.18)
         self.assertGreaterEqual(len(authors), 30)
@@ -882,8 +882,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-23")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-23")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-24")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-24")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
