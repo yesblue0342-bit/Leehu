@@ -953,6 +953,18 @@ class StaticLiteratureTest(unittest.TestCase):
             rel_tokens = set(link.get("rel", "").casefold().split())
             self.assertIn("noopener", rel_tokens, link.get("href"))
 
+    def test_primary_navigation_has_one_official_youtube_link(self):
+        primary_nav = re.search(
+            r'<ul id="primaryNav" class="nav-links">(?P<body>.*?)</ul>',
+            self.homepage,
+            re.S,
+        )
+        self.assertIsNotNone(primary_nav)
+        nav_body = primary_nav.group("body")
+        self.assertEqual(nav_body.count("https://www.youtube.com/@Yesblue1234"), 1)
+        self.assertEqual(nav_body.count(">공식 YouTube</a>"), 1)
+        self.assertNotIn('class="mini-link"', nav_body)
+
     def test_homepage_contains_no_person_image_or_person_placeholder(self):
         self.assertEqual(
             self.homepage_parser.images,
