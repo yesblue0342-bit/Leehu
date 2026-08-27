@@ -35,9 +35,9 @@ CONTENT_DIR = ROOT / "content" / "literature"
 INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-CORE_PAGE_LASTMOD = "2026-08-24"
+CORE_PAGE_LASTMOD = "2026-08-27"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 2881
+EXPECTED_COUNT = 2981
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
