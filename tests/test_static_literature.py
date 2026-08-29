@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 3031
-TARGET_INDEXABLE_COUNT = 2532
+TARGET_COUNT = 3131
+TARGET_INDEXABLE_COUNT = 2632
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 102
-TARGET_SITEMAP_URLS = 2545
+TARGET_LIST_PAGES = 106
+TARGET_SITEMAP_URLS = 2645
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -298,6 +298,34 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertTrue(all(set(note.get("seo_sections", {})) == build_literature.SEO_SECTION_KEYS for note in batch))
         self.assertEqual(len({note["tags"][3] for note in batch}), 50)
         self.assertEqual(len({note["slug"] for note in batch}), 50)
+        long_sentences = []
+        for note in batch:
+            for prose in [note["quote"], note["commentary"], *note["seo_sections"].values()]:
+                long_sentences.extend(
+                    normalized
+                    for sentence in build_literature.prose_sentences(prose)
+                    if len(normalized := re.sub(r"\W+", "", sentence).casefold()) >= 25
+                )
+        self.assertEqual(len(long_sentences), len(set(long_sentences)))
+
+    def test_20260829_leehu_100_second_batch_is_structured_and_unique(self) -> None:
+        batch = self.notes[3031:3131]
+        self.assertEqual(len(batch), 100)
+        self.assertEqual(
+            {note["id"] for note in batch},
+            {f"20260829_leehu_literature_{sequence:03d}" for sequence in range(661, 761)},
+        )
+        self.assertEqual(
+            Counter(note["source_work"] for note in batch),
+            Counter({"연(戀)": 20, "데자뷔": 20, "소나기": 20, "환상": 20, "별이 빛나는 밤에": 20}),
+        )
+        self.assertTrue(all(note["source_author"] == "이후" for note in batch))
+        self.assertTrue(all(note.get("content_kind") == "original_reflection" for note in batch))
+        self.assertTrue(all(str(note["published_at"]).startswith("2026-08-29") for note in batch))
+        self.assertTrue(all("직접 인용 없음" in note["rights_note"] for note in batch))
+        self.assertTrue(all(set(note.get("seo_sections", {})) == build_literature.SEO_SECTION_KEYS for note in batch))
+        self.assertEqual(len({note["tags"][3] for note in batch}), 100)
+        self.assertEqual(len({note["slug"] for note in batch}), 100)
         long_sentences = []
         for note in batch:
             for prose in [note["quote"], note["commentary"], *note["seo_sections"].values()]:
