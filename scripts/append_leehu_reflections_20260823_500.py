@@ -66,13 +66,13 @@ def make_note(work: tuple[str, str, str, str], theme: tuple[str, str, str, str],
     image_obj, image_subj = particles(image)
     _, meaning_subj = particles(meaning)
     topic_no = ((sequence - 1) % 100) + 1
-    title = f"{work_name}를 읽으며: {lens_title} {theme_name}"
+    title = f"《{work_name}》{particles(work_name)[0]} 읽으며: {lens_title} {theme_name}"
     deck = f"《{work_name}》에서 {image}{image_obj} 떠올리고, {lens_title} {theme_name}{obj} 오늘의 언어로 다시 읽어 보는 문학노트다."
     commentary = (
         f"이 노트는 《{work_name}》의 줄거리를 대신 요약하지 않고, {lens_title} {theme_name}{subj} 독자에게 남기는 감각을 살핀다. "
         f"《{work_name}》에서 {lens_detail}에 주목하면 {image}{image_subj} 고정된 해답보다 새로운 질문에 가까워진다. "
         f"나는 {work_name}의 {theme_name}에 관한 질문을 빠르게 결론 내리지 않고, ‘{lens_title} {theme_name}’ 관점에서 내 경험과 타인의 시간을 함께 존중하는 쪽으로 읽어 본다. "
-        f"《{work_name}》을 통해 ‘{lens_title} {theme_name}’ 관점으로 바라본 {meaning}{meaning_subj} 작품 밖의 하루에서도 말과 행동을 한 번 더 돌아보게 한다. "
+        f"《{work_name}》{particles(work_name)[0]} 통해 ‘{lens_title} {theme_name}’ 관점으로 바라본 {meaning}{meaning_subj} 작품 밖의 하루에서도 말과 행동을 한 번 더 돌아보게 한다. "
         f"{work_name}에 관한 {topic_no}번째 기록의 끝에는 ‘{lens_title} {theme_name}’{obj} 묻는 질문과 각자의 속도로 답할 자리를 남긴다."
     )
     return {

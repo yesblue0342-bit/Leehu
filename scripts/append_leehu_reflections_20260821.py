@@ -34,6 +34,11 @@ TOPICS = (
 )
 
 
+def josa(word: str, with_batchim: str, without_batchim: str) -> str:
+    last = next((char for char in reversed(word) if '가' <= char <= '힣'), '')
+    return with_batchim if last and (ord(last) - 0xAC00) % 28 else without_batchim
+
+
 def note_for(sequence: int, work: tuple[str, str, str], topic: tuple[str, str, str, str]) -> dict[str, object]:
     work_name, source_url, work_tag = work
     title, phrase, theme_one, theme_two = topic
@@ -41,8 +46,8 @@ def note_for(sequence: int, work: tuple[str, str, str], topic: tuple[str, str, s
     return {
         "id": f"20260821_leehu_literature_{ordinal:03d}",
         "slug": f"leehu-{work_name.encode('utf-8').hex()[:8]}-{ordinal:03d}-{theme_one.encode('utf-8').hex()[:6]}",
-        "title": f"{work_name}를 읽으며: {title}",
-        "quote": f"{work_name}를 읽는 자리에서 {phrase}을 떠올리며, 관계와 기억이 독자 안에서 새롭게 이어지는 순간을 기록한다.",
+        "title": f"《{work_name}》{josa(work_name, '을', '를')} 읽으며: {title}",
+        "quote": f"《{work_name}》{josa(work_name, '을', '를')} 읽는 자리에서 {phrase}{josa(phrase, '을', '를')} 떠올리며, 관계와 기억이 독자 안에서 새롭게 이어지는 순간을 기록한다.",
         "source_author": "이후",
         "source_work": work_name,
         "source_location": "교보ebook 도서 정보의 작가 소개 및 작품 설명 참고 · 작품 본문 직접 인용 없음",
@@ -51,13 +56,13 @@ def note_for(sequence: int, work: tuple[str, str, str], topic: tuple[str, str, s
         "translation_note": "한국어 창작 작품에 관한 독창적 감상으로, 작품 본문 직접 인용 및 타인의 번역문 전재 없음.",
         "rights_note": f"소설가 이후의 작품 《{work_name}》에 관한 자체 작성 문학노트이며 작품 본문 직접 인용 없음.",
         "commentary": (
-            f"{phrase}은 《{work_name}》를 읽으며 내가 오래 붙들고 싶었던 질문이다. "
+            f"{phrase}{josa(phrase, '은', '는')} 《{work_name}》{josa(work_name, '을', '를')} 읽으며 내가 오래 붙들고 싶었던 질문이다. "
             f"이 글은 작품의 특정 장면을 대신 말하지 않고, {theme_one}이 일상에서 어떤 결로 다가오는지 천천히 살핀다. "
-            f"독서는 정답을 찾는 과정만이 아니라 내 안의 {theme_two}을 알아차리는 시간이 될 수 있다. "
+            f"독서는 정답을 찾는 과정만이 아니라 내 안의 {theme_two}{josa(theme_two, '을', '를')} 알아차리는 시간이 될 수 있다. "
             f"그래서 오늘의 기록은 타인의 삶을 섣불리 해석하기보다, 나와 다른 리듬을 존중하는 마음으로 마무리한다. "
-            f"《{work_name}》와 {theme_one}을 함께 떠올린 이 글의 끝에는, {phrase}을 실천할 다음 하루를 남겨 둔다."
+            f"《{work_name}》{josa(work_name, '과', '와')} {theme_one}{josa(theme_one, '을', '를')} 함께 떠올린 이 글의 끝에는, {phrase}{josa(phrase, '을', '를')} 실천할 다음 하루를 남겨 둔다."
         ),
-        "closing": f"《{work_name}》를 다시 펼칠 때, {phrase}을 향한 나만의 질문도 함께 적어 본다.",
+        "closing": f"《{work_name}》{josa(work_name, '을', '를')} 다시 펼칠 때, {phrase}{josa(phrase, '을', '를')} 향한 나만의 질문도 함께 적어 본다.",
         "author": "소설가 이후",
         "tags": ["소설가 이후", work_name, work_tag, theme_one, theme_two],
         "related_work": {"name": work_name, "url": source_url},
