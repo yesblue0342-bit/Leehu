@@ -24,7 +24,7 @@ TARGET_INDEXABLE_COUNT = 2632
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 106
-TARGET_SITEMAP_URLS = 2645
+TARGET_SITEMAP_URLS = 2646
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -703,7 +703,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(
             build_literature.additional_sitemap_urls(),
             [
-                (f"{ORIGIN}/seo-updates/", "2026-08-29"),
+                (f"{ORIGIN}/seo-updates/", "2026-08-30"),
                 (
                     f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
                     "2026-08-18",
@@ -739,6 +739,10 @@ class StaticLiteratureTest(unittest.TestCase):
                 (
                     f"{ORIGIN}/seo-updates/2026-08-29-leehu-96fc1443/",
                     "2026-08-29",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-30-leehu-c585ce30/",
+                    "2026-08-30",
                 ),
             ],
         )
