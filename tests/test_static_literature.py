@@ -596,6 +596,15 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertGreaterEqual(len(authors), 30)
         self.assertGreaterEqual(len(works), 30)
 
+    def test_commentary_sections_have_mobile_reading_space(self):
+        note = next(note for note in self.notes if note.get("seo_sections"))
+        html = (LITERATURE / note["slug"] / "index.html").read_text(encoding="utf-8")
+        self.assertIn(
+            ".commentary + .commentary{margin-top:clamp(48px,7vw,68px)}",
+            html,
+        )
+        self.assertGreaterEqual(html.count('<section class="commentary">'), 4)
+
     def test_generated_page_counts_pagination_and_seo(self):
         detail_paths = [
             LITERATURE / note["slug"] / "index.html" for note in self.notes
@@ -1009,8 +1018,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-29")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-29")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-30")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-30")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
