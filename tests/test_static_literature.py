@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 3131
-TARGET_INDEXABLE_COUNT = 2632
+TARGET_COUNT = 3631
+TARGET_INDEXABLE_COUNT = 3132
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 106
-TARGET_SITEMAP_URLS = 2646
+TARGET_LIST_PAGES = 126
+TARGET_SITEMAP_URLS = 3146
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -307,6 +307,27 @@ class StaticLiteratureTest(unittest.TestCase):
                     if len(normalized := re.sub(r"\W+", "", sentence).casefold()) >= 25
                 )
         self.assertEqual(len(long_sentences), len(set(long_sentences)))
+
+    def test_20260830_leehu_500_batch_is_structured_and_unique(self) -> None:
+        batch = [
+            json.loads((CONTENT / f"{number}.json").read_text(encoding="utf-8"))
+            for number in range(3132, 3632)
+        ]
+        self.assertEqual(len(batch), 500)
+        self.assertEqual(
+            Counter(note["source_work"] for note in batch),
+            Counter({"연(戀)": 100, "데자뷔": 100, "소나기": 100, "환상": 100, "별이 빛나는 밤에": 100}),
+        )
+        self.assertEqual(len({note["id"] for note in batch}), 500)
+        self.assertEqual(len({note["slug"] for note in batch}), 500)
+        self.assertEqual(len({note["title"] for note in batch}), 500)
+        self.assertEqual(len({note["tags"][3] for note in batch}), 500)
+        for note in batch:
+            self.assertEqual(note["source_author"], "이후")
+            self.assertEqual(note["content_kind"], "original_reflection")
+            self.assertEqual(note["published_at"][:10], "2026-08-30")
+            self.assertIn("직접 인용 없음", note["rights_note"])
+            self.assertEqual(set(note["seo_sections"]), {"work_introduction", "why_read_now", "personal_reflection", "meaning_today"})
 
     def test_20260829_leehu_100_second_batch_is_structured_and_unique(self) -> None:
         batch = self.notes[3031:3131]
