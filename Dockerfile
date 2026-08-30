@@ -1,7 +1,7 @@
 # 이후 소설가 홈페이지 — 정적 사이트 + 동적 문학노트/게시판 API
 FROM python:3.12-alpine
 WORKDIR /app
-COPY index.html robots.txt sitemap.xml CNAME og-image.jpg ./
+COPY index.html robots.txt sitemap.xml CNAME og-image.jpg hermes.html hermes-privacy.html ./
 COPY google17ccaa674b8b790b.html naver7a6895689b825b13f6abd14a77c7c18a.html ./
 COPY 404.html ./404.html
 COPY literature ./literature

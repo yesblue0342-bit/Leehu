@@ -28,6 +28,8 @@ PUBLIC_STATIC_FILES = {
     "/sitemap.xml",
     "/404.html",
     "/og-image.jpg",
+    "/hermes.html",
+    "/hermes-privacy.html",
     "/google17ccaa674b8b790b.html",
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
 }
