@@ -308,6 +308,17 @@ class StaticLiteratureTest(unittest.TestCase):
                 )
         self.assertEqual(len(long_sentences), len(set(long_sentences)))
 
+    def test_literature_commentary_sections_have_readable_mobile_spacing(self) -> None:
+        spacing = ".commentary + .commentary{margin-top:clamp(48px,7vw,68px)}"
+        self.assertIn(spacing, build_literature.STYLE)
+        sample = LITERATURE / self.notes[-1]["slug"] / "index.html"
+        rendered = sample.read_text(encoding="utf-8")
+        self.assertIn(spacing, rendered)
+        self.assertRegex(
+            rendered,
+            r"나의 감상</h2>.*?</section>\s*<section class=\"commentary\"><h2>오늘 우리에게 주는 의미",
+        )
+
     def test_20260830_leehu_500_batch_is_structured_and_unique(self) -> None:
         batch = [
             json.loads((CONTENT / f"{number}.json").read_text(encoding="utf-8"))
