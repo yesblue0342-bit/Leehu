@@ -35,9 +35,9 @@ CONTENT_DIR = ROOT / "content" / "literature"
 INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-CORE_PAGE_LASTMOD = "2026-08-30"
+CORE_PAGE_LASTMOD = "2026-09-03"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 3631
+EXPECTED_COUNT = 4631
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -668,6 +668,7 @@ def detail_page(
     <p class="reflection-deck">{esc(note['quote'])}</p>
     <p class="source"><a href="{esc(note['source_url'])}" rel="external noopener">작품 정보 확인</a><br>
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
+    <section class="commentary"><h2>읽기의 초점</h2><p>{esc(note['commentary'])}</p></section>
     <section class="commentary"><h2>왜 지금도 읽히는가</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
     <section class="commentary"><h2>나의 감상</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
     <section class="commentary"><h2>오늘 우리에게 주는 의미</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""

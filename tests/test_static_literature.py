@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 3631
-TARGET_INDEXABLE_COUNT = 3132
+TARGET_COUNT = 4631
+TARGET_INDEXABLE_COUNT = 4132
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 126
-TARGET_SITEMAP_URLS = 3146
+TARGET_LIST_PAGES = 166
+TARGET_SITEMAP_URLS = 4149
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -318,6 +318,31 @@ class StaticLiteratureTest(unittest.TestCase):
             rendered,
             r"나의 감상</h2>.*?</section>\s*<section class=\"commentary\"><h2>오늘 우리에게 주는 의미",
         )
+
+    def test_20260903_leehu_1000_batch_is_structured_and_unique(self) -> None:
+        batch = [
+            json.loads((CONTENT / f"{number}.json").read_text(encoding="utf-8"))
+            for number in range(3632, 4632)
+        ]
+        self.assertEqual(len(batch), 1000)
+        self.assertEqual(
+            Counter(note["source_work"] for note in batch),
+            Counter({"연(戀)": 203, "데자뷔": 200, "소나기": 197, "환상": 200, "별이 빛나는 밤에": 200}),
+        )
+        self.assertEqual(
+            {note["id"] for note in batch},
+            {f"20260903_leehu_literature_{sequence:04d}" for sequence in range(1261, 2261)},
+        )
+        for field in ("slug", "title", "quote", "commentary", "source_location", "translation_note", "rights_note"):
+            self.assertEqual(len({note[field] for note in batch}), 1000)
+        for note in batch:
+            self.assertEqual(note["published_at"][:10], "2026-09-03")
+            self.assertEqual(note["content_kind"], "original_reflection")
+            self.assertIn("직접 인용 없음", note["rights_note"])
+            self.assertEqual(
+                tuple(note["seo_sections"]),
+                ("work_introduction", "why_read_now", "personal_reflection", "meaning_today"),
+            )
 
     def test_20260830_leehu_500_batch_is_structured_and_unique(self) -> None:
         batch = [
@@ -699,6 +724,10 @@ class StaticLiteratureTest(unittest.TestCase):
             elif isinstance(note.get("seo_sections"), dict):
                 for section_text in note["seo_sections"].values():
                     self.assertIn(html.escape(section_text, quote=True), text)
+                if note.get("content_kind") == "original_reflection":
+                    self.assertIn(html.escape(note["commentary"], quote=True), text)
+                    self.assertIn('class="reflection-deck"', text)
+                    self.assertNotIn("<blockquote>", text)
             else:
                 self.assertIn(html.escape(note["commentary"], quote=True), text)
             blocks = json_ld_re.findall(text)
@@ -744,7 +773,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(
             build_literature.additional_sitemap_urls(),
             [
-                (f"{ORIGIN}/seo-updates/", "2026-08-30"),
+                (f"{ORIGIN}/seo-updates/", "2026-09-02"),
                 (
                     f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
                     "2026-08-18",
@@ -784,6 +813,18 @@ class StaticLiteratureTest(unittest.TestCase):
                 (
                     f"{ORIGIN}/seo-updates/2026-08-30-leehu-c585ce30/",
                     "2026-08-30",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-08-31-leehu-1cf75bdb/",
+                    "2026-08-31",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-09-01-leehu-022406d5/",
+                    "2026-09-01",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-09-02-leehu-ead695e4/",
+                    "2026-09-02",
                 ),
             ],
         )
@@ -977,6 +1018,7 @@ class StaticLiteratureTest(unittest.TestCase):
                 "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
                 "https://blog.naver.com/yesblue0342",
                 "https://www.youtube.com/@Yesblue1234",
+                "https://music.bugs.co.kr/artist/20190019",
                 "https://github.com/yesblue0342-bit/Leehu",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
                 "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
@@ -1029,8 +1071,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-08-30")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-08-30")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-03")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-03")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
