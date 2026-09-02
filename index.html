@@ -868,6 +868,48 @@ html body[data-stella-ui="dormant"] #stella#stella{
   pointer-events:none!important;
 }
 body[data-stella-ui="dormant"] .nav-links{margin-right:0}
+/* Refined editorial presentation */
+body{
+  background:
+    radial-gradient(circle at 88% 8%,rgba(156,122,69,.10),transparent 26rem),
+    linear-gradient(180deg,var(--paper-light) 0,var(--paper) 34rem);
+}
+.site-nav{box-shadow:0 10px 34px rgba(21,26,36,.055)}
+.nav-logo{letter-spacing:.14em}
+.hero{position:relative;isolation:isolate;background:rgba(250,248,243,.7)}
+.hero::after{content:"";position:absolute;inset:auto 0 0;height:1px;background:linear-gradient(90deg,transparent,var(--brass),transparent);opacity:.65}
+.hero-left{position:relative}
+.hero-left::before{content:"LEE HU · 李後";position:absolute;left:72px;top:34px;color:var(--brass);font-family:var(--font-sans);font-size:.7rem;font-weight:700;letter-spacing:.28em}
+.hero h1{text-wrap:balance;text-shadow:0 12px 34px rgba(21,26,36,.08)}
+.hero-right{background:linear-gradient(145deg,rgba(250,248,243,.92),rgba(232,224,210,.72))}
+.quote{max-width:560px;padding:48px}
+.sec{position:relative}
+.sec-title{display:flex;align-items:center;gap:16px}
+.sec-title::after{content:"";width:48px;height:1px;background:var(--brass);opacity:.7}
+.about-grid>div:first-child{max-width:720px}
+.card{transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease}
+.card:hover{transform:translateY(-5px);border-color:rgba(156,122,69,.58);box-shadow:0 20px 42px rgba(21,26,36,.09)}
+.card h3{font-size:1.16rem}
+.hero-cta,.mini-link,.footer-links a{transition:transform .2s ease,background-color .2s ease,color .2s ease,border-color .2s ease}
+.hero-cta:hover,.mini-link:hover,.footer-links a:hover{transform:translateY(-2px)}
+.source-disclosure{background:rgba(250,248,243,.72);box-shadow:0 18px 44px rgba(21,26,36,.05)}
+.footer{background:linear-gradient(180deg,rgba(250,248,243,.8),#ebe4d7)}
+@media(max-width:1000px){
+  .hero-left::before{left:24px;top:26px}
+  .hero-left{padding-top:72px}
+  .quote{padding:38px 24px}
+}
+@media(max-width:640px){
+  .hero h1{font-size:clamp(4rem,25vw,6.2rem)}
+  .hero-tags{gap:6px}
+  .tag{padding:7px 11px}
+  .card{min-height:auto}
+  .card:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .card,.hero-cta,.mini-link,.footer-links a{transition:none}
+  .card:hover,.hero-cta:hover,.mini-link:hover,.footer-links a:hover{transform:none}
+}
 </style>
 
 </head>
