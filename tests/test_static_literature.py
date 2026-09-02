@@ -705,6 +705,11 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertIn('<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">', text)
             self.assertIn('property="article:published_time"', text)
             self.assertIn('property="article:author"', text)
+            self.assertIn(f'<link rel="author" href="{ORIGIN}/author/">', text)
+            self.assertIn(
+                f'<a class="author-link" href="/author/" rel="author">{html.escape(note["author"])}</a>',
+                text,
+            )
             expected_robots = (
                 "index, follow"
                 if note["id"] in self.indexable_ids
@@ -741,6 +746,23 @@ class StaticLiteratureTest(unittest.TestCase):
             self.assertEqual(article["author"]["@id"], f"{ORIGIN}/#person")
             self.assertEqual(article["author"]["url"], f"{ORIGIN}/author/")
             self.assertEqual(
+                article["author"]["identifier"],
+                {
+                    "@type": "PropertyValue",
+                    "propertyID": "Naver Person ID",
+                    "value": "215161",
+                },
+            )
+            self.assertEqual(
+                set(article["author"]["sameAs"]),
+                set(build_literature.AUTHOR_SAME_AS),
+            )
+            self.assertEqual(article["isPartOf"]["@id"], f"{ORIGIN}/#website")
+            if note["source_author"] == "이후":
+                self.assertEqual(article["about"]["author"]["@id"], f"{ORIGIN}/#person")
+            else:
+                self.assertEqual(article["about"]["author"]["name"], note["source_author"])
+            self.assertEqual(
                 article["image"],
                 {
                     "@type": "ImageObject",
@@ -750,8 +772,10 @@ class StaticLiteratureTest(unittest.TestCase):
                 },
             )
             self.assertIn(
-                'href="/author/">소설가 이후 공식 프로필</a>', text
+                'href="/author/" rel="author">소설가 이후 공식 프로필</a>', text
             )
+            if note["source_author"] == "이후":
+                self.assertIn("작품과 글:", text)
             self.assertIn(html.escape(note["quote"], quote=True), text)
             if note["id"] not in self.indexable_ids:
                 post_nav = re.search(
@@ -1044,6 +1068,8 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f'"@id": "{ORIGIN}/#person"', author_page)
         self.assertIn('"propertyID": "Naver Person ID"', author_page)
         self.assertIn('"value": "215161"', author_page)
+        for same_as_url in build_literature.AUTHOR_SAME_AS:
+            self.assertIn(f'"{same_as_url}"', author_page)
         self.assertIn(
             '<link rel="alternate" type="application/rss+xml" '
             'title="이후의 문학노트 RSS" '

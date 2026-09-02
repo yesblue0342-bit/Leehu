@@ -85,8 +85,11 @@ async function waitForHttp(url, timeoutMs = 15_000) {
   while (Date.now() < deadline) {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
-      if (response.ok) return response;
-      lastError = new Error(`HTTP ${response.status}`);
+      const status = response.status;
+      const ok = response.ok;
+      await response.arrayBuffer();
+      if (ok) return { ok, status };
+      lastError = new Error(`HTTP ${status}`);
     } catch (error) {
       lastError = error;
     }
@@ -330,13 +333,11 @@ function pageMetricsExpression(width) {
     const required = [
       ".hero h1",
       '.hero-actions a[href="#works"]',
-      '.hero-actions a[href="#about"]',
       ${width <= 768 ? '"#mobileNavToggle"' : '"#primaryNav"'}
     ];
     const touchSelectors = ${width <= 768 ? JSON.stringify([
       "#mobileNavToggle",
       '.hero-actions a[href="#works"]',
-      '.hero-actions a[href="#about"]',
     ]) : "[]"};
     return {
       viewportWidth:document.documentElement.clientWidth,
@@ -348,6 +349,15 @@ function pageMetricsExpression(width) {
       stellaEntry:detail("#stellaButton"),
       stellaPanel:detail("#stella"),
       staticImageCount:document.querySelectorAll("body > img, main img, header img, footer img").length,
+      heroTags:Array.from(document.querySelectorAll(".hero-tags .tag")).map(element => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return {
+          text:element.textContent.trim(),
+          lineCount:range.getClientRects().length,
+          whiteSpace:getComputedStyle(element).whiteSpace,
+        };
+      }),
     };
   })()`;
 }
@@ -378,7 +388,7 @@ async function inspectKeyboardNavigation(cdp) {
     stops,
     reachesStella:stops.includes("stellaButton"),
     reachesWorks:stops.includes("#works"),
-    reachesAbout:stops.includes("#about"),
+    reachesAuthorProfile:stops.includes("/author/"),
   };
 }
 
@@ -651,12 +661,14 @@ async function safeHttpChecks(baseUrl) {
         headers: { Accept: path.includes("/api/") ? "application/json" : "*/*" },
         signal: AbortSignal.timeout(10_000),
       });
-      checks.push({
+      const check = {
         path,
         status: response.status,
         contentType: response.headers.get("content-type") || "",
         ok: response.ok,
-      });
+      };
+      await response.arrayBuffer();
+      checks.push(check);
     } catch (error) {
       checks.push({ path, status: null, contentType: "", ok: false, error: error.message });
     }
@@ -673,6 +685,11 @@ function validateReport(report) {
     if (viewport.metrics.overflow) failures.push(`${viewport.name}: document overflow`);
     if (viewport.metrics.staticImageCount !== 0) {
       failures.push(`${viewport.name}: static person/image surface exists`);
+    }
+    for (const tag of viewport.metrics.heroTags) {
+      if (tag.lineCount !== 1) {
+        failures.push(`${viewport.name}: hero tag "${tag.text}" wrapped to ${tag.lineCount} lines`);
+      }
     }
     for (const item of viewport.metrics.required) {
       if (!item.exists || !item.visible) failures.push(`${viewport.name}: hidden ${item.selector}`);
@@ -692,7 +709,7 @@ function validateReport(report) {
     }
     if (viewport.keyboard.reachesStella ||
         !viewport.keyboard.reachesWorks ||
-        !viewport.keyboard.reachesAbout) {
+        !viewport.keyboard.reachesAuthorProfile) {
       failures.push(`${viewport.name}: keyboard navigation did not reach key controls`);
     }
     if (!viewport.board.panelVisible || !viewport.board.searchVisible || viewport.board.overflow) {

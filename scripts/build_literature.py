@@ -38,6 +38,16 @@ ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-09-03"
 PAGE_SIZE = 25
 EXPECTED_COUNT = 4631
+AUTHOR_SAME_AS = [
+    "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
+    "https://blog.naver.com/yesblue0342",
+    "https://www.youtube.com/@Yesblue1234",
+    "https://music.bugs.co.kr/artist/20190019",
+    "https://github.com/yesblue0342-bit/Leehu",
+    "https://store.kyobobook.co.kr/person/detail/1000809404",
+    "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
+    "https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)",
+]
 REQUIRED_FIELDS = (
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -72,7 +82,7 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 .pagination{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 0 54px}.pagination a,.pagination span{border:1px solid var(--line);border-radius:999px;padding:7px 12px;text-decoration:none}
 .pagination .current{background:var(--ink);color:#fff}.footer{padding:46px 20px;text-align:center;border-top:1px solid var(--line);background:#fafafa;color:var(--muted)}
 .article{width:min(820px,calc(100% - 40px));margin:0 auto;padding:64px 0}.breadcrumbs{font-size:.82rem;color:var(--muted);margin-bottom:32px}.article h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.25;margin:12px 0 18px}
-.meta{color:var(--muted);font-size:.88rem}.article blockquote{margin:42px 0 20px;padding:30px;border-left:3px solid var(--gold);background:var(--panel);font-size:clamp(1.25rem,3vw,1.8rem);line-height:1.7;font-style:italic}
+.meta{color:var(--muted);font-size:.88rem}.author-link{text-underline-offset:3px;text-decoration-thickness:1px}.article blockquote{margin:42px 0 20px;padding:30px;border-left:3px solid var(--gold);background:var(--panel);font-size:clamp(1.25rem,3vw,1.8rem);line-height:1.7;font-style:italic}
 .source{font-size:.9rem;color:var(--muted);margin-bottom:42px}.source a{text-underline-offset:3px}.commentary h2{font-size:1.2rem;margin-bottom:14px}.commentary p{font-size:1.04rem;line-height:2.05;white-space:normal}.commentary + .commentary{margin-top:clamp(48px,7vw,68px)}
 .collection-introduction{margin:34px 0 18px;font-size:1.08rem;line-height:2}.collection-deck{margin:0 0 24px;color:#374151;font-size:1.05rem;line-height:1.95}.rights-note{margin:0 0 36px;padding:18px 20px;background:var(--panel);border-radius:12px;color:var(--muted);font-size:.9rem;line-height:1.8}.collection-work{margin:46px 0;padding-top:34px;border-top:1px solid var(--line)}.collection-work h2{font-size:1.45rem;line-height:1.5}.collection-meta{margin:6px 0 22px;color:var(--muted)}.collection-work dl{display:grid;gap:18px}.collection-work dt{font-weight:700;color:var(--red)}.collection-work dd{margin-top:4px;line-height:1.9}.collection-closing{margin:46px 0;padding:28px;background:var(--panel);border-radius:16px;line-height:2}
 .tags{display:flex;gap:8px;flex-wrap:wrap;margin:30px 0}.tag{border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:.78rem}
@@ -565,6 +575,12 @@ def detail_page(
     search_title = seo_title(note["title"])
     published = str(note["published_at"])
     source_link_label = "작품 정보 확인" if str(note.get("content_kind", "source_quote")) == "original_reflection" else "원문 확인"
+    is_leehu_work = str(note["source_author"]) == "이후"
+    referenced_author = (
+        {"@id": f"{ORIGIN}/#person"}
+        if is_leehu_work
+        else {"@type": "Person", "name": note["source_author"]}
+    )
     article_ld = {
         "@context": "https://schema.org",
         "@type": "BlogPosting",
@@ -574,12 +590,33 @@ def detail_page(
         "mainEntityOfPage": url,
         "datePublished": published,
         "dateModified": published,
+        "isPartOf": {
+            "@type": "WebSite",
+            "@id": f"{ORIGIN}/#website",
+            "url": f"{ORIGIN}/",
+            "name": "소설가 이후 공식 홈페이지",
+        },
         "author": {
             "@type": "Person",
             "@id": f"{ORIGIN}/#person",
             "name": "이후",
             "alternateName": ["소설가 이후", "李後", "Lee Hu"],
+            "disambiguatingDescription": "장편소설 《연》·《데자뷔》·《소나기》를 쓴 소설가 이후(李後, Lee Hu)",
             "url": f"{ORIGIN}/author/",
+            "identifier": {
+                "@type": "PropertyValue",
+                "propertyID": "Naver Person ID",
+                "value": "215161",
+            },
+            "jobTitle": ["소설가", "시인", "가수"],
+            "worksFor": {"@id": f"{ORIGIN}/#organization"},
+            "sameAs": AUTHOR_SAME_AS,
+        },
+        "about": {
+            "@type": "CreativeWork",
+            "name": note["source_work"],
+            "author": referenced_author,
+            "url": note["source_url"],
         },
         "publisher": {
             "@type": "Organization",
@@ -624,6 +661,7 @@ def detail_page(
 <meta name="twitter:description" content="{esc(description)}">
 <meta name="twitter:image" content="{ORIGIN}/og-image.jpg">
 <meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
+<link rel="author" href="{ORIGIN}/author/">
 <script type="application/ld+json">{json_ld}</script>"""
     prev_link = (
         f'<a href="/literature/{esc(previous["slug"])}/">← {esc(previous["title"])}</a>'
@@ -696,10 +734,10 @@ def detail_page(
   <nav class="breadcrumbs" aria-label="이동 경로"><a href="/">홈</a> / <a href="/literature/">문학노트</a> / {esc(note['title'])}</nav>
   <article>
     <header><p class="eyebrow">Literature Note · {esc(note['id'])}</p><h1>{esc(note['title'])}</h1>
-    <p class="meta">글 {esc(note['author'])} · <time datetime="{esc(published)}">{datetime.fromisoformat(published).year}년 {datetime.fromisoformat(published).month}월 {datetime.fromisoformat(published).day}일</time></p></header>
+    <p class="meta">글 <a class="author-link" href="/author/" rel="author">{esc(note['author'])}</a> · <time datetime="{esc(published)}">{datetime.fromisoformat(published).year}년 {datetime.fromisoformat(published).month}월 {datetime.fromisoformat(published).day}일</time></p></header>
 {article_body}
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>
-    <p class="related">글쓴이: <a href="/author/">소설가 이후 공식 프로필</a></p>
+    <p class="related">{"작품과 글" if is_leehu_work else "글쓴이"}: <a href="/author/" rel="author">소설가 이후 공식 프로필</a></p>
     <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
     <p class="meta" style="margin-top:28px">{esc(note['closing'])}</p>
   </article>

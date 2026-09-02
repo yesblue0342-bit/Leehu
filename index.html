@@ -847,7 +847,7 @@ td{color:#45413c}
   #stellaButton{min-width:108px!important;padding:0 11px!important;font-size:.74rem!important}
   .hero-actions{display:grid;grid-template-columns:1fr}
   .hero-cta{min-height:48px}
-  .hero-tags{display:grid;grid-template-columns:repeat(3,1fr)}
+  .hero-tags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .tag{border-right:1px solid var(--line);text-align:center}
   .tag:nth-child(3n){border-right:0}
   .cards,#books .cards,.source-disclosure .cards,#literature-latest .cards,.identity-grid{grid-template-columns:1fr}
@@ -901,8 +901,8 @@ body{
 }
 @media(max-width:640px){
   .hero h1{font-size:clamp(4rem,25vw,6.2rem)}
-  .hero-tags{gap:6px}
-  .tag{padding:7px 11px}
+  .hero-tags{gap:0}
+  .tag{min-width:0;padding:7px 6px!important;font-size:.84rem!important;white-space:nowrap;word-break:keep-all;overflow-wrap:normal}
   .card{min-height:auto}
   .card:hover{transform:none}
 }
