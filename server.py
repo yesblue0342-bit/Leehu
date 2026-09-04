@@ -35,7 +35,6 @@ PUBLIC_STATIC_FILES = {
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
 }
 PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/literature")
-NON_PUBLIC_REPOSITORY_URL = "https://github.com/yesblue0342-bit/Leehu"
 CANONICAL_ORIGIN = "https://xn--hu5b23z.com"
 OG_IMAGE = f"{CANONICAL_ORIGIN}/og-image.jpg"
 MAX_BODY_BYTES = 128 * 1024
@@ -1161,12 +1160,6 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             if content_type.startswith("text/"):
                 content_type += "; charset=utf-8"
         content = target.read_bytes()
-        if content_type.startswith("text/html"):
-            text = content.decode("utf-8")
-            text = text.replace(f'"{NON_PUBLIC_REPOSITORY_URL}", ', "")
-            text = text.replace(f', "{NON_PUBLIC_REPOSITORY_URL}"', "")
-            text = text.replace(NON_PUBLIC_REPOSITORY_URL, "")
-            content = text.encode("utf-8")
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
