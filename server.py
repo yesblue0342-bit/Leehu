@@ -708,6 +708,7 @@ def render_literature_detail(post):
   <nav class="article-nav">
     {''.join(prev_next)}
     <a href="/literature/">문학노트 목록으로 돌아가기</a>
+    <a href="/official-links/">공식 출처 보기</a>
     <a href="/">홈페이지로 돌아가기</a>
   </nav>
 </main>

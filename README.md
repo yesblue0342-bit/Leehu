@@ -17,6 +17,10 @@
 - [Wikipedia: 이후 (소설가)](https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80))
 - 한글 표시 도메인: [이후.com](https://이후.com/)
 
+## 기존 1,000개 문학노트 재활용
+
+`content/leehu-reflections-20260903-1000.json`의 기존 문학노트 1,000건은 새 페이지로 복제하지 않고 원래 canonical URL을 그대로 유지합니다. 각 문서는 [공식 작가 프로필](https://xn--hu5b23z.com/author/)과 [공식 출처 인덱스](https://xn--hu5b23z.com/official-links/)로 연결되며, sitemap과 구조화 데이터를 통해 네이버·YouTube를 포함한 공개 채널의 동일 인물 관계를 전달합니다.
+
 ## 문학노트 정적 발행
 
 문학노트는 GitHub Pages에서 직접 제공하는 정적 HTML입니다. 정기 발행, n8n, API token, 런타임 데이터베이스 없이 한 번의 배치로 공개합니다.

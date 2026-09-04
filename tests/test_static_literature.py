@@ -343,6 +343,13 @@ class StaticLiteratureTest(unittest.TestCase):
                 tuple(note["seo_sections"]),
                 ("work_introduction", "why_read_now", "personal_reflection", "meaning_today"),
             )
+            rendered = (
+                LITERATURE / note["slug"] / "index.html"
+            ).read_text(encoding="utf-8")
+            self.assertIn(
+                '<a href="/official-links/">소설가 이후 공식 출처 모음</a>',
+                rendered,
+            )
 
     def test_20260830_leehu_500_batch_is_structured_and_unique(self) -> None:
         batch = [
@@ -1011,6 +1018,15 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f'<link rel="canonical" href="{ORIGIN}/official-links/">', official_links)
         self.assertIn('"@type": "ProfilePage"', official_links)
         self.assertIn("https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA", official_links)
+        visible_official_links = re.sub(
+            r"<script\b[^>]*>.*?</script>", "", official_links, flags=re.S
+        )
+        self.assertNotIn("github.com", visible_official_links)
+        self.assertNotIn("GitHub", visible_official_links)
+        self.assertNotIn("검색엔진 안내", visible_official_links)
+        llms = (ROOT / "llms.txt").read_text(encoding="utf-8")
+        self.assertNotIn("github.com", llms)
+        self.assertNotIn("GitHub", llms)
 
     def test_homepage_preserves_seo_json_ld_canonical_and_open_graph(self):
         homepage = self.homepage
@@ -1083,6 +1099,11 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn('"value": "215161"', author_page)
         for same_as_url in build_literature.AUTHOR_SAME_AS:
             self.assertIn(f'"{same_as_url}"', author_page)
+        visible_author_page = re.sub(
+            r"<script\b[^>]*>.*?</script>", "", author_page, flags=re.S
+        )
+        self.assertNotIn("github.com", visible_author_page)
+        self.assertNotIn("GitHub", visible_author_page)
         self.assertIn(
             '<link rel="alternate" type="application/rss+xml" '
             'title="이후의 문학노트 RSS" '

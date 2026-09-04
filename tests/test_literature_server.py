@@ -1,5 +1,6 @@
 import http.client
 import json
+import re
 import tempfile
 import threading
 import unittest
@@ -451,20 +452,36 @@ class StaticLiteratureProductionTest(unittest.TestCase):
 
         status, _, author, _ = self.request("GET", "/author/")
         self.assertEqual(status, 200)
+        author_text = author.decode("utf-8")
         self.assertIn(
             f'<link rel="canonical" href="{server.CANONICAL_ORIGIN}/author/">',
-            author.decode("utf-8"),
+            author_text,
         )
+        visible_author = re.sub(
+            r"<script\b[^>]*>.*?</script>", "", author_text, flags=re.S
+        )
+        self.assertNotIn("github.com", visible_author)
+        self.assertNotIn("GitHub", visible_author)
         status, _, official_links, _ = self.request("GET", "/official-links/")
         self.assertEqual(status, 200)
+        official_links_text = official_links.decode("utf-8")
         self.assertIn(
             f'<link rel="canonical" href="{server.CANONICAL_ORIGIN}/official-links/">',
-            official_links.decode("utf-8"),
+            official_links_text,
         )
+        visible_official_links = re.sub(
+            r"<script\b[^>]*>.*?</script>", "", official_links_text, flags=re.S
+        )
+        self.assertNotIn("github.com", visible_official_links)
+        self.assertNotIn("GitHub", visible_official_links)
+        self.assertNotIn("검색엔진 안내", visible_official_links)
         status, content_type, llms_body, _ = self.request("GET", "/llms.txt")
         self.assertEqual(status, 200)
         self.assertIn("text/plain", content_type)
-        self.assertIn("소설가 이후", llms_body.decode("utf-8"))
+        llms_text = llms_body.decode("utf-8")
+        self.assertIn("소설가 이후", llms_text)
+        self.assertNotIn("github.com", llms_text)
+        self.assertNotIn("GitHub", llms_text)
         status, _, _, _ = self.request("GET", "/literature/%2e%2e/server.py")
         self.assertEqual(status, 404)
         for private_path in (

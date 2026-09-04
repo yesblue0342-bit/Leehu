@@ -743,6 +743,7 @@ def detail_page(
 {article_body}
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>
     <p class="related">{"작품과 글" if is_leehu_work else "글쓴이"}: <a href="/author/" rel="author">소설가 이후 공식 프로필</a></p>
+    <p class="related">공식 정보: <a href="/official-links/">소설가 이후 공식 출처 모음</a></p>
     <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
     <p class="meta" style="margin-top:28px">{esc(note['closing'])}</p>
   </article>
