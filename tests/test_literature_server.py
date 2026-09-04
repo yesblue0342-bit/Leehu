@@ -411,9 +411,11 @@ class StaticLiteratureProductionTest(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("text/html", content_type)
             self.assertIn('<meta name="robots" content="noindex, follow">', body.decode("utf-8"))
+            self.assertNotIn("github.com/yesblue0342-bit", body.decode("utf-8"))
         status, _, body, _ = self.request("GET", f"/literature/{included_slug}/")
         self.assertEqual(status, 200)
         self.assertIn('<meta name="robots" content="index, follow">', body.decode("utf-8"))
+        self.assertNotIn("github.com/yesblue0342-bit", body.decode("utf-8"))
 
         status, _, page_two, _ = self.request("GET", "/literature/page/2/")
         self.assertEqual(status, 200)
@@ -461,6 +463,8 @@ class StaticLiteratureProductionTest(unittest.TestCase):
             f'<link rel="canonical" href="{server.CANONICAL_ORIGIN}/official-links/">',
             official_links.decode("utf-8"),
         )
+        self.assertNotIn("github.com/yesblue0342-bit", official_links.decode("utf-8"))
+        self.assertNotIn("검색엔진 안내", official_links.decode("utf-8"))
         status, content_type, llms_body, _ = self.request("GET", "/llms.txt")
         self.assertEqual(status, 200)
         self.assertIn("text/plain", content_type)

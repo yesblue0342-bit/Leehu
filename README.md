@@ -19,7 +19,7 @@
 
 ## 문학노트 정적 발행
 
-문학노트는 GitHub Pages에서 직접 제공하는 정적 HTML입니다. 정기 발행, n8n, API token, 런타임 데이터베이스 없이 한 번의 배치로 공개합니다.
+문학노트는 정적 호스팅에서 직접 제공하는 HTML입니다. 정기 발행, n8n, API token, 런타임 데이터베이스 없이 한 번의 배치로 공개합니다.
 
 ### 구조
 
@@ -108,7 +108,7 @@ python scripts/submit_indexnow.py
 
 ## 서버 발행 모드
 
-현재 문학노트 공개 기준은 GitHub Pages의 버전 관리된 정적 HTML입니다. `server.py`와 Docker 배포도 기본값인 `LITERATURE_PUBLICATION_MODE=static`에서 같은 정적 홈페이지·공식 프로필·문학노트·RSS·sitemap을 제공합니다. 이 모드에서 API로 저장한 새 문학노트는 다음 정적 빌드 전까지 공개 HTML과 검색 발견 경로에 노출되지 않습니다.
+현재 문학노트 공개 기준은 버전 관리된 정적 HTML입니다. `server.py`와 Docker 배포도 기본값인 `LITERATURE_PUBLICATION_MODE=static`에서 같은 정적 홈페이지·공식 프로필·문학노트·RSS·sitemap을 제공합니다. 이 모드에서 API로 저장한 새 문학노트는 다음 정적 빌드 전까지 공개 HTML과 검색 발견 경로에 노출되지 않습니다.
 
 서버의 정적 파일 공개 범위는 홈페이지, 공식 프로필, 공식 출처 인덱스, 문학노트, RSS·sitemap·robots·llms.txt, 검색엔진 소유 확인 파일과 공유 이미지로 제한합니다. Python 소스, 정책 JSON, Docker·저장소 문서는 HTTP로 제공하지 않습니다. 발행 모드 값이 `static` 또는 `dynamic`이 아니면 서버는 묵시적으로 대체하지 않고 시작 단계에서 오류를 냅니다.
 

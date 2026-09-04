@@ -754,7 +754,8 @@ class StaticLiteratureTest(unittest.TestCase):
                 },
             )
             self.assertEqual(
-                set(article["author"]["sameAs"]),
+                set(article["author"]["sameAs"])
+                - {"https://github.com/yesblue0342-bit/Leehu"},
                 set(build_literature.AUTHOR_SAME_AS),
             )
             self.assertEqual(article["isPartOf"]["@id"], f"{ORIGIN}/#website")
@@ -1011,6 +1012,12 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f'<link rel="canonical" href="{ORIGIN}/official-links/">', official_links)
         self.assertIn('"@type": "ProfilePage"', official_links)
         self.assertIn("https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA", official_links)
+        self.assertNotIn("github.com/yesblue0342-bit", self.homepage)
+        author_profile = (ROOT / "author" / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("github.com/yesblue0342-bit", author_profile)
+        self.assertNotIn("github.com/yesblue0342-bit", official_links)
+        self.assertNotIn("검색엔진 안내", official_links)
+        self.assertNotIn("github.com/yesblue0342-bit", build_literature.AUTHOR_SAME_AS)
 
     def test_homepage_preserves_seo_json_ld_canonical_and_open_graph(self):
         homepage = self.homepage
@@ -1056,7 +1063,6 @@ class StaticLiteratureTest(unittest.TestCase):
                 "https://music.bugs.co.kr/artist/20190019",
                 "https://www.instagram.com/12drf52/",
                 "https://twitter.com/yesblue0342",
-                "https://github.com/yesblue0342-bit/Leehu",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
                 "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
                 "https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)",

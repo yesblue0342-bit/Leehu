@@ -13,6 +13,11 @@ git push
 - push 전 `git pull --rebase --autostash` 로 충돌을 방지한다.
 - main 브랜치에 push하면 GitHub Actions가 OCI에 자동 배포하므로, 배포 설정(.github/workflows)은 절대 건드리지 않는다.
 
+## 외부 노출 보호 규칙
+- 공개 HTML, JSON-LD, `llms.txt`, sitemap, RSS, 화면 문구에 GitHub 저장소 주소나 계정명을 넣지 않는다.
+- SEO 페이지에는 외부 수집, 백링크 작업, 검색엔진 조작을 설명하는 운영 문구를 노출하지 않는다.
+- SEO 수정 후 홈페이지, 작가 프로필, 공식 출처 페이지와 생성 규칙에서 `github.com/yesblue0342-bit`가 없는지 확인한다.
+
 ## OCI 접속 규칙
 - OCI 점검이 필요할 때는 Stella-NUC의 `ssh leehu-oci` 별칭을 사용한다.
 - OCI의 Tailscale 주소로 직접 SSH를 호출하거나 추가 인증 링크를 새로 만들지 않는다.
