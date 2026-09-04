@@ -25,6 +25,7 @@ LITERATURE_INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 PUBLIC_STATIC_FILES = {
     "/index.html",
     "/robots.txt",
+    "/llms.txt",
     "/sitemap.xml",
     "/404.html",
     "/og-image.jpg",
@@ -33,7 +34,7 @@ PUBLIC_STATIC_FILES = {
     "/google17ccaa674b8b790b.html",
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
 }
-PUBLIC_STATIC_ROOTS = ("/author", "/literature")
+PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/literature")
 CANONICAL_ORIGIN = "https://xn--hu5b23z.com"
 OG_IMAGE = f"{CANONICAL_ORIGIN}/og-image.jpg"
 MAX_BODY_BYTES = 128 * 1024
@@ -420,6 +421,7 @@ def render_common_nav():
   <a class="nav-logo" href="/">이후</a>
   <ul class="nav-links">
     <li><a href="/author/">공식 프로필</a></li>
+    <li><a href="/official-links/">공식 출처</a></li>
     <li><a href="/#about">소개</a></li>
     <li><a href="/#works">작품</a></li>
     <li><a href="/#identity">활동</a></li>
@@ -775,6 +777,7 @@ def render_sitemap():
     urls = [
         (f"{CANONICAL_ORIGIN}/", "weekly", "1.0", None),
         (f"{CANONICAL_ORIGIN}/author/", "monthly", "0.8", None),
+        (f"{CANONICAL_ORIGIN}/official-links/", "monthly", "0.8", None),
         (f"{CANONICAL_ORIGIN}/literature/", "daily", "0.9", None),
     ]
     for post in posts:
@@ -850,6 +853,9 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/author":
             self.redirect_permanently("/author/")
             return
+        if parsed.path == "/official-links":
+            self.redirect_permanently("/official-links/")
+            return
         if parsed.path == "/sitemap":
             self.redirect_permanently("/sitemap.xml")
             return
@@ -859,7 +865,7 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             else:
                 self.html_response(render_homepage())
             return
-        if parsed.path == "/author/":
+        if parsed.path in ("/author/", "/official-links/"):
             self.serve_static(parsed.path)
             return
         if literature_publication_mode() == "static" and (

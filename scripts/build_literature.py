@@ -35,14 +35,18 @@ CONTENT_DIR = ROOT / "content" / "literature"
 INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-CORE_PAGE_LASTMOD = "2026-09-03"
+CORE_PAGE_LASTMOD = "2026-09-04"
 PAGE_SIZE = 25
 EXPECTED_COUNT = 4631
 AUTHOR_SAME_AS = [
     "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
     "https://blog.naver.com/yesblue0342",
     "https://www.youtube.com/@Yesblue1234",
+    "https://www.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
+    "https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
     "https://music.bugs.co.kr/artist/20190019",
+    "https://www.instagram.com/12drf52/",
+    "https://twitter.com/yesblue0342",
     "https://github.com/yesblue0342-bit/Leehu",
     "https://store.kyobobook.co.kr/person/detail/1000809404",
     "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
@@ -510,6 +514,7 @@ def nav() -> str:
   <ul class="nav-links">
     <li><a href="/">홈</a></li>
     <li><a href="/author/">공식 프로필</a></li>
+    <li><a href="/official-links/">공식 출처</a></li>
     <li><a href="/literature/">문학노트</a></li>
     <li><a href="/#board">게시판</a></li>
     <li><a href="/#contact">연락</a></li>
@@ -840,6 +845,7 @@ def write_sitemap(notes: list[dict[str, object]]) -> None:
     urls = [
         (f"{ORIGIN}/", core_page_date),
         (f"{ORIGIN}/author/", core_page_date),
+        (f"{ORIGIN}/official-links/", core_page_date),
         (f"{ORIGIN}/literature/", latest_date),
     ]
     urls.extend(
@@ -948,7 +954,7 @@ def verify_generated(
                     errors.append(f"invalid JSON-LD: {path.relative_to(ROOT)}: {exc}")
     sitemap = ET.parse(ROOT / "sitemap.xml")
     sitemap_count = len(sitemap.getroot())
-    expected_sitemap = 3 + len(indexable_notes) + len(additional_sitemap_urls())
+    expected_sitemap = 4 + len(indexable_notes) + len(additional_sitemap_urls())
     if sitemap_count != expected_sitemap:
         errors.append(f"sitemap count {sitemap_count}, expected {expected_sitemap}")
     rss = ET.parse(LITERATURE_DIR / "rss.xml")
@@ -1064,7 +1070,7 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
     print(
         f"built {len(all_notes)} detail pages, {total_pages} list pages, "
         f"{len(indexable_notes)} RSS items, and "
-        f"{3 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
+        f"{4 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
         f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )
 

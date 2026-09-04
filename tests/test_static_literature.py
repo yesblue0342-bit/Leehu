@@ -24,7 +24,7 @@ TARGET_INDEXABLE_COUNT = 4132
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 166
-TARGET_SITEMAP_URLS = 4149
+TARGET_SITEMAP_URLS = 4150
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -869,6 +869,8 @@ class StaticLiteratureTest(unittest.TestCase):
         latest_note = build_literature.sort_for_publication(self.indexable_notes)[0]
         self.assertEqual(sitemap_dates[f"{ORIGIN}/"], latest_date)
         self.assertIn(f"{ORIGIN}/author/", locations)
+        self.assertIn(f"{ORIGIN}/official-links/", locations)
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-04")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],
@@ -1002,6 +1004,13 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn('<meta property="og:title"', homepage)
         self.assertTrue((ROOT / "sitemap.xml").is_file())
         self.assertTrue((ROOT / "robots.txt").is_file())
+        self.assertTrue((ROOT / "llms.txt").is_file())
+        robots = (ROOT / "robots.txt").read_text(encoding="utf-8")
+        self.assertIn("User-agent: OAI-SearchBot", robots)
+        official_links = (ROOT / "official-links" / "index.html").read_text(encoding="utf-8")
+        self.assertIn(f'<link rel="canonical" href="{ORIGIN}/official-links/">', official_links)
+        self.assertIn('"@type": "ProfilePage"', official_links)
+        self.assertIn("https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA", official_links)
 
     def test_homepage_preserves_seo_json_ld_canonical_and_open_graph(self):
         homepage = self.homepage
@@ -1042,7 +1051,11 @@ class StaticLiteratureTest(unittest.TestCase):
                 "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
                 "https://blog.naver.com/yesblue0342",
                 "https://www.youtube.com/@Yesblue1234",
+                "https://www.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
+                "https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
                 "https://music.bugs.co.kr/artist/20190019",
+                "https://www.instagram.com/12drf52/",
+                "https://twitter.com/yesblue0342",
                 "https://github.com/yesblue0342-bit/Leehu",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
                 "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
@@ -1097,8 +1110,9 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-03")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-03")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-04")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-04")
+        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-04")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage

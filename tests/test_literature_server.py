@@ -434,11 +434,13 @@ class StaticLiteratureProductionTest(unittest.TestCase):
         _, _, sitemap, _ = self.request("GET", "/sitemap.xml")
         sitemap_text = sitemap.decode("utf-8")
         self.assertIn(f"{server.CANONICAL_ORIGIN}/author/", sitemap_text)
+        self.assertIn(f"{server.CANONICAL_ORIGIN}/official-links/", sitemap_text)
         self.assertNotIn("/literature/page/", sitemap_text)
 
         for source, target in (
             ("/literature", "/literature/"),
             ("/author", "/author/"),
+            ("/official-links", "/official-links/"),
             ("/sitemap", "/sitemap.xml"),
             ("/literature/page/2", "/literature/page/2/"),
             (f"/literature/{included_slug}", f"/literature/{included_slug}/"),
@@ -453,6 +455,16 @@ class StaticLiteratureProductionTest(unittest.TestCase):
             f'<link rel="canonical" href="{server.CANONICAL_ORIGIN}/author/">',
             author.decode("utf-8"),
         )
+        status, _, official_links, _ = self.request("GET", "/official-links/")
+        self.assertEqual(status, 200)
+        self.assertIn(
+            f'<link rel="canonical" href="{server.CANONICAL_ORIGIN}/official-links/">',
+            official_links.decode("utf-8"),
+        )
+        status, content_type, llms_body, _ = self.request("GET", "/llms.txt")
+        self.assertEqual(status, 200)
+        self.assertIn("text/plain", content_type)
+        self.assertIn("소설가 이후", llms_body.decode("utf-8"))
         status, _, _, _ = self.request("GET", "/literature/%2e%2e/server.py")
         self.assertEqual(status, 404)
         for private_path in (

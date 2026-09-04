@@ -10,4 +10,8 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
+# ChatGPT 검색 크롤러
+User-agent: OAI-SearchBot
+Allow: /
+
 Sitemap: https://xn--hu5b23z.com/sitemap.xml
