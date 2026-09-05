@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HOST = "xn--hu5b23z.com"
 ORIGIN = f"https://{HOST}"
 ENDPOINT = "https://searchadvisor.naver.com/indexnow"
-KEY_FILE = ROOT / "2a3ff96b2a71425482930b5267565b8a.txt"
+KEY_FILE = ROOT / "a17a333fca77898ad56c63e1eab5d31a.txt"
 DEFAULT_URLS = (f"{ORIGIN}/", f"{ORIGIN}/author/")
 KEY_RE = re.compile(r"^[A-Fa-f0-9-]{8,128}$")
 
