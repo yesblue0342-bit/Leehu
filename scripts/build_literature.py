@@ -1074,7 +1074,7 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
     print(
         f"built {len(all_notes)} detail pages, {total_pages} list pages, "
         f"{len(indexable_notes)} RSS items, and "
-        f"{5 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; 
+        f"{5 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
         f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )
 
