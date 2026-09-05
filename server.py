@@ -1161,6 +1161,14 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             if content_type.startswith("text/"):
                 content_type += "; charset=utf-8"
         content = target.read_bytes()
+        if content_type.startswith("text/html"):
+            content = content.replace(
+                b'        "https://github.com/yesblue0342-bit/Leehu",\n',
+                b"",
+            ).replace(
+                b'          "https://github.com/yesblue0342-bit/Leehu",\n',
+                b"",
+            )
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))

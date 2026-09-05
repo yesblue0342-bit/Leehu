@@ -35,19 +35,20 @@ CONTENT_DIR = ROOT / "content" / "literature"
 INDEX_POLICY_PATH = ROOT / "content" / "literature-index-policy.json"
 LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-CORE_PAGE_LASTMOD = "2026-09-04"
+CORE_PAGE_LASTMOD = "2026-09-05"
 PAGE_SIZE = 25
 EXPECTED_COUNT = 4631
 AUTHOR_SAME_AS = [
     "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
     "https://blog.naver.com/yesblue0342",
+    "https://tv.naver.com/yesblue0342",
     "https://www.youtube.com/@Yesblue1234",
+    "https://www.youtube.com/channel/UC3iQTM8DVgzRhgArrSIPp2g",
     "https://www.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
     "https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
     "https://music.bugs.co.kr/artist/20190019",
     "https://www.instagram.com/12drf52/",
     "https://twitter.com/yesblue0342",
-    "https://github.com/yesblue0342-bit/Leehu",
     "https://store.kyobobook.co.kr/person/detail/1000809404",
     "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
     "https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)",
@@ -607,7 +608,7 @@ def detail_page(
             "name": "이후",
             "alternateName": ["소설가 이후", "李後", "Lee Hu"],
             "disambiguatingDescription": "장편소설 《연》·《데자뷔》·《소나기》를 쓴 소설가 이후(李後, Lee Hu)",
-            "url": f"{ORIGIN}/author/",
+            "url": f"{ORIGIN}/",
             "identifier": {
                 "@type": "PropertyValue",
                 "propertyID": "Naver Person ID",
