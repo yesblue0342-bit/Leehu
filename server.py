@@ -33,6 +33,7 @@ PUBLIC_STATIC_FILES = {
     "/hermes-privacy.html",
     "/google17ccaa674b8b790b.html",
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
+    "/2a3ff96b2a71425482930b5267565b8a.txt",
 }
 PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/literature")
 CANONICAL_ORIGIN = "https://xn--hu5b23z.com"

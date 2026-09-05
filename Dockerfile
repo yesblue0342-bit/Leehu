@@ -2,7 +2,7 @@
 FROM python:3.12-alpine
 WORKDIR /app
 COPY index.html robots.txt sitemap.xml CNAME og-image.jpg hermes.html hermes-privacy.html ./
-COPY google17ccaa674b8b790b.html naver7a6895689b825b13f6abd14a77c7c18a.html ./
+COPY google17ccaa674b8b790b.html naver7a6895689b825b13f6abd14a77c7c18a.html 2a3ff96b2a71425482930b5267565b8a.txt ./
 COPY 404.html ./404.html
 COPY literature ./literature
 COPY author ./author
