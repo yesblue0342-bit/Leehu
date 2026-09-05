@@ -50,16 +50,16 @@ sitemap.xml                               전체 사이트맵
 
 ```bash
 cd C:\codex\Leehu
-python scripts/literature_batch.py build --expected-count 4631 --test
+python scripts/literature_batch.py build --expected-count 5131 --test
 ```
 
 출력 예시:
 
 ```text
-built 4631 detail pages, 166 list pages, 4132 RSS items, and 4150 sitemap URLs; noindexed 499 detail pages
+built 5131 detail pages, 186 list pages, 4632 RSS items, and 4651 sitemap URLs; noindexed 499 detail pages
 ```
 
-모든 문학노트 원문과 직접 URL은 보존합니다. 다만 `content/literature-index-policy.json`에서 검색 색인 제외로 지정한 반복 형식의 대량 배치는 상세 페이지에 `noindex, follow`를 적용하고 목록·홈페이지·RSS·sitemap·이전/다음 링크에서는 제외합니다. 정책은 버전, 범위 중복, 실제 원본 ID 매칭을 생성 전에 검증하며, 현재 공개 발견 대상은 4,132건입니다. 목록 2쪽 이후는 탐색용 보관 페이지로 유지하되 `noindex, follow`를 적용하고 sitemap에는 넣지 않습니다.
+모든 문학노트 원문과 직접 URL은 보존합니다. 다만 `content/literature-index-policy.json`에서 검색 색인 제외로 지정한 반복 형식의 대량 배치는 상세 페이지에 `noindex, follow`를 적용하고 목록·홈페이지·RSS·sitemap·이전/다음 링크에서는 제외합니다. 정책은 버전, 범위 중복, 실제 원본 ID 매칭을 생성 전에 검증하며, 현재 공개 발견 대상은 4,632건입니다. 목록 2쪽 이후는 탐색용 보관 페이지로 유지하되 `noindex, follow`를 적용하고 sitemap에는 넣지 않습니다.
 
 생성기는 다음을 중단 조건으로 검증합니다.
 

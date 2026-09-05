@@ -37,7 +37,7 @@ LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-09-05"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 4631
+EXPECTED_COUNT = 5131
 AUTHOR_SAME_AS = [
     "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
     "https://blog.naver.com/yesblue0342",

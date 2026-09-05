@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 4631
-TARGET_INDEXABLE_COUNT = 4132
+TARGET_COUNT = 5131
+TARGET_INDEXABLE_COUNT = 4632
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 166
-TARGET_SITEMAP_URLS = 4150
+TARGET_LIST_PAGES = 186
+TARGET_SITEMAP_URLS = 4651
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -350,6 +350,38 @@ class StaticLiteratureTest(unittest.TestCase):
                 '<a href="/official-links/">소설가 이후 공식 출처 모음</a>',
                 rendered,
             )
+
+    def test_20260905_leehu_500_batch_is_structured_and_unique(self) -> None:
+        batch = self.notes[4631:5131]
+        self.assertEqual(len(batch), 500)
+        self.assertEqual(
+            Counter(note["source_work"] for note in batch),
+            Counter({
+                "연(戀)": 194,
+                "데자뷔": 82,
+                "소나기": 60,
+                "환상": 82,
+                "별이 빛나는 밤에": 82,
+            }),
+        )
+        self.assertEqual(
+            {note["id"] for note in batch},
+            {f"20260905_leehu_literature_{sequence:04d}" for sequence in range(2261, 2761)},
+        )
+        for field in ("slug", "title", "quote", "commentary", "closing"):
+            self.assertEqual(len({note[field] for note in batch}), 500)
+        self.assertTrue({note["id"] for note in batch} <= self.indexable_ids)
+        for note in batch:
+            self.assertEqual(note["source_author"], "이후")
+            self.assertEqual(note["content_kind"], "original_reflection")
+            self.assertEqual(note["published_at"][:10], "2026-09-05")
+            self.assertIn("직접 인용 없음", note["rights_note"])
+            self.assertEqual(note["related_work"]["url"], note["source_url"])
+            self.assertEqual(set(note["seo_sections"]), build_literature.SEO_SECTION_KEYS)
+            rendered = (LITERATURE / note["slug"] / "index.html").read_text(encoding="utf-8")
+            self.assertIn('href="/author/"', rendered)
+            self.assertIn('href="/official-links/"', rendered)
+            self.assertIn(html.escape(note["source_url"], quote=True), rendered)
 
     def test_20260830_leehu_500_batch_is_structured_and_unique(self) -> None:
         batch = [
@@ -751,7 +783,7 @@ class StaticLiteratureTest(unittest.TestCase):
             )
             article = next(entry for entry in graph if entry["@type"] == "BlogPosting")
             self.assertEqual(article["author"]["@id"], f"{ORIGIN}/#person")
-            self.assertEqual(article["author"]["url"], f"{ORIGIN}/author/")
+            self.assertEqual(article["author"]["url"], f"{ORIGIN}/")
             self.assertEqual(
                 article["author"]["identifier"],
                 {
@@ -804,7 +836,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(
             build_literature.additional_sitemap_urls(),
             [
-                (f"{ORIGIN}/seo-updates/", "2026-09-02"),
+                (f"{ORIGIN}/seo-updates/", "2026-09-05"),
                 (
                     f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
                     "2026-08-18",
@@ -857,6 +889,10 @@ class StaticLiteratureTest(unittest.TestCase):
                     f"{ORIGIN}/seo-updates/2026-09-02-leehu-ead695e4/",
                     "2026-09-02",
                 ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-09-05-leehu-scene-after-dialogue/",
+                    "2026-09-05",
+                ),
             ],
         )
 
@@ -877,7 +913,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(sitemap_dates[f"{ORIGIN}/"], latest_date)
         self.assertIn(f"{ORIGIN}/author/", locations)
         self.assertIn(f"{ORIGIN}/official-links/", locations)
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-04")
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-05")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],
@@ -1052,7 +1088,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn('<meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">', homepage)
         person = next(entry for entry in graph if entry["@type"] == "Person")
         self.assertEqual(person["@id"], f"{ORIGIN}/#person")
-        self.assertEqual(person["url"], f"{ORIGIN}/author/")
+        self.assertEqual(person["url"], f"{ORIGIN}/")
         self.assertEqual(
             person["identifier"],
             {
@@ -1066,13 +1102,14 @@ class StaticLiteratureTest(unittest.TestCase):
             {
                 "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
                 "https://blog.naver.com/yesblue0342",
+                "https://tv.naver.com/yesblue0342",
                 "https://www.youtube.com/@Yesblue1234",
+                "https://www.youtube.com/channel/UC3iQTM8DVgzRhgArrSIPp2g",
                 "https://www.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
                 "https://music.youtube.com/channel/UCQdIJKAOKVI8pKIsvcFBEKA",
                 "https://music.bugs.co.kr/artist/20190019",
                 "https://www.instagram.com/12drf52/",
                 "https://twitter.com/yesblue0342",
-                "https://github.com/yesblue0342-bit/Leehu",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
                 "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
                 "https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)",
@@ -1093,7 +1130,11 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(
             f'<link rel="canonical" href="{ORIGIN}/author/">', author_page
         )
-        self.assertIn('<meta name="robots" content="index, follow">', author_page)
+        self.assertIn(
+            '<meta name="robots" content="index, follow, max-image-preview:large, '
+            'max-snippet:-1, max-video-preview:-1">',
+            author_page,
+        )
         self.assertIn(f'"@id": "{ORIGIN}/#person"', author_page)
         self.assertIn('"propertyID": "Naver Person ID"', author_page)
         self.assertIn('"value": "215161"', author_page)
@@ -1131,9 +1172,9 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-04")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-04")
-        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-04")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-05")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-05")
+        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-05")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage

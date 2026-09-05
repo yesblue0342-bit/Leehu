@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 MANIFEST = ROOT / "content" / "leehu-reflections-20260903-1000.json"
+BATCH_DATE = "20260903"
 EXPECTED_BEFORE = 3631
 TARGET_COUNT = 1000
 START_SEQUENCE = 1261
@@ -338,8 +339,8 @@ def make_note(work: Work, work_index: int, setting_index: int, detail_index: int
         motif_subj=attach(motif, "이", "가"),
     )
     return {
-        "id": f"20260903_leehu_literature_{sequence:04d}",
-        "slug": f"leehu-20260903-{work.slug}-{setting_slug}-{detail_slug}-literary-note",
+        "id": f"{BATCH_DATE}_leehu_literature_{sequence:04d}",
+        "slug": f"leehu-{BATCH_DATE}-{work.slug}-{setting_slug}-{detail_slug}-literary-note",
         "title": title,
         "quote": render_paragraph("quote", 1, ctx, index),
         "source_author": "이후",
@@ -449,12 +450,12 @@ def main() -> None:
         raise SystemExit(f"expected {EXPECTED_BEFORE} or {EXPECTED_BEFORE + TARGET_COUNT} sources, found {len(existing)}")
     notes = generate()
     review(notes)
-    existing_ids = {json.loads(path.read_text(encoding="utf-8"))["id"] for path in existing[:EXPECTED_BEFORE]}
-    existing_slugs = {json.loads(path.read_text(encoding="utf-8"))["slug"] for path in existing[:EXPECTED_BEFORE]}
-    if existing_ids & {str(note["id"]) for note in notes}:
-        raise SystemExit("existing id collision")
-    if existing_slugs & {str(note["slug"]) for note in notes}:
-        raise SystemExit("existing slug collision")
+    existing_notes = [json.loads(path.read_text(encoding="utf-8")) for path in existing[:EXPECTED_BEFORE]]
+    for field in ("id", "slug", "title", "quote", "commentary", "closing"):
+        existing_values = {" ".join(str(note[field]).split()).casefold() for note in existing_notes}
+        new_values = {" ".join(str(note[field]).split()).casefold() for note in notes}
+        if existing_values & new_values:
+            raise SystemExit(f"existing {field} collision")
     if len(existing) == EXPECTED_BEFORE + TARGET_COUNT:
         targets = [CONTENT / f"{number}.json" for number in range(EXPECTED_BEFORE + 1, EXPECTED_BEFORE + TARGET_COUNT + 1)]
         if [json.loads(path.read_text(encoding="utf-8")) for path in targets] != notes:
