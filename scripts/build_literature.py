@@ -516,6 +516,7 @@ def nav() -> str:
     <li><a href="/">홈</a></li>
     <li><a href="/author/">공식 프로필</a></li>
     <li><a href="/official-links/">공식 출처</a></li>
+    <li><a href="/works/">작품·저서</a></li>
     <li><a href="/literature/">문학노트</a></li>
     <li><a href="/#board">게시판</a></li>
     <li><a href="/#contact">연락</a></li>
@@ -848,6 +849,7 @@ def write_sitemap(notes: list[dict[str, object]]) -> None:
         (f"{ORIGIN}/", core_page_date),
         (f"{ORIGIN}/author/", core_page_date),
         (f"{ORIGIN}/official-links/", core_page_date),
+        (f"{ORIGIN}/works/", core_page_date),
         (f"{ORIGIN}/literature/", latest_date),
     ]
     urls.extend(
@@ -956,7 +958,7 @@ def verify_generated(
                     errors.append(f"invalid JSON-LD: {path.relative_to(ROOT)}: {exc}")
     sitemap = ET.parse(ROOT / "sitemap.xml")
     sitemap_count = len(sitemap.getroot())
-    expected_sitemap = 4 + len(indexable_notes) + len(additional_sitemap_urls())
+    expected_sitemap = 5 + len(indexable_notes) + len(additional_sitemap_urls())
     if sitemap_count != expected_sitemap:
         errors.append(f"sitemap count {sitemap_count}, expected {expected_sitemap}")
     rss = ET.parse(LITERATURE_DIR / "rss.xml")
@@ -1072,7 +1074,7 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
     print(
         f"built {len(all_notes)} detail pages, {total_pages} list pages, "
         f"{len(indexable_notes)} RSS items, and "
-        f"{4 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
+        f"{5 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; 
         f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )
 

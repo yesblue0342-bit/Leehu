@@ -436,12 +436,14 @@ class StaticLiteratureProductionTest(unittest.TestCase):
         sitemap_text = sitemap.decode("utf-8")
         self.assertIn(f"{server.CANONICAL_ORIGIN}/author/", sitemap_text)
         self.assertIn(f"{server.CANONICAL_ORIGIN}/official-links/", sitemap_text)
+        self.assertIn(f"{server.CANONICAL_ORIGIN}/works/", sitemap_text)
         self.assertNotIn("/literature/page/", sitemap_text)
 
         for source, target in (
             ("/literature", "/literature/"),
             ("/author", "/author/"),
             ("/official-links", "/official-links/"),
+            ("/works", "/works/"),
             ("/sitemap", "/sitemap.xml"),
             ("/literature/page/2", "/literature/page/2/"),
             (f"/literature/{included_slug}", f"/literature/{included_slug}/"),

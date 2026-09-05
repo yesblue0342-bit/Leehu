@@ -35,7 +35,7 @@ PUBLIC_STATIC_FILES = {
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
     "/a17a333fca77898ad56c63e1eab5d31a.txt",
 }
-PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/literature")
+PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/works", "/literature")
 CANONICAL_ORIGIN = "https://xn--hu5b23z.com"
 OG_IMAGE = f"{CANONICAL_ORIGIN}/og-image.jpg"
 MAX_BODY_BYTES = 128 * 1024
@@ -424,7 +424,7 @@ def render_common_nav():
     <li><a href="/author/">공식 프로필</a></li>
     <li><a href="/official-links/">공식 출처</a></li>
     <li><a href="/#about">소개</a></li>
-    <li><a href="/#works">작품</a></li>
+    <li><a href="/works/">작품·저서</a></li>
     <li><a href="/#identity">활동</a></li>
     <li><a href="/#martial">무도</a></li>
     <li><a href="/#books">전문저서</a></li>
@@ -780,6 +780,7 @@ def render_sitemap():
         (f"{CANONICAL_ORIGIN}/", "weekly", "1.0", None),
         (f"{CANONICAL_ORIGIN}/author/", "monthly", "0.8", None),
         (f"{CANONICAL_ORIGIN}/official-links/", "monthly", "0.8", None),
+        (f"{CANONICAL_ORIGIN}/works/", "monthly", "0.9", None),
         (f"{CANONICAL_ORIGIN}/literature/", "daily", "0.9", None),
     ]
     for post in posts:
@@ -858,6 +859,9 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/official-links":
             self.redirect_permanently("/official-links/")
             return
+        if parsed.path == "/works":
+            self.redirect_permanently("/works/")
+            return
         if parsed.path == "/sitemap":
             self.redirect_permanently("/sitemap.xml")
             return
@@ -867,7 +871,7 @@ class LeehuHandler(SimpleHTTPRequestHandler):
             else:
                 self.html_response(render_homepage())
             return
-        if parsed.path in ("/author/", "/official-links/"):
+        if parsed.path in ("/author/", "/official-links/", "/works/"):
             self.serve_static(parsed.path)
             return
         if literature_publication_mode() == "static" and (

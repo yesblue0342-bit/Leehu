@@ -24,7 +24,7 @@ TARGET_INDEXABLE_COUNT = 4632
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 186
-TARGET_SITEMAP_URLS = 4651
+TARGET_SITEMAP_URLS = 4652
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -913,7 +913,9 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(sitemap_dates[f"{ORIGIN}/"], latest_date)
         self.assertIn(f"{ORIGIN}/author/", locations)
         self.assertIn(f"{ORIGIN}/official-links/", locations)
+        self.assertIn(f"{ORIGIN}/works/", locations)
         self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-05")
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-05")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],

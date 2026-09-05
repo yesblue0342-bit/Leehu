@@ -7,6 +7,7 @@
 - [소설가 이후 공식 홈페이지](https://xn--hu5b23z.com/)
 - [소설가 이후 공식 작가 프로필](https://xn--hu5b23z.com/author/)
 - [소설가 이후 공식 출처 인덱스](https://xn--hu5b23z.com/official-links/)
+- [소설가 이후 작품·저서](https://xn--hu5b23z.com/works/)
 - [소설가 이후 작품 문학노트](https://xn--hu5b23z.com/literature/)
 - [소설가 이후 네이버 블로그](https://blog.naver.com/yesblue0342)
 - [소설가 이후 YouTube](https://www.youtube.com/@Yesblue1234)
@@ -36,6 +37,7 @@ scripts/literature_batch.py               manifest append·build·verify 범용 
 scripts/build_literature.py               검증 및 정적 사이트 생성기
 author/index.html                         활동명 기준 공식 작가 프로필
 official-links/index.html                 검증된 공식 출처 인덱스
+works/index.html                            문학 작품·전문 저서 권위 페이지
 llms.txt                                  AI 검색용 핵심 공개 정보
 literature/index.html                     목록 첫 페이지
 literature/page/N/index.html              페이지네이션
@@ -56,7 +58,7 @@ python scripts/literature_batch.py build --expected-count 5131 --test
 출력 예시:
 
 ```text
-built 5131 detail pages, 186 list pages, 4632 RSS items, and 4651 sitemap URLs; noindexed 499 detail pages
+built 5131 detail pages, 186 list pages, 4632 RSS items, and 4652 sitemap URLs; noindexed 499 detail pages
 ```
 
 모든 문학노트 원문과 직접 URL은 보존합니다. 다만 `content/literature-index-policy.json`에서 검색 색인 제외로 지정한 반복 형식의 대량 배치는 상세 페이지에 `noindex, follow`를 적용하고 목록·홈페이지·RSS·sitemap·이전/다음 링크에서는 제외합니다. 정책은 버전, 범위 중복, 실제 원본 ID 매칭을 생성 전에 검증하며, 현재 공개 발견 대상은 4,632건입니다. 목록 2쪽 이후는 탐색용 보관 페이지로 유지하되 `noindex, follow`를 적용하고 sitemap에는 넣지 않습니다.
