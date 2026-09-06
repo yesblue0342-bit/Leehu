@@ -14,7 +14,9 @@ from functools import lru_cache
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, unquote, urlparse
+from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from literature_index_policy import is_note_indexable, load_index_policy
@@ -53,6 +55,48 @@ LITERATURE_SLUG_RE = re.compile(r"^\d{8}-leehu-literature-\d{2,}-[a-z0-9][a-z0-9
 TOPIC_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 STATUS_VALUES = {"draft", "published", "archived", "deleted"}
 LITERATURE_WRITE_LOCK = threading.Lock()
+INDEXNOW_ENDPOINT = "https://searchadvisor.naver.com/indexnow"
+INDEXNOW_KEY_PATH = ROOT / "a17a333fca77898ad56c63e1eab5d31a.txt"
+INDEXNOW_URLS = (
+    f"{CANONICAL_ORIGIN}/",
+    f"{CANONICAL_ORIGIN}/author/",
+    f"{CANONICAL_ORIGIN}/works/",
+    f"{CANONICAL_ORIGIN}/official-links/",
+)
+
+
+def notify_naver_indexnow_once():
+    """Notify Naver once after the public server is ready."""
+    try:
+        delay = int(os.environ.get("INDEXNOW_DELAY_SECONDS", "20"))
+    except ValueError:
+        delay = 20
+    time.sleep(min(max(delay, 0), 300))
+    try:
+        key = INDEXNOW_KEY_PATH.read_text(encoding="utf-8").strip()
+        payload = json.dumps(
+            {
+                "host": urlparse(CANONICAL_ORIGIN).hostname,
+                "key": key,
+                "keyLocation": f"{CANONICAL_ORIGIN}/{key}.txt",
+                "urlList": list(INDEXNOW_URLS),
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+        request = Request(
+            INDEXNOW_ENDPOINT,
+            data=payload,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            method="POST",
+        )
+        with urlopen(request, timeout=20) as response:
+            status = response.status
+        if status in (HTTPStatus.OK, HTTPStatus.ACCEPTED):
+            print(f"Naver IndexNow accepted {len(INDEXNOW_URLS)} URL(s): HTTP {status}", flush=True)
+        else:
+            print(f"Naver IndexNow returned HTTP {status}", flush=True)
+    except (OSError, ValueError, HTTPError, URLError) as error:
+        print(f"Naver IndexNow notification failed: {error}", flush=True)
 
 
 def ensure_dirs():
@@ -1190,4 +1234,10 @@ if __name__ == "__main__":
         f"Leehu server listening on :{port} ({publication_mode} publication)",
         flush=True,
     )
+    if os.environ.get("INDEXNOW_NOTIFY", "1") != "0":
+        threading.Thread(
+            target=notify_naver_indexnow_once,
+            name="naver-indexnow",
+            daemon=True,
+        ).start()
     server.serve_forever()
