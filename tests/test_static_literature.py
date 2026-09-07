@@ -24,7 +24,7 @@ TARGET_INDEXABLE_COUNT = 4632
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = 186
-TARGET_SITEMAP_URLS = 4652
+TARGET_SITEMAP_URLS = 4654
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -726,7 +726,7 @@ class StaticLiteratureTest(unittest.TestCase):
             canonical = f"{ORIGIN}/literature/{note['slug']}/"
             search_title = build_literature.seo_title(note["title"])
             self.assertIn(f"<title>{html.escape(search_title)}</title>", text)
-            self.assertLessEqual(len(search_title), 60)
+            self.assertTrue(search_title.endswith(" | 이후의 문학노트"))
             self.assertIn(
                 f'<meta property="og:title" content="{html.escape(search_title)}">',
                 text,
@@ -823,6 +823,94 @@ class StaticLiteratureTest(unittest.TestCase):
                 self.assertIsNotNone(post_nav)
                 self.assertNotIn('href="/literature/', post_nav.group(0))
 
+    def test_all_detail_search_titles_are_unique_and_preserve_the_original_title(self):
+        search_titles = [build_literature.seo_title(note["title"]) for note in self.notes]
+
+        self.assertEqual(len(search_titles), len(set(search_titles)))
+        for note, search_title in zip(self.notes, search_titles):
+            normalized_title = re.sub(r"\s+", " ", note["title"]).strip()
+            self.assertEqual(search_title, normalized_title + " | 이후의 문학노트")
+
+        escaped_note = {**self.notes[0], "title": '작품 & "인용"을 읽는 문장'}
+        escaped_title = html.escape(build_literature.seo_title(escaped_note["title"]))
+        escaped_page = build_literature.detail_page(escaped_note, None, None)
+        self.assertIn(f"<title>{escaped_title}</title>", escaped_page)
+        self.assertIn(
+            f'<meta property="og:title" content="{escaped_title}">', escaped_page
+        )
+        self.assertIn(
+            f'<meta name="twitter:title" content="{escaped_title}">', escaped_page
+        )
+
+    def test_literature_list_pages_have_unique_synchronized_descriptions(self):
+        pages = [
+            build_literature.list_page(
+                self.indexable_notes, page, TARGET_LIST_PAGES
+            )
+            for page in range(1, TARGET_LIST_PAGES + 1)
+        ]
+        descriptions = []
+        for page in pages:
+            title = re.search(r"<title>([^<]+)</title>", page).group(1)
+            og_title = re.search(
+                r'<meta property="og:title" content="([^"]+)">', page
+            ).group(1)
+            twitter_title = re.search(
+                r'<meta name="twitter:title" content="([^"]+)">', page
+            ).group(1)
+            description = re.search(
+                r'<meta name="description" content="([^"]+)">', page
+            ).group(1)
+            og_description = re.search(
+                r'<meta property="og:description" content="([^"]+)">', page
+            ).group(1)
+            twitter_description = re.search(
+                r'<meta name="twitter:description" content="([^"]+)">', page
+            ).group(1)
+            descriptions.append(description)
+            self.assertEqual(title, og_title)
+            self.assertEqual(title, twitter_title)
+            self.assertEqual(description, og_description)
+            self.assertEqual(description, twitter_description)
+
+        self.assertEqual(len(descriptions), len(set(descriptions)))
+
+        same_work_notes = [
+            {
+                **self.indexable_notes[index],
+                "source_author": "이후",
+                "source_work": "별이 빛나는 밤에",
+            }
+            for index in range(2)
+        ]
+        same_work_page = build_literature.list_page(same_work_notes, 1, 1)
+        self.assertIn(
+            "이후의 《별이 빛나는 밤에》에 관한 글을 소개합니다.",
+            same_work_page,
+        )
+        self.assertNotIn(
+            "이후의 《별이 빛나는 밤에》부터 이후의 《별이 빛나는 밤에》까지",
+            same_work_page,
+        )
+
+        mixed_work_notes = [
+            same_work_notes[0],
+            {
+                **self.indexable_notes[1],
+                "source_author": "이후",
+                "source_work": "연",
+            },
+            same_work_notes[1],
+        ]
+        mixed_work_page = build_literature.list_page(mixed_work_notes, 1, 1)
+        self.assertNotIn(
+            "《별이 빛나는 밤에》에 관한 글을 소개합니다.", mixed_work_page
+        )
+        self.assertIn(
+            "이후의 《별이 빛나는 밤에》부터 이후의 《연》까지 소개합니다.",
+            mixed_work_page,
+        )
+
     def test_generated_detail_directories_match_source_slugs(self) -> None:
         expected = {note["slug"] for note in self.notes}
         actual = {
@@ -836,7 +924,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(
             build_literature.additional_sitemap_urls(),
             [
-                (f"{ORIGIN}/seo-updates/", "2026-09-05"),
+                (f"{ORIGIN}/seo-updates/", "2026-09-07"),
                 (
                     f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
                     "2026-08-18",
@@ -892,6 +980,14 @@ class StaticLiteratureTest(unittest.TestCase):
                 (
                     f"{ORIGIN}/seo-updates/2026-09-05-leehu-scene-after-dialogue/",
                     "2026-09-05",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-09-06-leehu-e6622739/",
+                    "2026-09-06",
+                ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-09-07-leehu-930ea24c/",
+                    "2026-09-07",
                 ),
             ],
         )

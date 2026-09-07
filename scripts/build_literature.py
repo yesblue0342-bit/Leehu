@@ -121,11 +121,8 @@ def esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def seo_title(value: object, suffix: str = " | 이후의 문학노트", limit: int = 60) -> str:
+def seo_title(value: object, suffix: str = " | 이후의 문학노트") -> str:
     title = re.sub(r"\s+", " ", str(value)).strip()
-    available = limit - len(suffix)
-    if len(title) > available:
-        title = title[: available - 1].rstrip() + "…"
     return title + suffix
 
 
@@ -538,6 +535,24 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
     current = notes[start:start + PAGE_SIZE]
     url = f"{ORIGIN}/literature/" if page == 1 else f"{ORIGIN}/literature/page/{page}/"
     title = "이후의 문학노트" if page == 1 else f"이후의 문학노트 {page}쪽"
+    search_title = title + " | 소설가 이후"
+    source_pairs = list(
+        dict.fromkeys((note["source_author"], note["source_work"]) for note in current)
+    )
+    first_author, first_work = source_pairs[0]
+    item_range = f"{start + 1}–{start + len(current)}편"
+    if len(source_pairs) == 1:
+        description = (
+            f"소설가 이후의 문학노트 {item_range}: "
+            f"{first_author}의 《{first_work}》에 관한 글을 소개합니다."
+        )
+    else:
+        last_author, last_work = source_pairs[-1]
+        description = (
+            f"소설가 이후의 문학노트 {item_range}: "
+            f"{first_author}의 《{first_work}》부터 "
+            f"{last_author}의 《{last_work}》까지 소개합니다."
+        )
     links = []
     for number in range(1, total_pages + 1):
         href = "/literature/" if number == 1 else f"/literature/page/{number}/"
@@ -546,17 +561,17 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
             if number == page else f'<a href="{href}">{number}</a>'
         )
     extra = f"""<meta property="og:type" content="website">
-<meta property="og:title" content="{esc(title)}">
-<meta property="og:description" content="퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록">
+<meta property="og:title" content="{esc(search_title)}">
+<meta property="og:description" content="{esc(description)}">
 <meta property="og:url" content="{url}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{esc(title)}">
-<meta name="twitter:description" content="퍼블릭 도메인 고전 원문과 소설가 이후의 독서 기록">
+<meta name="twitter:title" content="{esc(search_title)}">
+<meta name="twitter:description" content="{esc(description)}">
 <meta name="twitter:image" content="{ORIGIN}/og-image.jpg">
 <meta name="twitter:image:alt" content="소설가 이후 공식 홈페이지 대표 이미지">
 <link rel="alternate" type="application/rss+xml" title="이후의 문학노트 RSS" href="/literature/rss.xml">"""
     robots = "index, follow" if page == 1 else "noindex, follow"
-    return f"""{base_head(title + " | 소설가 이후", "퍼블릭 도메인 고전 원문의 한 문장과 소설가 이후의 독서 기록.", url, extra, robots)}
+    return f"""{base_head(search_title, description, url, extra, robots)}
 <body>{nav()}
 <header class="hero"><div class="wrap">
   <p class="eyebrow">Literature Notes</p>

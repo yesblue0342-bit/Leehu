@@ -8,6 +8,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import server
+from scripts import build_literature
 
 
 TOKEN = "test-token"
@@ -43,6 +44,18 @@ def sample_payload(**overrides):
 
 
 class LiteratureServerTest(unittest.TestCase):
+    def test_seo_title_matches_static_builder_and_preserves_the_original_title(self):
+        raw_title = (
+            "  Complete Original Short Stories에서  사랑을 다시 읽는 문장 —\n"
+            "He came to see me; he wept and sobbed so bitterly, that it was enough  "
+            "to break my heart.  "
+        )
+        title = " ".join(raw_title.split())
+
+        rendered = server.seo_title(raw_title)
+        self.assertEqual(rendered, build_literature.seo_title(raw_title))
+        self.assertEqual(rendered, title + " | 이후의 문학노트")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)

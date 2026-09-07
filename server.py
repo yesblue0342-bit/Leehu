@@ -137,8 +137,9 @@ def text_excerpt(value, limit=150):
     return text[: limit - 1].rstrip() + "…"
 
 
-def seo_title(value, suffix=" | 이후의 문학노트", limit=60):
-    return text_excerpt(value, limit - len(suffix)) + suffix
+def seo_title(value, suffix=" | 이후의 문학노트"):
+    title = " ".join(str(value or "").split())
+    return title + suffix
 
 
 def parse_int(value, default, minimum, maximum):
