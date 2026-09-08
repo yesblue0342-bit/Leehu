@@ -17,7 +17,12 @@ HOST = "xn--hu5b23z.com"
 ORIGIN = f"https://{HOST}"
 ENDPOINT = "https://searchadvisor.naver.com/indexnow"
 KEY_FILE = ROOT / "a17a333fca77898ad56c63e1eab5d31a.txt"
-DEFAULT_URLS = (f"{ORIGIN}/", f"{ORIGIN}/author/")
+DEFAULT_URLS = (
+    f"{ORIGIN}/",
+    f"{ORIGIN}/author/",
+    f"{ORIGIN}/works/",
+    f"{ORIGIN}/official-links/",
+)
 KEY_RE = re.compile(r"^[A-Fa-f0-9-]{8,128}$")
 
 

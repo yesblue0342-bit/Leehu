@@ -854,17 +854,29 @@ def additional_sitemap_urls() -> list[tuple[str, str]]:
     return [(f"{ORIGIN}/seo-updates/", index_date), *updates]
 
 
+def core_page_lastmod(relative_path: str) -> str:
+    """Read the actual page modification date without refreshing unrelated pages."""
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    dates = []
+    for raw in re.findall(r"""<script\b[^>]*\btype\s*=\s*["\']application/ld\+json["\'][^>]*>(.*?)</script>""", source, re.S):
+        data = json.loads(raw)
+        for node in data.get("@graph", [data]):
+            value = node.get("dateModified")
+            if value:
+                dates.append(datetime.fromisoformat(value).date().isoformat())
+    return max(dates, default=CORE_PAGE_LASTMOD)
+
+
 def write_sitemap(notes: list[dict[str, object]]) -> None:
     namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
     ET.register_namespace("", namespace)
     root = ET.Element(f"{{{namespace}}}urlset")
     latest_date = max(str(note["published_at"])[:10] for note in notes)
-    core_page_date = max(latest_date, CORE_PAGE_LASTMOD)
     urls = [
-        (f"{ORIGIN}/", core_page_date),
-        (f"{ORIGIN}/author/", core_page_date),
-        (f"{ORIGIN}/official-links/", core_page_date),
-        (f"{ORIGIN}/works/", core_page_date),
+        (f"{ORIGIN}/", max(latest_date, core_page_lastmod("index.html"))),
+        (f"{ORIGIN}/author/", core_page_lastmod("author/index.html")),
+        (f"{ORIGIN}/official-links/", core_page_lastmod("official-links/index.html")),
+        (f"{ORIGIN}/works/", core_page_lastmod("works/index.html")),
         (f"{ORIGIN}/literature/", latest_date),
     ]
     urls.extend(

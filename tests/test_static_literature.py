@@ -1270,8 +1270,8 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-05")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-05")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-08")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-08")
         self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-05")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
