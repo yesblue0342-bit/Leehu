@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 5131
-TARGET_INDEXABLE_COUNT = 4632
+TARGET_COUNT = 6131
+TARGET_INDEXABLE_COUNT = 5632
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 186
-TARGET_SITEMAP_URLS = 4654
+TARGET_LIST_PAGES = 226
+TARGET_SITEMAP_URLS = 5655
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -924,7 +924,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(
             build_literature.additional_sitemap_urls(),
             [
-                (f"{ORIGIN}/seo-updates/", "2026-09-07"),
+                (f"{ORIGIN}/seo-updates/", "2026-09-08"),
                 (
                     f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
                     "2026-08-18",
@@ -989,6 +989,10 @@ class StaticLiteratureTest(unittest.TestCase):
                     f"{ORIGIN}/seo-updates/2026-09-07-leehu-930ea24c/",
                     "2026-09-07",
                 ),
+                (
+                    f"{ORIGIN}/seo-updates/2026-09-08-leehu-8dfac21b/",
+                    "2026-09-08",
+                ),
             ],
         )
 
@@ -1011,7 +1015,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f"{ORIGIN}/official-links/", locations)
         self.assertIn(f"{ORIGIN}/works/", locations)
         self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-05")
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-05")
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-08")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],

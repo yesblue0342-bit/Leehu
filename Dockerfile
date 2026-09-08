@@ -7,6 +7,8 @@ COPY 404.html ./404.html
 COPY literature ./literature
 COPY author ./author
 COPY official-links ./official-links
+COPY works ./works
+COPY llms.txt ./llms.txt
 COPY content/literature-index-policy.json ./content/literature-index-policy.json
 COPY server.py literature_index_policy.py ./
 ENV PORT=80

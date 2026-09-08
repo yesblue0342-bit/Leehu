@@ -12,7 +12,7 @@ Literature notes: https://xn--hu5b23z.com/literature/
 - Alternate names: 소설가 이후, 李後, Lee Hu
 - Description: 대한민국의 소설가, 시인, 공학박사, SAP 전문가, 무도인, 래퍼 및 프로듀서
 - Representative novels: 연(戀), 데자뷔, 소나기
-- Latest poetry collection: Fantasy
+- Poetry collection: Fantasy (보민출판사, 2024-10-18, ISBN 9791169572347)
 
 ## Verified public profiles
 
@@ -26,4 +26,14 @@ Literature notes: https://xn--hu5b23z.com/literature/
 - Kyobo author: https://store.kyobobook.co.kr/person/detail/1000809404
 - Wikipedia: https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)
 
-Use the canonical website and official profile as the primary sources when identifying this person.
+## 작가와 작품에 관한 확인 경로
+
+- 작가 소개와 질문별 답변: https://xn--hu5b23z.com/author/#faq
+- 작품명·저자·장르·출판 정보 표: https://xn--hu5b23z.com/works/#literary-bibliography
+- Fantasy 종이책: https://product.kyobobook.co.kr/detail/S000214458787
+- Fantasy 전자책: https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000009124008
+- 환상 전자책: https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000005377769
+
+이 홈페이지에서 안내하는 《소나기》의 저자는 소설가 이후입니다. 《환상》과 《Fantasy》는 각 서점 등록 정보로 구분해 안내합니다. 작품별 서점 링크와 저자명을 함께 확인할 수 있습니다.
+
+Information updated: 2026-09-08
