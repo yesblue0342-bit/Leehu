@@ -170,20 +170,25 @@
     .author-answers{margin-top:36px}.author-answers article{padding:24px 0;border-bottom:1px solid var(--line);scroll-margin-top:24px}.author-answers h3{margin:0 0 14px;font-size:1.16rem;line-height:1.6}.author-answers p{max-width:850px;margin:10px 0;color:var(--body);font-size:1rem;line-height:1.95}.author-answers .answer-source{font-family:var(--sans);font-size:.875rem}
     @media(max-width:760px){.nav{align-items:flex-start;padding:18px 0}.nav-links{justify-content:flex-end}.hero{grid-template-columns:1fr;min-height:0}.monogram{min-height:240px;border-left:0;border-top:1px solid var(--line)}.section{padding:64px 0}.section-grid{grid-template-columns:1fr;gap:30px}.works,.channels{grid-template-columns:1fr}.work{min-height:140px}}
   </style>
+<link rel="stylesheet" href="/literature/navigation.css?v=20260908">
+<script src="/literature/navigation.js?v=20260908" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">본문으로 바로가기</a>
   <header class="site-header">
-    <nav class="nav" aria-label="주요 메뉴">
-      <a class="brand" href="/">이후 <span>李後 · LEE HU</span></a>
-      <div class="nav-links">
-        <a href="/">홈</a>
-        <a href="/literature/">문학노트</a>
-        <a href="/works/">작품·저서</a>
-        <a href="/official-links/">공식 출처</a>
-        <a href="#channels">공식 채널</a>
-      </div>
-    </nav>
+    <nav class="site-nav" data-reader-nav aria-label="주요 메뉴">
+  <a class="nav-logo" href="/">소설가 이후</a>
+  <button class="nav-toggle" type="button" aria-controls="readerNavLinks" aria-expanded="false" aria-label="전체 메뉴 열기" hidden><span class="nav-toggle-icon" aria-hidden="true">☰</span><span class="nav-toggle-label">메뉴</span></button>
+  <ul id="readerNavLinks" class="nav-links">
+    <li><a href="/">홈</a></li>
+    <li><a href="/author/">공식 프로필</a></li>
+    <li><a href="/official-links/">공식 출처</a></li>
+    <li><a href="/works/">작품·저서</a></li>
+    <li><a href="/literature/">문학노트</a></li>
+    <li><a href="/#board">게시판</a></li>
+    <li><a href="/#contact">연락</a></li>
+  </ul>
+</nav>
   </header>
 
   <main id="main">

@@ -259,13 +259,24 @@
     .bibliography-scroll{overflow-x:auto;margin:24px 0}.bibliography-table{border-collapse:collapse;width:100%;min-width:660px;font-family:var(--sans);font-size:1rem;line-height:1.7}.bibliography-table caption{text-align:left;padding:0 0 16px;color:var(--body)}.bibliography-table th,.bibliography-table td{padding:16px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}.bibliography-table thead{background:var(--panel)}.bibliography-scroll:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
     @media(max-width:820px){.nav{align-items:flex-start;padding-top:18px;padding-bottom:18px}.nav-links{justify-content:flex-end}.grid{grid-template-columns:1fr}.card{min-height:0}.book-list{columns:1}}
   </style>
+<link rel="stylesheet" href="/literature/navigation.css?v=20260908">
+<script src="/literature/navigation.js?v=20260908" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">본문으로 바로가기</a>
-  <nav class="nav" aria-label="주요 메뉴">
-    <a class="brand" href="/">이후 <span>李後 · LEE HU</span></a>
-    <div class="nav-links"><a href="/author/">공식 프로필</a><a href="/official-links/">공식 출처</a><a href="/literature/">문학노트</a></div>
-  </nav>
+  <nav class="site-nav" data-reader-nav aria-label="주요 메뉴">
+  <a class="nav-logo" href="/">소설가 이후</a>
+  <button class="nav-toggle" type="button" aria-controls="readerNavLinks" aria-expanded="false" aria-label="전체 메뉴 열기" hidden><span class="nav-toggle-icon" aria-hidden="true">☰</span><span class="nav-toggle-label">메뉴</span></button>
+  <ul id="readerNavLinks" class="nav-links">
+    <li><a href="/">홈</a></li>
+    <li><a href="/author/">공식 프로필</a></li>
+    <li><a href="/official-links/">공식 출처</a></li>
+    <li><a href="/works/">작품·저서</a></li>
+    <li><a href="/literature/">문학노트</a></li>
+    <li><a href="/#board">게시판</a></li>
+    <li><a href="/#contact">연락</a></li>
+  </ul>
+</nav>
   <main id="main">
     <header class="hero">
       <p class="kicker">Official bibliography</p>

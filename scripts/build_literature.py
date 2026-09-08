@@ -82,18 +82,18 @@ a{color:inherit}.site-nav{position:sticky;top:0;z-index:10;display:flex;align-it
 .search-panel{margin-top:28px;max-width:720px}.search-box{display:flex;gap:10px;align-items:center}.search-box input{width:100%;border:1px solid var(--line);border-radius:999px;padding:13px 16px;font:inherit;background:#fff;color:var(--ink)}.search-box button{border:1px solid var(--ink);border-radius:999px;padding:12px 18px;background:var(--ink);color:#fff;font:inherit;white-space:nowrap;cursor:pointer}.search-meta{margin-top:10px;color:var(--muted);font-size:.88rem}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:42px 0}
 .note-card{display:flex;flex-direction:column;min-height:330px;border:1px solid var(--line);border-radius:18px;padding:22px;text-decoration:none;background:#fff}
-.note-card:hover{border-color:var(--gold);transform:translateY(-2px)}.note-card small{color:var(--gold);letter-spacing:.08em}.note-card h2{font-size:1.08rem;line-height:1.5;margin:10px 0}
+.note-card:hover{border-color:var(--gold);transform:translateY(-2px)}.note-card small{color:var(--gold);letter-spacing:.08em}.note-card h2{font-size:1.08rem;line-height:1.5;margin:10px 0;word-break:keep-all;overflow-wrap:anywhere}
 .note-card blockquote{color:#374151;font-size:.9rem;line-height:1.85;flex:1}.note-card p{color:var(--muted);font-size:.8rem;margin-top:14px}
 .pagination{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 0 54px}.pagination a,.pagination span{border:1px solid var(--line);border-radius:999px;padding:7px 12px;text-decoration:none}
 .pagination .current{background:var(--ink);color:#fff}.footer{padding:46px 20px;text-align:center;border-top:1px solid var(--line);background:#fafafa;color:var(--muted)}
-.article{width:min(820px,calc(100% - 40px));margin:0 auto;padding:64px 0}.breadcrumbs{font-size:.82rem;color:var(--muted);margin-bottom:32px}.article h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.25;margin:12px 0 18px}
+.article{width:min(820px,calc(100% - 40px));margin:0 auto;padding:64px 0}.breadcrumbs{font-size:.82rem;color:var(--muted);margin-bottom:32px}.article h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.25;margin:12px 0 18px;word-break:keep-all;overflow-wrap:anywhere}
 .meta{color:var(--muted);font-size:.88rem}.author-link{text-underline-offset:3px;text-decoration-thickness:1px}.article blockquote{margin:42px 0 20px;padding:30px;border-left:3px solid var(--gold);background:var(--panel);font-size:clamp(1.25rem,3vw,1.8rem);line-height:1.7;font-style:italic}
 .source{font-size:.9rem;color:var(--muted);margin-bottom:42px}.source a{text-underline-offset:3px}.commentary h2{font-size:1.2rem;margin-bottom:14px}.commentary p{font-size:1.04rem;line-height:2.05;white-space:normal}.commentary + .commentary{margin-top:clamp(48px,7vw,68px)}
 .collection-introduction{margin:34px 0 18px;font-size:1.08rem;line-height:2}.collection-deck{margin:0 0 24px;color:#374151;font-size:1.05rem;line-height:1.95}.rights-note{margin:0 0 36px;padding:18px 20px;background:var(--panel);border-radius:12px;color:var(--muted);font-size:.9rem;line-height:1.8}.collection-work{margin:46px 0;padding-top:34px;border-top:1px solid var(--line)}.collection-work h2{font-size:1.45rem;line-height:1.5}.collection-meta{margin:6px 0 22px;color:var(--muted)}.collection-work dl{display:grid;gap:18px}.collection-work dt{font-weight:700;color:var(--red)}.collection-work dd{margin-top:4px;line-height:1.9}.collection-closing{margin:46px 0;padding:28px;background:var(--panel);border-radius:16px;line-height:2}
 .tags{display:flex;gap:8px;flex-wrap:wrap;margin:30px 0}.tag{border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:.78rem}
 .related{border-top:1px solid var(--line);padding-top:24px}.post-nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:42px}.post-nav a{border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none}.post-nav .next{text-align:right}
 .site-links{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px}.site-links a{text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:7px 11px;background:#fff}
-@media(max-width:850px){.grid{grid-template-columns:1fr}.nav-links{gap:10px;font-size:.78rem}.post-nav{grid-template-columns:1fr}}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.post-nav{grid-template-columns:1fr}}
 """
 
 SEARCH_COMPONENT = """<form class="search-panel" id="literatureSearch" role="search">
@@ -503,13 +503,16 @@ def base_head(
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&amp;family=Noto+Serif+KR:wght@400;600;700;900&amp;display=swap" rel="stylesheet">
 <style>{STYLE}</style>
+<link rel="stylesheet" href="/literature/navigation.css?v=20260908">
+<script src="/literature/navigation.js?v=20260908" defer></script>
 </head>"""
 
 
 def nav() -> str:
-    return """<nav class="site-nav">
-  <a class="nav-logo" href="/">이후</a>
-  <ul class="nav-links">
+    return """<nav class="site-nav" data-reader-nav aria-label="주요 메뉴">
+  <a class="nav-logo" href="/">소설가 이후</a>
+  <button class="nav-toggle" type="button" aria-controls="readerNavLinks" aria-expanded="false" aria-label="전체 메뉴 열기" hidden><span class="nav-toggle-icon" aria-hidden="true">☰</span><span class="nav-toggle-label">메뉴</span></button>
+  <ul id="readerNavLinks" class="nav-links">
     <li><a href="/">홈</a></li>
     <li><a href="/author/">공식 프로필</a></li>
     <li><a href="/official-links/">공식 출처</a></li>
@@ -576,7 +579,7 @@ def list_page(notes: list[dict[str, object]], page: int, total_pages: int) -> st
 <header class="hero"><div class="wrap">
   <p class="eyebrow">Literature Notes</p>
   <h1>이후의 문학노트</h1>
-  <p class="lede">직접 확인한 퍼블릭 도메인 원전의 짧은 인용과, 원문을 인용하지 않은 독창적 감상을 오늘의 삶으로 이어 읽은 소설가 이후의 기록입니다.</p>
+  <p class="lede">직접 확인한 퍼블릭 도메인 원전의 짧은 인용과, 원문을 인용하지 않은 독창적 감상을 오늘의 삶으로 이어 읽은 <a href="/author/" rel="author">소설가 이후</a>의 기록입니다. <a href="/works/">작품과 저서</a>도 함께 만나 보세요.</p>
 {SEARCH_COMPONENT}
 </div></header>
 <main class="wrap"><section class="grid">{''.join(card(note) for note in current)}</section>

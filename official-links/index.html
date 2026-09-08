@@ -131,13 +131,24 @@
     footer{display:flex;justify-content:space-between;gap:22px;flex-wrap:wrap;padding:36px clamp(20px,5vw,68px);background:var(--ink);color:#d8d2c8;font-family:var(--sans);font-size:.78rem}.footer-links{display:flex;gap:14px;flex-wrap:wrap}.footer-links a{text-decoration:none}
     @media(max-width:800px){.nav-links{display:none}.hero{grid-template-columns:1fr}.hero-mark{min-height:210px;border-left:0;border-top:1px solid var(--line)}.section-head{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.card,.card:nth-child(3n){border-right:0}.works{columns:1}.discography{font-size:.88rem}.discography th,.discography td{padding:11px 9px}}
   </style>
+<link rel="stylesheet" href="/literature/navigation.css?v=20260908">
+<script src="/literature/navigation.js?v=20260908" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">본문으로 바로가기</a>
-  <nav class="nav" aria-label="주요 메뉴">
-    <a class="brand" href="https://xn--hu5b23z.com/">이후 <span>李後 · LEE HU</span></a>
-    <div class="nav-links"><a href="#identity">공식 프로필</a><a href="/works/">작품·저서</a><a href="#books">저서</a><a href="#music">음악</a><a href="#channels">공식 채널</a></div>
-  </nav>
+  <nav class="site-nav" data-reader-nav aria-label="주요 메뉴">
+  <a class="nav-logo" href="/">소설가 이후</a>
+  <button class="nav-toggle" type="button" aria-controls="readerNavLinks" aria-expanded="false" aria-label="전체 메뉴 열기" hidden><span class="nav-toggle-icon" aria-hidden="true">☰</span><span class="nav-toggle-label">메뉴</span></button>
+  <ul id="readerNavLinks" class="nav-links">
+    <li><a href="/">홈</a></li>
+    <li><a href="/author/">공식 프로필</a></li>
+    <li><a href="/official-links/">공식 출처</a></li>
+    <li><a href="/works/">작품·저서</a></li>
+    <li><a href="/literature/">문학노트</a></li>
+    <li><a href="/#board">게시판</a></li>
+    <li><a href="/#contact">연락</a></li>
+  </ul>
+</nav>
   <main id="main">
     <header class="hero">
       <div class="hero-copy">
