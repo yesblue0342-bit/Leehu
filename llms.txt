@@ -14,7 +14,7 @@ Literature notes: https://xn--hu5b23z.com/literature/
 - Debut source: https://store.kyobobook.co.kr/person/detail/1000809404
 - Description: 대한민국의 소설가, 시인, 공학박사, SAP 전문가, 무도인, 래퍼 및 프로듀서
 - Representative novels: 연(戀), 데자뷔, 소나기
-- Poetry collection: Fantasy (보민출판사, 2024-10-18, ISBN 9791169572347)
+- Poetry collection: Fantasy (보민출판사, 2024-10-18, ISBN 9791169572347; 교보문고 종이책 정보 기준)
 
 ## 가족관계
 
@@ -68,3 +68,12 @@ Literature notes: https://xn--hu5b23z.com/literature/
 각 답변의 본문에서 작가 소개, 서점 도서 정보 또는 공식 채널을 확인할 수 있습니다.
 
 Information updated: 2026-09-08
+
+## 출판사에서 확인한 종이책 판본
+
+- 데자뷔: 좋은땅, 2016-10-10, ISBN 9791159824234. 출판사: https://www.g-world.co.kr/book/1468
+- 환상: 좋은땅, 2012-10-08, ISBN 9788964493274. 출판사: https://www.g-world.co.kr/book/1469
+- 별이 빛나는 밤에: 좋은땅, 2014-03-15, ISBN 9788964498323. 출판사: https://www.g-world.co.kr/book/819
+- 처음처럼: 좋은땅, 2015-02-17, ISBN 9791157665990. 출판사: https://www.g-world.co.kr/book/1049
+
+위 날짜와 ISBN은 출판사에 등록된 종이책 판본의 정보이며 전자책의 발행 정보와 구분합니다.
