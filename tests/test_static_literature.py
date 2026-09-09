@@ -1358,12 +1358,19 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(nav_body.count(">공식 YouTube</a>"), 1)
         self.assertNotIn('class="mini-link"', nav_body)
 
-    def test_homepage_contains_no_person_image_or_person_placeholder(self):
-        self.assertEqual(
-            self.homepage_parser.images,
-            [],
-            "The homepage must express the author brand without static images.",
-        )
+    def test_homepage_images_are_local_accessible_assets_without_person_placeholders(self):
+        images = self.homepage_parser.images
+        self.assertTrue(images, "The author portfolio includes published book covers.")
+        for image in images:
+            self.assertTrue(image.get("src", "").startswith("/works/covers/"))
+            self.assertTrue((ROOT / image["src"].lstrip("/")).is_file())
+            self.assertGreater(int(image.get("width", 0)), 0)
+            self.assertGreater(int(image.get("height", 0)), 0)
+            if image.get("class") == "hero-scene":
+                self.assertEqual(image.get("alt"), "")
+            else:
+                self.assertTrue(image.get("alt", "").strip())
+                self.assertIn("표지", image["alt"])
         forbidden_copy = (
             "인물사진", "인물 사진", "개인사진", "개인 사진", "프로필 사진",
             "ai 인물", "인물 실루엣", "얼굴 이미지", "portrait placeholder",

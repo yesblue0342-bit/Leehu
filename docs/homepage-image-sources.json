@@ -1,0 +1,46 @@
+{
+  "verified": "2026-09-09",
+  "book_covers": [
+    {
+      "name": "fantasy",
+      "source_page": "https://www.yes24.com/Product/Goods/134295859",
+      "source_image": "https://image.yes24.com/goods/134295859/XL",
+      "size": [
+        609,
+        1000
+      ],
+      "bytes": 123783
+    },
+    {
+      "name": "yeon",
+      "source_page": "https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000005377756",
+      "source_image": "https://contents.kyobobook.co.kr/sih/fit-in/380x590/pdt/480N230827810.jpg",
+      "size": [
+        380,
+        542
+      ],
+      "bytes": 47072
+    },
+    {
+      "name": "deja-vu",
+      "source_page": "https://www.g-world.co.kr/book/1468",
+      "source_image": "https://www.g-world.co.kr/img/book/1468/%EB%8D%B0%EC%9E%90%EB%B7%94%28%ED%81%B0%ED%91%9C%EC%A7%80%29.jpg",
+      "size": [
+        450,
+        644
+      ],
+      "bytes": 95071
+    },
+    {
+      "name": "sonagi",
+      "source_page": "https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000002957780",
+      "source_image": "https://contents.kyobobook.co.kr/sih/fit-in/380x590/pdt/4801166783204.jpg",
+      "size": [
+        380,
+        378
+      ],
+      "bytes": 27557
+    }
+  ],
+  "editorial_photo": "Existing repository asset assets/instagram/night-05f7081ecda18d02.jpg, reused for atmosphere; not a photograph of the author."
+}
