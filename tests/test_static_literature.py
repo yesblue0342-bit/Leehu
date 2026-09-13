@@ -1371,6 +1371,19 @@ class StaticLiteratureTest(unittest.TestCase):
             else:
                 self.assertTrue(image.get("alt", "").strip())
                 self.assertIn("표지", image["alt"])
+
+        hero_scene = next(
+            image for image in images if image.get("class") == "hero-scene"
+        )
+        self.assertEqual(
+            hero_scene.get("src"),
+            "/works/covers/writing-room-astra.webp?v=20260913",
+        )
+        self.assertTrue((ROOT / "works" / "covers" / "writing-room-astra.webp").is_file())
+        self.assertLess(
+            (ROOT / "works" / "covers" / "writing-room-astra.webp").stat().st_size,
+            200_000,
+        )
         forbidden_copy = (
             "인물사진", "인물 사진", "개인사진", "개인 사진", "프로필 사진",
             "ai 인물", "인물 실루엣", "얼굴 이미지", "portrait placeholder",
