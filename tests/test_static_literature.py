@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 6131
-TARGET_INDEXABLE_COUNT = 5632
+TARGET_COUNT = 6181
+TARGET_INDEXABLE_COUNT = 5682
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
-TARGET_LIST_PAGES = 226
-TARGET_SITEMAP_URLS = 5655
+TARGET_LIST_PAGES = (TARGET_INDEXABLE_COUNT + PAGE_SIZE - 1) // PAGE_SIZE
+TARGET_SITEMAP_URLS = TARGET_INDEXABLE_COUNT + 5 + len(build_literature.additional_sitemap_urls())
 REQUIRED = {
     "id", "slug", "title", "quote", "source_author", "source_work",
     "source_location", "source_language", "source_url", "translation_note",
@@ -921,80 +921,36 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_seo_update_pages_are_preserved_in_generated_sitemap(self):
-        self.assertEqual(
-            build_literature.additional_sitemap_urls(),
-            [
-                (f"{ORIGIN}/seo-updates/", "2026-09-08"),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-18-leehu-dadb7cfc/",
-                    "2026-08-18",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-19-leehu-44b78db6/",
-                    "2026-08-19",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-23-leehu-80c783be/",
-                    "2026-08-23",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-24-leehu-ef782845/",
-                    "2026-08-24",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-25-leehu-1cf75bdb/",
-                    "2026-08-25",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-26-leehu-022406d5/",
-                    "2026-08-26",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-27-leehu-7b1ff6f7/",
-                    "2026-08-27",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-28-leehu-6cef6032/",
-                    "2026-08-28",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-29-leehu-96fc1443/",
-                    "2026-08-29",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-30-leehu-c585ce30/",
-                    "2026-08-30",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-08-31-leehu-1cf75bdb/",
-                    "2026-08-31",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-09-01-leehu-022406d5/",
-                    "2026-09-01",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-09-02-leehu-ead695e4/",
-                    "2026-09-02",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-09-05-leehu-scene-after-dialogue/",
-                    "2026-09-05",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-09-06-leehu-e6622739/",
-                    "2026-09-06",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-09-07-leehu-930ea24c/",
-                    "2026-09-07",
-                ),
-                (
-                    f"{ORIGIN}/seo-updates/2026-09-08-leehu-8dfac21b/",
-                    "2026-09-08",
-                ),
-            ],
-        )
+        # Independently published pages can grow between literature batches.
+        # Every real dated page must survive the next literature rebuild.
+        details = sorted((ROOT / "seo-updates").glob("????-??-??-*/index.html"))
+        preserved_slugs = {
+            "2026-08-18-leehu-dadb7cfc", "2026-08-19-leehu-44b78db6",
+            "2026-08-23-leehu-80c783be", "2026-08-24-leehu-ef782845",
+            "2026-08-25-leehu-1cf75bdb", "2026-08-26-leehu-022406d5",
+            "2026-08-27-leehu-7b1ff6f7", "2026-08-28-leehu-6cef6032",
+            "2026-08-29-leehu-96fc1443", "2026-08-30-leehu-c585ce30",
+            "2026-08-31-leehu-1cf75bdb", "2026-09-01-leehu-022406d5",
+            "2026-09-02-leehu-ead695e4", "2026-09-05-leehu-scene-after-dialogue",
+            "2026-09-06-leehu-e6622739", "2026-09-07-leehu-930ea24c",
+            "2026-09-08-leehu-8dfac21b", "2026-09-09-leehu-c5ceae35",
+            "2026-09-10-leehu-c0247e90", "2026-09-11-leehu-fa26db90",
+            "2026-09-12-leehu-79a80f67", "2026-09-13-leehu-4f42893e",
+            "2026-09-14-leehu-85f34245", "2026-09-15-leehu-2ef54791",
+            "2026-09-18-leehu-aa5d3126",
+        }
+        self.assertTrue(preserved_slugs <= {path.parent.name for path in details})
+        expected = [
+            (f"{ORIGIN}/seo-updates/{path.parent.name}/", path.parent.name[:10])
+            for path in details
+        ]
+        actual = build_literature.additional_sitemap_urls()
+        self.assertEqual(actual[1:], expected)
+        self.assertEqual(actual[0], (f"{ORIGIN}/seo-updates/", max(date for _, date in expected)))
+        sitemap = ET.parse(ROOT / "sitemap.xml")
+        namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        locations = {node.text for node in sitemap.findall("s:url/s:loc", namespace)}
+        self.assertTrue({url for url, _ in actual} <= locations)
 
     def test_sitemap_rss_and_static_links(self):
         sitemap = ET.parse(ROOT / "sitemap.xml").getroot()
@@ -1014,7 +970,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f"{ORIGIN}/author/", locations)
         self.assertIn(f"{ORIGIN}/official-links/", locations)
         self.assertIn(f"{ORIGIN}/works/", locations)
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-05")
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-08")
         self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-08")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
@@ -1274,7 +1230,7 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-08")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-18")
         self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-08")
         self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-08")
 
