@@ -19,8 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 6181
-TARGET_INDEXABLE_COUNT = 5682
+TARGET_COUNT = 6191
+TARGET_INDEXABLE_COUNT = 5692
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = (TARGET_INDEXABLE_COUNT + PAGE_SIZE - 1) // PAGE_SIZE
@@ -648,6 +648,8 @@ class StaticLiteratureTest(unittest.TestCase):
                         "ko.wikisource.org",
                         "www.penguin.co.uk",
                         "www.lepetitprince.com",
+                        "www.g-world.co.kr",
+                        "www.yes24.com",
                     },
                 )
                 self.assertIn("직접 인용 없음", note["rights_note"])

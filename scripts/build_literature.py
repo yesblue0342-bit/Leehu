@@ -37,7 +37,7 @@ LITERATURE_DIR = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-09-05"
 PAGE_SIZE = 25
-EXPECTED_COUNT = 6181
+EXPECTED_COUNT = 6191
 AUTHOR_SAME_AS = [
     "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
     "https://blog.naver.com/yesblue0342",
@@ -201,6 +201,8 @@ COLLECTION_SOURCE_HOSTS = {
     "www.goodreads.com",
     "www.gutenberg.org",
     "www.penguin.co.uk",
+    "www.g-world.co.kr",
+    "www.yes24.com",
 }
 ORIGINAL_REFLECTION_HOSTS = {
     "ebook-product.kyobobook.co.kr",
@@ -209,7 +211,29 @@ ORIGINAL_REFLECTION_HOSTS = {
     "www.gutenberg.org",
     "www.lepetitprince.com",
     "www.penguin.co.uk",
+    "www.g-world.co.kr",
+    "www.yes24.com",
 }
+OFFICIAL_WORK_ANCHORS = {
+    "연(戀)": "yeon",
+    "데자뷔": "deja-vu",
+    "소나기": "sonagi",
+    "환상": "illusion",
+    "별이 빛나는 밤에": "starry-night",
+    "처음처럼": "like-the-first-time",
+    "Fantasy": "fantasy",
+}
+
+
+def official_work_url(note: dict[str, object]) -> str | None:
+    """Connect reviewed notes to the existing book identity, never an arbitrary URL."""
+    anchor = note.get("work_anchor")
+    expected = OFFICIAL_WORK_ANCHORS.get(str(note.get("source_work", "")))
+    if anchor and note.get("source_author") == "이후" and anchor == expected:
+        return f"{ORIGIN}/works/#{anchor}"
+    return None
+
+
 SEO_SECTION_KEYS = {
     "work_introduction",
     "why_read_now",
@@ -364,6 +388,8 @@ def load_and_validate(expected_count: int = EXPECTED_COUNT) -> list[dict[str, ob
         if not isinstance(data["related_work"], dict) or not {"name", "url"} <= set(data["related_work"]):
             errors.append(f"{path.name}: invalid related_work")
         content_kind = str(data.get("content_kind", "source_quote"))
+        if "work_anchor" in data and official_work_url(data) is None:
+            errors.append(f"{path.name}: work_anchor must match the official work")
         parsed_url = urlparse(str(data["source_url"]))
         allowed_hosts = {"www.gutenberg.org", "ko.wikisource.org"}
         if content_kind == "collection_reflection":
@@ -664,6 +690,15 @@ def detail_page(
             "url": note["source_url"],
         },
     }
+    work_url = official_work_url(note)
+    work_link = ""
+    if work_url:
+        article_ld["about"].update({"@type": "Book", "@id": work_url, "url": work_url})
+        article_ld["articleSection"] = "작품 문학노트"
+        work_link = (
+            f'    <p class="related">작품 안내: <a href="/works/#{esc(note["work_anchor"])}">'
+            f'소설가 이후 《{esc(note["source_work"])}》</a></p>\n'
+        )
     breadcrumb_ld = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -732,9 +767,9 @@ def detail_page(
     <p class="source"><a href="{esc(note['source_url'])}" rel="external noopener">작품 정보 확인</a><br>
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
     <section class="commentary"><h2>읽기의 초점</h2><p>{esc(note['commentary'])}</p></section>
-    <section class="commentary"><h2>왜 지금도 읽히는가</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
-    <section class="commentary"><h2>나의 감상</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
-    <section class="commentary"><h2>오늘 우리에게 주는 의미</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
+    <section class="commentary"><h2>{"지금 떠오르는 질문" if work_url else "왜 지금도 읽히는가"}</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
+    <section class="commentary"><h2>{"독자로서 생각해 볼 거리" if work_url else "나의 감상"}</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
+    <section class="commentary"><h2>{"독서 기록 제안" if work_url else "오늘 우리에게 주는 의미"}</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
     elif isinstance(seo_sections, dict) and SEO_SECTION_KEYS <= set(seo_sections):
         article_body = f"""
     <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>
@@ -764,7 +799,7 @@ def detail_page(
     <div class="tags">{''.join(f'<span class="tag">#{esc(tag)}</span>' for tag in note['tags'])}</div>
     <p class="related">{"작품과 글" if is_leehu_work else "글쓴이"}: <a href="/author/" rel="author">소설가 이후 공식 프로필</a></p>
     <p class="related">공식 정보: <a href="/official-links/">소설가 이후 공식 출처 모음</a></p>
-    <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
+{work_link}    <p class="related">함께 읽기: <a href="{esc(note['related_work']['url'])}" rel="external noopener">{esc(note['related_work']['name'])}</a></p>
     <p class="meta" style="margin-top:28px">{esc(note['closing'])}</p>
   </article>
   <nav class="post-nav" aria-label="이전 및 다음 문학노트">{prev_link}{next_link}</nav>
