@@ -19,8 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
-TARGET_COUNT = 6191
-TARGET_INDEXABLE_COUNT = 5692
+TARGET_COUNT = 7191
+TARGET_INDEXABLE_COUNT = 6692
 TARGET_NOINDEX_COUNT = 499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = (TARGET_INDEXABLE_COUNT + PAGE_SIZE - 1) // PAGE_SIZE
@@ -316,7 +316,7 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(spacing, rendered)
         self.assertRegex(
             rendered,
-            r"나의 감상</h2>.*?</section>\s*<section class=\"commentary\"><h2>오늘 우리에게 주는 의미",
+            r"독자로서 생각해 볼 거리</h2>.*?</section>\s*<section class=\"commentary\"><h2>독서 기록 제안",
         )
 
     def test_20260903_leehu_1000_batch_is_structured_and_unique(self) -> None:
@@ -972,8 +972,8 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f"{ORIGIN}/author/", locations)
         self.assertIn(f"{ORIGIN}/official-links/", locations)
         self.assertIn(f"{ORIGIN}/works/", locations)
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-08")
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-08")
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-22")
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-22")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],
@@ -1232,9 +1232,9 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-18")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-23")
         self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-08")
-        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-08")
+        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-22")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage

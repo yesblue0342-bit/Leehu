@@ -101,37 +101,41 @@ class LeeHuSeptember22BatchTest(unittest.TestCase):
 
     def test_pagination_has_every_indexable_note_once(self):
         paths = [ROOT / "literature/index.html", *sorted((ROOT / "literature/page").glob("*/index.html"), key=lambda p: int(p.parent.name))]
-        self.assertEqual(len(paths), 228)
+        self.assertEqual(len(paths), 268)
         slugs = []
         for index, path in enumerate(paths, 1):
             page = path.read_text(encoding="utf-8")
             found = re.findall(r'<a class="note-card" href="/literature/([a-z0-9-]+)/">', page)
-            self.assertEqual(len(found), 25 if index < 228 else 17)
+            self.assertEqual(len(found), 25 if index < 268 else 17)
             slugs.extend(found)
             if index > 1:
                 self.assertIn('<meta name="robots" content="noindex, follow">', page)
-        self.assertEqual(len(slugs), 5692)
-        self.assertEqual(len(set(slugs)), 5692)
-        self.assertEqual(slugs[:10], [n["slug"] for n in self.ordered])
+        self.assertEqual(len(slugs), 6692)
+        self.assertEqual(len(set(slugs)), 6692)
+        self.assertEqual([slug for slug in slugs if slug in {n["slug"] for n in self.notes}],
+                         [n["slug"] for n in self.ordered])
 
     def test_sitemap_and_rss_include_ten_new_urls_exactly_once(self):
         ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         locations = [n.findtext("s:loc", namespaces=ns) for n in ET.parse(ROOT / "sitemap.xml").getroot()]
         items = ET.parse(ROOT / "literature/rss.xml").findall("./channel/item")
         guids = [i.findtext("guid") for i in items]
-        self.assertEqual(len(items), 5692)
+        self.assertEqual(len(items), 6692)
         self.assertEqual(len(guids), len(set(guids)))
         for note in self.notes:
             url = builder.canonical(note)
             self.assertEqual(locations.count(url), 1)
             self.assertEqual(guids.count(url), 1)
-        self.assertEqual(guids[:10], [builder.canonical(n) for n in self.ordered])
+        previous_urls = {builder.canonical(n) for n in self.notes}
+        self.assertEqual([guid for guid in guids if guid in previous_urls],
+                         [builder.canonical(n) for n in self.ordered])
 
     def test_homepage_promotes_six_latest_notes(self):
         home = (ROOT / "index.html").read_text(encoding="utf-8")
         block = re.search(r'<!-- LITERATURE_LATEST_ITEMS:START -->(.*?)<!-- LITERATURE_LATEST_ITEMS:END -->', home, re.S).group(1)
         slugs = re.findall(r'href="/literature/([^/]+)/"', block)
-        self.assertEqual(slugs, [n["slug"] for n in self.ordered[:6]])
+        current = json.loads((ROOT / "content/leehu-works-20260923-1000.json").read_text(encoding="utf-8"))
+        self.assertEqual(slugs, [n["slug"] for n in builder.sort_for_publication(current)[:6]])
 
     def test_work_page_has_all_ten_reading_links_and_matching_schema(self):
         block = re.search(r'<section[^>]*id="reading-notes".*?</section>', self.works, re.S).group(0)
