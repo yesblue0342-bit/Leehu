@@ -8,6 +8,13 @@
       "sequence_end": 499,
       "indexable": false,
       "reason": "반복 형식의 대량 배치를 직접 접근용으로 보존하되 검색 색인과 자동 발견 경로에서는 제외"
+    },
+    {
+      "id_prefix": "20260923_leehu_literature_",
+      "sequence_start": 3821,
+      "sequence_end": 4820,
+      "indexable": false,
+      "reason": "작품명과 주제·관점을 조합한 1000편 배치는 원문을 보존하되 검색 색인 및 자동 발견에서 제외"
     }
   ]
 }
