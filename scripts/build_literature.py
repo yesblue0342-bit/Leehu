@@ -216,6 +216,7 @@ ORIGINAL_REFLECTION_HOSTS = {
 }
 OFFICIAL_WORK_ANCHORS = {
     "연(戀)": "yeon",
+    "연(戀)": "yeon",
     "데자뷔": "deja-vu",
     "소나기": "sonagi",
     "환상": "illusion",
@@ -226,12 +227,20 @@ OFFICIAL_WORK_ANCHORS = {
 
 
 def official_work_url(note: dict[str, object]) -> str | None:
-    """Connect reviewed notes to the existing book identity, never an arbitrary URL."""
-    anchor = note.get("work_anchor")
+    """Resolve only the exact author and reviewed work names to existing book IDs.
+
+    Older notes predate work_anchor. The allowlist gives those notes a safe
+    internal link, while an explicitly supplied, conflicting anchor still fails
+    closed instead of being silently replaced.
+    """
+    if note.get("source_author") != "이후":
+        return None
     expected = OFFICIAL_WORK_ANCHORS.get(str(note.get("source_work", "")))
-    if anchor and note.get("source_author") == "이후" and anchor == expected:
-        return f"{ORIGIN}/works/#{anchor}"
-    return None
+    if expected is None:
+        return None
+    if "work_anchor" in note and note["work_anchor"] != expected:
+        return None
+    return f"{ORIGIN}/works/#{expected}"
 
 
 SEO_SECTION_KEYS = {
@@ -691,12 +700,15 @@ def detail_page(
         },
     }
     work_url = official_work_url(note)
+    # Preserve the existing editorial headings of older notes: resolving a
+    # missing link does not turn their prose into a reviewed work introduction.
+    has_reviewed_work_anchor = work_url is not None and "work_anchor" in note
     work_link = ""
     if work_url:
         article_ld["about"].update({"@type": "Book", "@id": work_url, "url": work_url})
         article_ld["articleSection"] = "작품 문학노트"
         work_link = (
-            f'    <p class="related">작품 안내: <a href="/works/#{esc(note["work_anchor"])}">'
+            f'    <p class="related">작품 안내: <a href="{esc(work_url.removeprefix(ORIGIN))}">'
             f'소설가 이후 《{esc(note["source_work"])}》</a></p>\n'
         )
     breadcrumb_ld = {
@@ -767,9 +779,9 @@ def detail_page(
     <p class="source"><a href="{esc(note['source_url'])}" rel="external noopener">작품 정보 확인</a><br>
     {esc(note['translation_note'])} {esc(note['rights_note'])}</p>
     <section class="commentary"><h2>읽기의 초점</h2><p>{esc(note['commentary'])}</p></section>
-    <section class="commentary"><h2>{"지금 떠오르는 질문" if work_url else "왜 지금도 읽히는가"}</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
-    <section class="commentary"><h2>{"독자로서 생각해 볼 거리" if work_url else "나의 감상"}</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
-    <section class="commentary"><h2>{"독서 기록 제안" if work_url else "오늘 우리에게 주는 의미"}</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
+    <section class="commentary"><h2>{"지금 떠오르는 질문" if has_reviewed_work_anchor else "왜 지금도 읽히는가"}</h2><p>{esc(seo_sections['why_read_now'])}</p></section>
+    <section class="commentary"><h2>{"독자로서 생각해 볼 거리" if has_reviewed_work_anchor else "나의 감상"}</h2><p>{esc(seo_sections['personal_reflection'])}</p></section>
+    <section class="commentary"><h2>{"독서 기록 제안" if has_reviewed_work_anchor else "오늘 우리에게 주는 의미"}</h2><p>{esc(seo_sections['meaning_today'])}</p></section>"""
     elif isinstance(seo_sections, dict) and SEO_SECTION_KEYS <= set(seo_sections):
         article_body = f"""
     <section class="commentary"><h2>작품 소개</h2><p>{esc(seo_sections['work_introduction'])}</p></section>

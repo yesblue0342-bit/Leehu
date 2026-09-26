@@ -8,6 +8,8 @@ COPY literature ./literature
 COPY author ./author
 COPY official-links ./official-links
 COPY works ./works
+COPY assets/official-share.js ./assets/official-share.js
+COPY seo-updates ./seo-updates
 COPY llms.txt ./llms.txt
 COPY content/literature-index-policy.json ./content/literature-index-policy.json
 COPY server.py literature_index_policy.py ./

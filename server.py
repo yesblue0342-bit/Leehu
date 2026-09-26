@@ -15,7 +15,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -36,8 +36,12 @@ PUBLIC_STATIC_FILES = {
     "/google17ccaa674b8b790b.html",
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
     "/a17a333fca77898ad56c63e1eab5d31a.txt",
+    "/assets/official-share.js",
 }
 PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/works", "/literature")
+# Updates publish HTML and their illustrations, not source data or scripts.
+PUBLIC_UPDATE_ROOT = "/seo-updates"
+PUBLIC_UPDATE_SUFFIXES = {".html", ".jpg", ".jpeg", ".png", ".webp"}
 CANONICAL_ORIGIN = "https://xn--hu5b23z.com"
 OG_IMAGE = f"{CANONICAL_ORIGIN}/og-image.jpg"
 MAX_BODY_BYTES = 128 * 1024
@@ -873,6 +877,11 @@ def render_rss():
 class LeehuHandler(SimpleHTTPRequestHandler):
     server_version = "LeehuLiterature/2.0"
 
+    def do_HEAD(self):
+        # Share GET routing and its public-file restrictions; response helpers
+        # retain GET headers while omitting the body for HEAD requests.
+        self.do_GET()
+
     def end_headers(self):
         self.send_header("X-Content-Type-Options", "nosniff")
         super().end_headers()
@@ -910,7 +919,10 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/sitemap":
             self.redirect_permanently("/sitemap.xml")
             return
-        if parsed.path in ("/", "/index.html"):
+        if parsed.path == "/index.html":
+            self.serve_static(parsed.path)
+            return
+        if parsed.path == "/":
             if literature_publication_mode() == "static":
                 self.serve_static("/index.html")
             else:
@@ -1150,7 +1162,8 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(data)
+        if self.command != "HEAD":
+            self.wfile.write(data)
 
     def html_response(self, content, status=HTTPStatus.OK):
         data = content.encode("utf-8")
@@ -1158,7 +1171,8 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+        if self.command != "HEAD":
+            self.wfile.write(data)
 
     def text_response(self, content, content_type, status=HTTPStatus.OK):
         data = content.encode("utf-8")
@@ -1166,9 +1180,13 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+        if self.command != "HEAD":
+            self.wfile.write(data)
 
     def redirect_permanently(self, location):
+        query = urlparse(self.path).query
+        if query and "?" not in location:
+            location += "?" + query
         self.send_response(HTTPStatus.MOVED_PERMANENTLY)
         self.send_header("Location", location)
         self.send_header("Content-Length", "0")
@@ -1182,7 +1200,8 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         path = posixpath.normpath(decoded_path)
         if path in ("", "/", "."):
             path = "/index.html"
-        if path not in PUBLIC_STATIC_FILES and not any(
+        public_update = path == PUBLIC_UPDATE_ROOT or path.startswith(PUBLIC_UPDATE_ROOT + "/")
+        if path not in PUBLIC_STATIC_FILES and not public_update and not any(
             path == root or path.startswith(root + "/")
             for root in PUBLIC_STATIC_ROOTS
         ):
@@ -1199,8 +1218,20 @@ class LeehuHandler(SimpleHTTPRequestHandler):
                 self.redirect_permanently(urlparse(self.path).path + "/")
                 return
             target = target / "index.html"
-        if not target.is_file():
+        if not target.is_file() or (
+            public_update and target.suffix.lower() not in PUBLIC_UPDATE_SUFFIXES
+        ):
             self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        # Consolidate file-style aliases only after checking that the public
+        # index exists. Missing or private files must remain real 404s.
+        original = urlparse(self.path)
+        if target.name == "index.html" and unquote(original.path).endswith("/index.html"):
+            directory = posixpath.dirname(path).rstrip("/") + "/"
+            location = quote(directory, safe="/")
+            if original.query:
+                location += "?" + original.query
+            self.redirect_permanently(location)
             return
         if path == "/literature/rss.xml":
             content_type = "application/rss+xml; charset=utf-8"
@@ -1223,7 +1254,8 @@ class LeehuHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
-        self.wfile.write(content)
+        if self.command != "HEAD":
+            self.wfile.write(content)
 
 
 if __name__ == "__main__":
@@ -1235,7 +1267,9 @@ if __name__ == "__main__":
         f"Leehu server listening on :{port} ({publication_mode} publication)",
         flush=True,
     )
-    if os.environ.get("INDEXNOW_NOTIFY", "1") != "0":
+    # Deployments are not content changes. Submit verified changed URLs through
+    # scripts/submit_indexnow.py and the private receipt ledger, not every restart.
+    if os.environ.get("INDEXNOW_NOTIFY", "0") != "0":
         threading.Thread(
             target=notify_naver_indexnow_once,
             name="naver-indexnow",
