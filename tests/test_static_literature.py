@@ -1149,6 +1149,8 @@ class StaticLiteratureTest(unittest.TestCase):
         person = next(entry for entry in graph if entry["@type"] == "Person")
         self.assertEqual(person["@id"], f"{ORIGIN}/#person")
         self.assertEqual(person["url"], f"{ORIGIN}/")
+        self.assertIn("이후 작가", person["alternateName"])
+        self.assertIn("이후 소설가", person["alternateName"])
         self.assertEqual(
             person["identifier"],
             {
@@ -1198,6 +1200,9 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertIn(f'"@id": "{ORIGIN}/#person"', author_page)
         self.assertIn('"propertyID": "Naver Person ID"', author_page)
         self.assertIn('"value": "215161"', author_page)
+        self.assertIn("소설가 이후(李後) 공식 프로필 | 이후 작가·대표 작품", author_page)
+        self.assertIn('"이후 작가"', author_page)
+        self.assertIn('"이후 소설가"', author_page)
         for same_as_url in build_literature.AUTHOR_SAME_AS:
             self.assertIn(f'"{same_as_url}"', author_page)
         visible_author_page = re.sub(
@@ -1232,9 +1237,9 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-25")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-25")
-        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-25")
+        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-26")
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-26")
+        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-26")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
