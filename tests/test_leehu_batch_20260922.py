@@ -101,17 +101,18 @@ class LeeHuSeptember22BatchTest(unittest.TestCase):
 
     def test_pagination_has_every_indexable_note_once(self):
         paths = [ROOT / "literature/index.html", *sorted((ROOT / "literature/page").glob("*/index.html"), key=lambda p: int(p.parent.name))]
-        self.assertEqual(len(paths), 268)
+        # policy v1: 5,692 indexable notes -> 228 list pages, the last one holding 17 cards
+        self.assertEqual(len(paths), 228)
         slugs = []
         for index, path in enumerate(paths, 1):
             page = path.read_text(encoding="utf-8")
             found = re.findall(r'<a class="note-card" href="/literature/([a-z0-9-]+)/">', page)
-            self.assertEqual(len(found), 25 if index < 268 else 17)
+            self.assertEqual(len(found), 25 if index < 228 else 17)
             slugs.extend(found)
             if index > 1:
                 self.assertIn('<meta name="robots" content="noindex, follow">', page)
-        self.assertEqual(len(slugs), 6692)
-        self.assertEqual(len(set(slugs)), 6692)
+        self.assertEqual(len(slugs), 5692)
+        self.assertEqual(len(set(slugs)), 5692)
         self.assertEqual([slug for slug in slugs if slug in {n["slug"] for n in self.notes}],
                          [n["slug"] for n in self.ordered])
 
@@ -120,7 +121,11 @@ class LeeHuSeptember22BatchTest(unittest.TestCase):
         locations = [n.findtext("s:loc", namespaces=ns) for n in ET.parse(ROOT / "sitemap.xml").getroot()]
         items = ET.parse(ROOT / "literature/rss.xml").findall("./channel/item")
         guids = [i.findtext("guid") for i in items]
-        self.assertEqual(len(items), 6692)
+        self.assertEqual(len(items), 5692)
+        feed_guids = [i.findtext("guid") for i in ET.parse(ROOT / "literature/feed.xml").findall("./channel/item")]
+        self.assertEqual(len(feed_guids), builder.RSS_ITEM_LIMIT)
+        for note in self.notes:
+            self.assertEqual(feed_guids.count(builder.canonical(note)), 1)
         self.assertEqual(len(guids), len(set(guids)))
         for note in self.notes:
             url = builder.canonical(note)
@@ -134,8 +139,9 @@ class LeeHuSeptember22BatchTest(unittest.TestCase):
         home = (ROOT / "index.html").read_text(encoding="utf-8")
         block = re.search(r'<!-- LITERATURE_LATEST_ITEMS:START -->(.*?)<!-- LITERATURE_LATEST_ITEMS:END -->', home, re.S).group(1)
         slugs = re.findall(r'href="/literature/([^/]+)/"', block)
-        current = json.loads((ROOT / "content/leehu-works-20260923-1000.json").read_text(encoding="utf-8"))
-        self.assertEqual(slugs, [n["slug"] for n in builder.sort_for_publication(current)[:6]])
+        # The 2026-09-23 batch is excluded from indexing by policy v1, so the
+        # homepage promotes the newest indexable notes: this 2026-09-22 batch.
+        self.assertEqual(slugs, [n["slug"] for n in self.ordered[:6]])
 
     def test_work_page_has_all_ten_reading_links_and_matching_schema(self):
         block = re.search(r'<section[^>]*id="reading-notes".*?</section>', self.works, re.S).group(0)

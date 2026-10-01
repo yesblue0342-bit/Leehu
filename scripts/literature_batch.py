@@ -185,6 +185,10 @@ def verify_site(expected_count: int | None = None) -> SiteMetrics:
         errors.append(
             f"rss_items={metrics.rss_items}, expected={metrics.indexable}"
         )
+    feed_items = len(ET.parse(LITERATURE_DIR / "feed.xml").findall("./channel/item"))
+    expected_feed = min(build_literature.RSS_ITEM_LIMIT, metrics.indexable)
+    if feed_items != expected_feed:
+        errors.append(f"feed_items={feed_items}, expected={expected_feed}")
     if metrics.list_pages != expected_pages:
         errors.append(f"list_pages={metrics.list_pages}, expected={expected_pages}")
     if metrics.sitemap_urls != expected_sitemap:

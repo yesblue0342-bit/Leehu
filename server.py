@@ -37,6 +37,8 @@ PUBLIC_STATIC_FILES = {
     "/naver7a6895689b825b13f6abd14a77c7c18a.html",
     "/a17a333fca77898ad56c63e1eab5d31a.txt",
     "/assets/official-share.js",
+    "/seo-updates/rss.xml",
+    "/favicon.svg",
 }
 PUBLIC_STATIC_ROOTS = ("/author", "/official-links", "/works", "/literature")
 # Updates publish HTML and their illustrations, not source data or scripts.
@@ -1219,7 +1221,9 @@ class LeehuHandler(SimpleHTTPRequestHandler):
                 return
             target = target / "index.html"
         if not target.is_file() or (
-            public_update and target.suffix.lower() not in PUBLIC_UPDATE_SUFFIXES
+            public_update
+            and path not in PUBLIC_STATIC_FILES
+            and target.suffix.lower() not in PUBLIC_UPDATE_SUFFIXES
         ):
             self.send_error(HTTPStatus.NOT_FOUND)
             return
@@ -1233,7 +1237,7 @@ class LeehuHandler(SimpleHTTPRequestHandler):
                 location += "?" + original.query
             self.redirect_permanently(location)
             return
-        if path == "/literature/rss.xml":
+        if path in ("/literature/rss.xml", "/literature/feed.xml", "/seo-updates/rss.xml"):
             content_type = "application/rss+xml; charset=utf-8"
         elif target.suffix.lower() == ".xml":
             content_type = "application/xml; charset=utf-8"

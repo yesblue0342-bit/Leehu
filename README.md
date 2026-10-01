@@ -43,7 +43,9 @@ llms.txt                                  AI 검색용 핵심 공개 정보
 literature/index.html                     목록 첫 페이지
 literature/page/N/index.html              페이지네이션
 literature/{slug}/index.html              개별 문학노트
-literature/rss.xml                        RSS 피드
+literature/rss.xml                        RSS 피드(전체 색인, 목록 검색용)
+literature/feed.xml                       최신 100편 본문 전체 피드(네이버 제출용)
+seo-updates/rss.xml                       공식 소식 피드(scripts/build_updates_index.py)
 sitemap.xml                               전체 사이트맵
 ```
 
@@ -59,10 +61,10 @@ python scripts/literature_batch.py build --expected-count 7191 --test
 출력 예시:
 
 ```text
-built 7191 detail pages, 268 list pages, 6692 RSS items, and 6728 sitemap URLs; noindexed 499 detail pages
+built 7191 detail pages, 228 list pages, 5692 RSS items, 100 feed items, and 5732 sitemap URLs; noindexed 1499 detail pages
 ```
 
-모든 문학노트 원문과 직접 URL은 보존합니다. 다만 `content/literature-index-policy.json`에서 검색 색인 제외로 지정한 반복 형식의 대량 배치는 상세 페이지에 `noindex, follow`를 적용하고 목록·홈페이지·RSS·sitemap·이전/다음 링크에서는 제외합니다. 정책은 버전, 범위 중복, 실제 원본 ID 매칭을 생성 전에 검증하며, 현재 공개 발견 대상은 6,692건입니다. 목록 2쪽 이후는 탐색용 보관 페이지로 유지하되 `noindex, follow`를 적용하고 sitemap에는 넣지 않습니다.
+모든 문학노트 원문과 직접 URL은 보존합니다. 다만 `content/literature-index-policy.json`에서 검색 색인 제외로 지정한 반복 형식의 대량 배치는 상세 페이지에 `noindex, follow`를 적용하고 목록·홈페이지·RSS·sitemap·이전/다음 링크에서는 제외합니다. 정책은 버전, 범위 중복, 실제 원본 ID 매칭을 생성 전에 검증하며, 현재 공개 발견 대상은 5,692건입니다(2026-09-23 배치 1,000편은 원문을 보존하되 색인 제외). `literature/rss.xml`은 목록 페이지 검색이 읽는 전체 색인이고, 네이버 서치어드바이저에 제출하는 `literature/feed.xml`은 최신 100편을 본문 전체와 함께 담습니다. 전체 URL은 sitemap이 담습니다. 목록 2쪽 이후는 탐색용 보관 페이지로 유지하되 `noindex, follow`를 적용하고 sitemap에는 넣지 않습니다.
 
 생성기는 다음을 중단 조건으로 검증합니다.
 

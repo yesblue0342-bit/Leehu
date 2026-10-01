@@ -40,6 +40,8 @@ Work-specific reading notes: https://xn--hu5b23z.com/works/#reading-notes
 - Bugs: https://music.bugs.co.kr/artist/20190019
 - Instagram: https://www.instagram.com/12drf52/
 - X: https://twitter.com/yesblue0342
+- Facebook: https://www.facebook.com/12drf52
+- Official news (short essays, RSS at /seo-updates/rss.xml): https://xn--hu5b23z.com/seo-updates/
 - Kyobo author: https://store.kyobobook.co.kr/person/detail/1000809404
 - Wikipedia: https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)
 

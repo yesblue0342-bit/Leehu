@@ -28,6 +28,9 @@ class LiteratureIndexPolicyTest(unittest.TestCase):
                 {"id": "20260806_leehu_literature_001"},
                 {"id": "20260806_leehu_literature_499"},
                 {"id": "20260806_leehu_literature_500"},
+                {"id": "20260923_leehu_literature_3820"},
+                {"id": "20260923_leehu_literature_3821"},
+                {"id": "20260923_leehu_literature_4820"},
             ],
         )
         self.assertFalse(
@@ -35,6 +38,15 @@ class LiteratureIndexPolicyTest(unittest.TestCase):
         )
         self.assertFalse(
             is_note_indexable("20260806_leehu_literature_499", policy)
+        )
+        self.assertTrue(
+            is_note_indexable("20260923_leehu_literature_3820", policy)
+        )
+        self.assertFalse(
+            is_note_indexable("20260923_leehu_literature_3821", policy)
+        )
+        self.assertFalse(
+            is_note_indexable("20260923_leehu_literature_4820", policy)
         )
         self.assertTrue(
             is_note_indexable("20260806_leehu_literature_500", policy)

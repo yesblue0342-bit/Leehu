@@ -43,6 +43,8 @@ class PublicHTTPRoutesTest(unittest.TestCase):
             "seo-updates/latest.html": b"<h1>Latest update</h1>",
             "seo-updates/illustration.jpg": b"JPEG fixture",
             "seo-updates/illustration.png": b"PNG fixture",
+            "seo-updates/rss.xml": b"<rss><channel><title>updates</title></channel></rss>",
+            "seo-updates/internal.xml": b"<private/>",
             "seo-updates/internal.json": b'{"private":true}',
             "seo-updates/internal.py": b"private = True",
             "seo-updates/internal.js": b"/* Not a public update */",
@@ -106,6 +108,7 @@ class PublicHTTPRoutesTest(unittest.TestCase):
             "/seo-updates/latest.html": "seo-updates/latest.html",
             "/seo-updates/illustration.jpg": "seo-updates/illustration.jpg",
             "/seo-updates/illustration.png": "seo-updates/illustration.png",
+            "/seo-updates/rss.xml": "seo-updates/rss.xml",
         }
         for path, fixture in paths.items():
             with self.subTest(path=path):
@@ -117,6 +120,9 @@ class PublicHTTPRoutesTest(unittest.TestCase):
                 self.assertEqual(head_headers["Content-Type"], headers["Content-Type"])
                 self.assertEqual(head_headers["Content-Length"], str(len(body)))
                 self.assertEqual(head_body, b"")
+        status, headers, _ = self.request("GET", "/seo-updates/rss.xml")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "application/rss+xml; charset=utf-8")
 
     def test_private_missing_and_unlisted_files_stay_404_for_get_and_head(self):
         for path in (
@@ -124,6 +130,7 @@ class PublicHTTPRoutesTest(unittest.TestCase):
             "/assets/internal.json", "/assets/unlisted.js",
             "/seo-updates/internal.json", "/seo-updates/internal.py",
             "/seo-updates/internal.js", "/seo-updates/missing.html",
+            "/seo-updates/internal.xml",
             "/assets/../content/private.json", "/seo-updates/%2e%2e/content/private.json",
             "/literature/missing/index.html", "/docs/index.html",
         ):

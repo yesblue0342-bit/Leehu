@@ -38,6 +38,10 @@ ORIGIN = "https://xn--hu5b23z.com"
 CORE_PAGE_LASTMOD = "2026-09-05"
 PAGE_SIZE = 25
 EXPECTED_COUNT = 7191
+# literature/rss.xml lists every indexable note (the list page search reads it).
+# literature/feed.xml is the feed for Naver Search Advisor: at most this many of
+# the newest notes with their full body, well under the 10MB submission limit.
+RSS_ITEM_LIMIT = 100
 AUTHOR_SAME_AS = [
     "https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84",
     "https://blog.naver.com/yesblue0342",
@@ -850,6 +854,36 @@ def replace_marker(source: str, marker: str, replacement: str) -> str:
     return source.replace(plain, rendered)
 
 
+def note_body_text(note: dict[str, object]) -> str:
+    """Plain-text body of a note in the order the detail page shows it."""
+    content_kind = str(note.get("content_kind", "source_quote"))
+    collection_sections = note.get("collection_sections")
+    seo_sections = note.get("seo_sections")
+    parts: list[object] = []
+    if content_kind == "collection_reflection" and isinstance(collection_sections, list):
+        parts.extend([note.get("collection_introduction"), note["quote"], note.get("rights_note")])
+        for position, work in enumerate(collection_sections, 1):
+            parts.append(f"{position}. {work['title']} — {work['author']} · {work['country_genre']}")
+            parts.extend(work[field] for field in ("core_theme", "summary", "love_form", "literary_question", "one_line"))
+        parts.append(note.get("collection_closing"))
+    elif isinstance(seo_sections, dict) and SEO_SECTION_KEYS <= set(seo_sections):
+        parts.append(seo_sections["work_introduction"])
+        parts.append(note["quote"])
+        if content_kind != "original_reflection":
+            parts.append(f"— {note['source_author']}, {note['source_work']}, {note['source_location']}")
+        parts.append(f"{note['translation_note']} {note['rights_note']}")
+        parts.append(note["commentary"])
+        parts.extend(seo_sections[key] for key in ("why_read_now", "personal_reflection", "meaning_today"))
+        parts.append(note["closing"])
+    else:
+        parts.append(note["quote"])
+        parts.append(f"— {note['source_author']}, {note['source_work']}, {note['source_location']}")
+        parts.append(f"{note['translation_note']} {note['rights_note']}")
+        parts.append(note["commentary"])
+        parts.append(note["closing"])
+    return "\n\n".join(str(part).strip() for part in parts if part)
+
+
 def write_rss(notes: list[dict[str, object]]) -> None:
     ET.register_namespace("atom", "http://www.w3.org/2005/Atom")
     rss = ET.Element("rss", version="2.0")
@@ -883,6 +917,42 @@ def write_rss(notes: list[dict[str, object]]) -> None:
     write_xml_atomic(LITERATURE_DIR / "rss.xml", rss)
 
 
+def write_feed(notes: list[dict[str, object]]) -> None:
+    """Newest notes with their full text, sized for Naver's RSS submission."""
+    ET.register_namespace("atom", "http://www.w3.org/2005/Atom")
+    rss = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(rss, "channel")
+    for name, value in (
+        ("title", "이후의 문학노트 최신 글"),
+        ("link", f"{ORIGIN}/literature/"),
+        ("description", "소설가 이후의 문학노트 최신 글 본문"),
+        ("language", "ko"),
+    ):
+        ET.SubElement(channel, name).text = value
+    ET.SubElement(
+        channel,
+        "{http://www.w3.org/2005/Atom}link",
+        href=f"{ORIGIN}/literature/feed.xml",
+        rel="self",
+        type="application/rss+xml",
+    )
+    for note in notes[:RSS_ITEM_LIMIT]:
+        item = ET.SubElement(channel, "item")
+        ET.SubElement(item, "title").text = str(note["title"])
+        ET.SubElement(item, "link").text = canonical(note)
+        ET.SubElement(item, "guid", isPermaLink="true").text = canonical(note)
+        published = datetime.fromisoformat(str(note["published_at"]))
+        ET.SubElement(item, "pubDate").text = format_datetime(published)
+        ET.SubElement(item, "description").text = note_body_text(note)
+        ET.SubElement(item, "author").text = str(note["source_author"])
+        for tag in note["tags"]:
+            ET.SubElement(item, "category").text = str(tag)
+    write_xml_atomic(LITERATURE_DIR / "feed.xml", rss)
+
+
+NOINDEX_META_RE = re.compile(r"""<meta\s+name\s*=\s*["']robots["']\s+content\s*=\s*["'][^"']*noindex""", re.I)
+
+
 def additional_sitemap_urls() -> list[tuple[str, str]]:
     """Return independently published static pages that literature builds must preserve."""
     update_root = ROOT / "seo-updates"
@@ -897,6 +967,8 @@ def additional_sitemap_urls() -> list[tuple[str, str]]:
             datetime.fromisoformat(match.group("date"))
         except ValueError:
             continue
+        if NOINDEX_META_RE.search((child / "index.html").read_text(encoding="utf-8")):
+            continue  # a duplicate republication that points at its original stays out of the sitemap
         updates.append(
             (f"{ORIGIN}/seo-updates/{child.name}/", match.group("date"))
         )
@@ -1042,6 +1114,13 @@ def verify_generated(
     rss_count = len(rss.findall("./channel/item"))
     if rss_count != len(indexable_notes):
         errors.append(f"RSS count {rss_count}, expected {len(indexable_notes)}")
+    feed = ET.parse(LITERATURE_DIR / "feed.xml")
+    feed_count = len(feed.findall("./channel/item"))
+    expected_feed = min(RSS_ITEM_LIMIT, len(indexable_notes))
+    if feed_count != expected_feed:
+        errors.append(f"feed count {feed_count}, expected {expected_feed}")
+    if (LITERATURE_DIR / "feed.xml").stat().st_size >= 10 * 1024 * 1024:
+        errors.append("feed.xml exceeds Naver's 10MB RSS limit")
     homepage = (ROOT / "index.html").read_text(encoding="utf-8")
     block = re.search(
         r"<!-- LITERATURE_LATEST_ITEMS:START -->(.*?)<!-- LITERATURE_LATEST_ITEMS:END -->",
@@ -1053,7 +1132,7 @@ def verify_generated(
     excluded_slugs = {
         str(note["slug"]) for note in all_notes if str(note["slug"]) not in indexable_slugs
     }
-    discovery_texts = [homepage, (ROOT / "sitemap.xml").read_text(encoding="utf-8"), (LITERATURE_DIR / "rss.xml").read_text(encoding="utf-8")]
+    discovery_texts = [homepage, (ROOT / "sitemap.xml").read_text(encoding="utf-8"), (LITERATURE_DIR / "rss.xml").read_text(encoding="utf-8"), (LITERATURE_DIR / "feed.xml").read_text(encoding="utf-8")]
     discovery_texts.append(
         (LITERATURE_DIR / "index.html").read_text(encoding="utf-8")
     )
@@ -1145,12 +1224,13 @@ def build(expected_count: int = EXPECTED_COUNT) -> None:
             detail_page(note, previous, following, position is not None),
         )
     write_rss(indexable_notes)
+    write_feed(indexable_notes)
     write_sitemap(indexable_notes)
     update_homepage(indexable_notes)
     verify_generated(all_notes, indexable_notes, total_pages)
     print(
         f"built {len(all_notes)} detail pages, {total_pages} list pages, "
-        f"{len(indexable_notes)} RSS items, and "
+        f"{len(indexable_notes)} RSS items, {min(RSS_ITEM_LIMIT, len(indexable_notes))} feed items, and "
         f"{5 + len(indexable_notes) + len(additional_sitemap_urls())} sitemap URLs; "
         f"noindexed {len(all_notes) - len(indexable_notes)} detail pages"
     )

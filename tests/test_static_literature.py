@@ -20,8 +20,10 @@ CONTENT = ROOT / "content" / "literature"
 LITERATURE = ROOT / "literature"
 ORIGIN = "https://xn--hu5b23z.com"
 TARGET_COUNT = 7191
-TARGET_INDEXABLE_COUNT = 6692
-TARGET_NOINDEX_COUNT = 499
+# content/literature-index-policy.json v1 excludes the 499-note 20260806 batch
+# and the 1,000-note 20260923 batch (3821..4820) from indexing.
+TARGET_INDEXABLE_COUNT = 5692
+TARGET_NOINDEX_COUNT = 1499
 PAGE_SIZE = 25
 TARGET_LIST_PAGES = (TARGET_INDEXABLE_COUNT + PAGE_SIZE - 1) // PAGE_SIZE
 TARGET_SITEMAP_URLS = TARGET_INDEXABLE_COUNT + 5 + len(build_literature.additional_sitemap_urls())
@@ -442,9 +444,14 @@ class StaticLiteratureTest(unittest.TestCase):
             {
                 f"20260806_leehu_literature_{sequence:03d}"
                 for sequence in range(1, 500)
+            }
+            | {
+                f"20260923_leehu_literature_{sequence}"
+                for sequence in range(3821, 4821)
             },
         )
         self.assertIn("20260806_leehu_literature_500", self.indexable_ids)
+        self.assertIn("20260922_leehu_literature_3819", self.indexable_ids)
 
     def test_20260806_batch_avoids_repeated_boilerplate_and_raw_anchor_titles(self) -> None:
         batch = [
@@ -942,10 +949,14 @@ class StaticLiteratureTest(unittest.TestCase):
             "2026-09-18-leehu-aa5d3126",
         }
         self.assertTrue(preserved_slugs <= {path.parent.name for path in details})
+        # A republished duplicate that canonicalizes to its original carries
+        # noindex and is deliberately left out of the sitemap.
         expected = [
             (f"{ORIGIN}/seo-updates/{path.parent.name}/", path.parent.name[:10])
             for path in details
+            if not build_literature.NOINDEX_META_RE.search(path.read_text(encoding="utf-8"))
         ]
+        self.assertEqual(len(details) - len(expected), 2)
         actual = build_literature.additional_sitemap_urls()
         self.assertEqual(actual[1:], expected)
         self.assertEqual(actual[0], (f"{ORIGIN}/seo-updates/", max(date for _, date in expected)))
@@ -966,14 +977,17 @@ class StaticLiteratureTest(unittest.TestCase):
             )
             for node in sitemap.findall("s:url", namespace)
         }
-        latest_date = max(note["published_at"][:10] for note in self.notes)
+        latest_date = max(note["published_at"][:10] for note in self.indexable_notes)
         latest_note = build_literature.sort_for_publication(self.indexable_notes)[0]
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/"], latest_date)
+        # the homepage lastmod is the newer of the latest indexable note and the page's own dateModified
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/"], max(latest_date, build_literature.core_page_lastmod("index.html")))
         self.assertIn(f"{ORIGIN}/author/", locations)
         self.assertIn(f"{ORIGIN}/official-links/", locations)
         self.assertIn(f"{ORIGIN}/works/", locations)
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], "2026-09-22")
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-09-22")
+        # core page lastmod mirrors each page's own JSON-LD dateModified (2026-10-01 at this writing)
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], build_literature.core_page_lastmod("official-links/index.html"))
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], build_literature.core_page_lastmod("works/index.html"))
+        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-10-01")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],
@@ -1012,6 +1026,21 @@ class StaticLiteratureTest(unittest.TestCase):
                 rss_descriptions[f"{ORIGIN}/literature/{note['slug']}/"],
                 note["commentary"],
             )
+        feed = ET.parse(LITERATURE / "feed.xml")
+        feed_items = feed.findall("./channel/item")
+        expected_feed_items = min(build_literature.RSS_ITEM_LIMIT, TARGET_INDEXABLE_COUNT)
+        self.assertEqual(len(feed_items), expected_feed_items)
+        self.assertLess((LITERATURE / "feed.xml").stat().st_size, 10 * 1024 * 1024)
+        ordered = build_literature.sort_for_publication(self.indexable_notes)
+        self.assertEqual(
+            [item.findtext("guid") for item in feed_items],
+            [f"{ORIGIN}/literature/{note['slug']}/" for note in ordered[:expected_feed_items]],
+        )
+        for note, item in zip(ordered[:expected_feed_items], feed_items):
+            description = item.findtext("description")
+            self.assertEqual(description, build_literature.note_body_text(note))
+            self.assertIn(note["commentary"], description)
+            self.assertIn(note["closing"], description)
         for note in self.noindex_notes:
             self.assertNotIn(
                 f"{ORIGIN}/literature/{note['slug']}/", rss_descriptions
@@ -1139,7 +1168,16 @@ class StaticLiteratureTest(unittest.TestCase):
                 homepage,
                 rf'<meta\s+property="{re.escape(property_name)}"\s+content="[^"]+">',
             )
-        self.assertEqual(len(self.homepage_parser.scripts), 1)
+        # The first block is the site graph; the second is Naver's 사이트 연관채널
+        # markup (a top-level Person with name/url/sameAs, same @id).
+        self.assertEqual(len(self.homepage_parser.scripts), 2)
+        channel = json.loads(self.homepage_parser.scripts[1])
+        self.assertEqual(channel["@type"], "Person")
+        self.assertEqual(channel["@id"], f"{ORIGIN}/#person")
+        self.assertEqual(channel["url"], f"{ORIGIN}/")
+        self.assertIn("https://blog.naver.com/yesblue0342", channel["sameAs"])
+        self.assertIn("https://www.facebook.com/12drf52", channel["sameAs"])
+        self.assertFalse(any("wikipedia" in url or "kyobobook" in url or "search.naver" in url for url in channel["sameAs"]))
         graph = json.loads(self.homepage_parser.scripts[0])["@graph"]
         graph_types = [entry["@type"] for entry in graph]
         self.assertIn("Person", graph_types)
@@ -1172,6 +1210,7 @@ class StaticLiteratureTest(unittest.TestCase):
                 "https://music.bugs.co.kr/artist/20190019",
                 "https://www.instagram.com/12drf52/",
                 "https://twitter.com/yesblue0342",
+                "https://www.facebook.com/12drf52",
                 "https://store.kyobobook.co.kr/person/detail/1000809404",
                 "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
                 "https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)",
@@ -1237,9 +1276,11 @@ class StaticLiteratureTest(unittest.TestCase):
             node.findtext("sm:lastmod", namespaces=namespace)
             for node in sitemap.getroot().findall("sm:url", namespace)
         }
-        self.assertEqual(lastmods[f"{ORIGIN}/"], "2026-09-26")
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-09-26")
-        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], "2026-09-26")
+        latest_note_date = max(note["published_at"][:10] for note in self.indexable_notes)
+        self.assertEqual(lastmods[f"{ORIGIN}/"], max(latest_note_date, build_literature.core_page_lastmod("index.html")))
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], build_literature.core_page_lastmod("author/index.html"))
+        self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], build_literature.core_page_lastmod("official-links/index.html"))
+        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-10-01")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
@@ -1462,7 +1503,7 @@ class StaticLiteratureTest(unittest.TestCase):
         )
 
     def test_z_generator_is_idempotent(self):
-        tracked_outputs = [ROOT / "index.html", ROOT / "sitemap.xml", LITERATURE / "rss.xml"]
+        tracked_outputs = [ROOT / "index.html", ROOT / "sitemap.xml", LITERATURE / "rss.xml", LITERATURE / "feed.xml"]
         tracked_outputs += [LITERATURE / "index.html"]
         tracked_outputs += list((LITERATURE / "page").glob("*/index.html"))
         tracked_outputs += [LITERATURE / note["slug"] / "index.html" for note in self.notes]
