@@ -47,6 +47,7 @@ class SiteMetrics:
     rss_items: int
     sitemap_urls: int
     list_pages: int
+    feed_items: int = 0
 
 
 def numbered_paths(content_dir: Path) -> list[Path]:
@@ -163,9 +164,10 @@ def site_metrics() -> SiteMetrics:
         1 for path in (LITERATURE_DIR / "page").glob("*/index.html") if path.is_file()
     )
     rss_items = len(ET.parse(LITERATURE_DIR / "rss.xml").findall("./channel/item"))
+    feed_items = len(ET.parse(LITERATURE_DIR / "feed.xml").findall("./channel/item"))
     sitemap_urls = len(ET.parse(ROOT / "sitemap.xml").getroot())
     return SiteMetrics(
-        len(source_paths), indexable, details, rss_items, sitemap_urls, list_pages
+        len(source_paths), indexable, details, rss_items, sitemap_urls, list_pages, feed_items
     )
 
 
@@ -185,10 +187,9 @@ def verify_site(expected_count: int | None = None) -> SiteMetrics:
         errors.append(
             f"rss_items={metrics.rss_items}, expected={metrics.indexable}"
         )
-    feed_items = len(ET.parse(LITERATURE_DIR / "feed.xml").findall("./channel/item"))
     expected_feed = min(build_literature.RSS_ITEM_LIMIT, metrics.indexable)
-    if feed_items != expected_feed:
-        errors.append(f"feed_items={feed_items}, expected={expected_feed}")
+    if metrics.feed_items != expected_feed:
+        errors.append(f"feed_items={metrics.feed_items}, expected={expected_feed}")
     if metrics.list_pages != expected_pages:
         errors.append(f"list_pages={metrics.list_pages}, expected={expected_pages}")
     if metrics.sitemap_urls != expected_sitemap:
@@ -202,8 +203,8 @@ def print_metrics(metrics: SiteMetrics) -> None:
     print(
         f"sources={metrics.sources} details={metrics.details} "
         f"indexable={metrics.indexable} "
-        f"rss_items={metrics.rss_items} sitemap_urls={metrics.sitemap_urls} "
-        f"list_pages={metrics.list_pages}"
+        f"rss_items={metrics.rss_items} feed_items={metrics.feed_items} "
+        f"sitemap_urls={metrics.sitemap_urls} list_pages={metrics.list_pages}"
     )
 
 

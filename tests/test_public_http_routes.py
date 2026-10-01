@@ -44,6 +44,7 @@ class PublicHTTPRoutesTest(unittest.TestCase):
             "seo-updates/illustration.jpg": b"JPEG fixture",
             "seo-updates/illustration.png": b"PNG fixture",
             "seo-updates/rss.xml": b"<rss><channel><title>updates</title></channel></rss>",
+            "favicon.svg": b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'></svg>",
             "seo-updates/internal.xml": b"<private/>",
             "seo-updates/internal.json": b'{"private":true}',
             "seo-updates/internal.py": b"private = True",
@@ -109,6 +110,7 @@ class PublicHTTPRoutesTest(unittest.TestCase):
             "/seo-updates/illustration.jpg": "seo-updates/illustration.jpg",
             "/seo-updates/illustration.png": "seo-updates/illustration.png",
             "/seo-updates/rss.xml": "seo-updates/rss.xml",
+            "/favicon.svg": "favicon.svg",
         }
         for path, fixture in paths.items():
             with self.subTest(path=path):

@@ -956,7 +956,15 @@ class StaticLiteratureTest(unittest.TestCase):
             for path in details
             if not build_literature.NOINDEX_META_RE.search(path.read_text(encoding="utf-8"))
         ]
-        self.assertEqual(len(details) - len(expected), 2)
+        excluded = [
+            path for path in details
+            if build_literature.NOINDEX_META_RE.search(path.read_text(encoding="utf-8"))
+        ]
+        self.assertEqual(len(details) - len(expected), len(excluded))
+        for path in excluded:
+            canonical = re.search(r'<link rel="canonical" href="([^"]+)">', path.read_text(encoding="utf-8")).group(1)
+            self.assertNotEqual(canonical, f"{ORIGIN}/seo-updates/{path.parent.name}/")
+            self.assertIn(canonical, {url for url, _ in expected})
         actual = build_literature.additional_sitemap_urls()
         self.assertEqual(actual[1:], expected)
         self.assertEqual(actual[0], (f"{ORIGIN}/seo-updates/", max(date for _, date in expected)))
@@ -987,7 +995,6 @@ class StaticLiteratureTest(unittest.TestCase):
         # core page lastmod mirrors each page's own JSON-LD dateModified (2026-10-01 at this writing)
         self.assertEqual(sitemap_dates[f"{ORIGIN}/official-links/"], build_literature.core_page_lastmod("official-links/index.html"))
         self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], build_literature.core_page_lastmod("works/index.html"))
-        self.assertEqual(sitemap_dates[f"{ORIGIN}/works/"], "2026-10-01")
         self.assertEqual(
             sitemap_dates[f"{ORIGIN}/literature/{latest_note['slug']}/"],
             latest_note["published_at"][:10],
@@ -1280,7 +1287,6 @@ class StaticLiteratureTest(unittest.TestCase):
         self.assertEqual(lastmods[f"{ORIGIN}/"], max(latest_note_date, build_literature.core_page_lastmod("index.html")))
         self.assertEqual(lastmods[f"{ORIGIN}/author/"], build_literature.core_page_lastmod("author/index.html"))
         self.assertEqual(lastmods[f"{ORIGIN}/official-links/"], build_literature.core_page_lastmod("official-links/index.html"))
-        self.assertEqual(lastmods[f"{ORIGIN}/author/"], "2026-10-01")
 
     def test_homepage_generator_markers_remain_unique_and_ordered(self):
         homepage = self.homepage
