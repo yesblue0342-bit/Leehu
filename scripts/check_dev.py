@@ -26,7 +26,11 @@ def main() -> int:
     parser.add_argument("--suite", choices=("quick", "full"), default="quick")
     parser.add_argument("--browser", action="store_true", help="also run local browser smoke checks")
     parser.add_argument("--report", type=Path, help="write command results as JSON outside the checkout")
+    parser.add_argument("--timeout", type=int, default=600, help="seconds allowed for each check")
+    parser.add_argument("--memory-limit-mb", type=int, default=4096, help="Linux unittest address-space limit")
     args = parser.parse_args()
+    if args.timeout <= 0 or args.memory_limit_mb <= 0:
+        parser.error("timeout and memory limit must be positive")
     if args.report and args.report.resolve().is_relative_to(ROOT):
         parser.error("choose a report path outside the checkout, such as /tmp/leehu-check.json")
 
@@ -49,9 +53,25 @@ def main() -> int:
         })
         for command in commands:
             print("Running:", " ".join(command), flush=True)
+            limit = None
+            if sys.platform.startswith("linux") and command[1:3] == ["-m", "unittest"]:
+                import resource
+
+                def limit():
+                    _, hard = resource.getrlimit(resource.RLIMIT_AS)
+                    requested = args.memory_limit_mb * 1024 * 1024
+                    maximum = requested if hard == resource.RLIM_INFINITY else min(requested, hard)
+                    resource.setrlimit(resource.RLIMIT_AS, (maximum, maximum))
+
             try:
-                result = subprocess.run(command, cwd=ROOT, env=environment, check=False)
+                result = subprocess.run(
+                    command, cwd=ROOT, env=environment, check=False,
+                    timeout=args.timeout, preexec_fn=limit,
+                )
                 code = result.returncode
+            except subprocess.TimeoutExpired:
+                print(f"Check exceeded {args.timeout} seconds.", file=sys.stderr)
+                code = 124
             except OSError as exc:
                 print(f"Cannot run check: {exc}", file=sys.stderr)
                 code = 1
@@ -62,6 +82,8 @@ def main() -> int:
         args.report.write_text(json.dumps({
             "checked_at": datetime.now(timezone.utc).isoformat(),
             "suite": args.suite,
+            "timeout_seconds": args.timeout,
+            "linux_unittest_memory_limit_mb": args.memory_limit_mb,
             "passed": passed,
             "checks": results,
         }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -43,6 +43,8 @@ python3 scripts/naver_seo_audit.py --out /tmp/leehu-seo-audit.md
 
 `check_dev.py`는 명령의 실제 종료 코드를 기록하고 하나라도 실패하면 실패로 종료합니다. 테스트용 게시판·문학노트 저장 경로는 임시 디렉터리로 지정해 `/data` 쓰기 권한이 없는 환경에서도 실행합니다. JSON 보고서는 저장소 밖에 작성합니다. 전체 테스트에는 기존 생성기의 재실행·산출물 동일성 검사도 포함되므로 기본 검사보다 오래 걸리며, 실행 뒤 git diff로 산출물 변경 여부도 확인합니다. 배포·검색엔진 제출은 실행하지 않습니다.
 
+각 검사에는 기본 600초 제한을 적용하고, Linux unittest 프로세스에는 기본 4GiB 주소 공간 제한을 적용합니다. 시간 초과는 종료 코드 124, 메모리 제한으로 인한 실패는 해당 검사 실패로 기록합니다. 필요한 경우 `--timeout 1200 --memory-limit-mb 8192`처럼 조정할 수 있으며, 제한 때문에 중단된 검사를 통과로 보고하지 않습니다. Chromium에는 이 unittest 메모리 제한을 적용하지 않습니다.
+
 브라우저 검사에는 Playwright Python 패키지와 Chromium이 필요합니다. 환경에 없다면 `python3 -m pip install playwright` 후 `python3 -m playwright install chromium`으로 준비합니다. 운영체제 라이브러리 설치 권한이 필요한 경우 해당 환경의 설치 절차를 따릅니다. 시스템 Chromium은 자동 탐지하고, 다른 위치는 `CHROMIUM_EXECUTABLE`로 지정합니다.
 
 `browser_smoke.py`는 임시 로컬 서버에서 홈페이지·작가·작품·공식 링크·문학노트를 1440px와 390px 너비로 엽니다. HTTP 200, 제목·본문, canonical, 내부 링크 이동을 검사하고 외부 네트워크 요청은 차단합니다. 실제 NUC의 로그인 상태, 모든 화면의 시각적 완성도, 운영 배포 성공은 별도 검증 대상입니다.
