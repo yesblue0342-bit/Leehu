@@ -39,3 +39,52 @@ class CorePageDatesTest(unittest.TestCase):
             self.assertEqual(entries[builder.ORIGIN + "/author/"], "2026-09-08")
             self.assertEqual(entries[builder.ORIGIN + "/works/"], "2026-09-07")
             self.assertEqual(entries[builder.ORIGIN + "/official-links/"], builder.CORE_PAGE_LASTMOD)
+
+
+    def test_updates_index_date_tracks_latest_indexable_update(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            updates = root / "seo-updates"
+            updates.mkdir()
+            (updates / "index.html").write_text("index", encoding="utf-8")
+            for slug, body in (
+                ("2026-10-01-old", "<h1>Old</h1>"),
+                ("2026-11-02-new", "<h1>New</h1>"),
+                ("2026-11-03-duplicate", '<meta name="robots" content="noindex, follow">'),
+                ("2026-99-99-invalid", "<h1>Invalid date</h1>"),
+            ):
+                page = updates / slug / "index.html"
+                page.parent.mkdir()
+                page.write_text(body, encoding="utf-8")
+            with patch.object(builder, "ROOT", root):
+                expected = [
+                    (builder.ORIGIN + "/seo-updates/", "2026-11-02"),
+                    (builder.ORIGIN + "/seo-updates/2026-10-01-old/", "2026-10-01"),
+                    (builder.ORIGIN + "/seo-updates/2026-11-02-new/", "2026-11-02"),
+                ]
+                self.assertEqual(builder.additional_sitemap_urls(), expected)
+                self.assertEqual(builder.additional_sitemap_urls(), expected)
+
+    def test_updates_index_without_posts_keeps_stable_fallback_date(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(builder, "ROOT", root):
+                self.assertEqual(builder.additional_sitemap_urls(), [])
+                updates = root / "seo-updates"
+                updates.mkdir()
+                (updates / "index.html").write_text("index", encoding="utf-8")
+                self.assertEqual(
+                    builder.additional_sitemap_urls(),
+                    [(builder.ORIGIN + "/seo-updates/", builder.CORE_PAGE_LASTMOD)],
+                )
+
+    def test_checked_in_updates_sitemap_dates_match_published_pages(self):
+        ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        entries = {
+            node.findtext("sm:loc", namespaces=ns):
+            node.findtext("sm:lastmod", namespaces=ns)
+            for node in ET.parse(builder.ROOT / "sitemap.xml").getroot()
+        }
+        for url, expected_date in builder.additional_sitemap_urls():
+            with self.subTest(url=url):
+                self.assertEqual(entries.get(url), expected_date)

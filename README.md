@@ -2,6 +2,10 @@
 
 장편소설 《연》·《데자뷔》·《소나기》와 《Fantasy》를 쓴 소설가 이후의 공식 홈페이지 소스 및 문학노트 아카이브입니다.
 
+## Codex cloud 개발
+
+휴대폰에서 개발을 지시하고 클라우드에서 수정·테스트·브라우저 검증·PR 준비를 수행하는 방법은 [Codex cloud 개발 안내](docs/codex-cloud-development.md)를 참고합니다. 기본 점검은 저장소 루트에서 `python3 scripts/check_dev.py`, 반영 전 전체 점검은 `python3 scripts/check_dev.py --suite full`로 실행합니다.
+
 ## 공식 채널
 
 - [소설가 이후 공식 홈페이지](https://xn--hu5b23z.com/)
