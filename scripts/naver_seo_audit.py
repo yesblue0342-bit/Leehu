@@ -369,7 +369,7 @@ def discover_pages(root: Path, sample: int | None, seed: int = 7) -> list[str]:
             continue
         if len(relative.parts) == 1 and re.fullmatch(r"(naver|google)[0-9a-f]+\.html", relative.name):
             continue  # ownership verification files are not pages
-        everything.append(str(relative))
+        everything.append(relative.as_posix())
     notes = [p for p in everything if p.startswith("literature/") and p.count("/") == 2 and not p.startswith("literature/page/")]
     archives = [p for p in everything if p.startswith("literature/page/")]
     others = [p for p in everything if p not in set(notes) and p not in set(archives)]
@@ -537,7 +537,7 @@ def resolve_internal(root: Path, page: Page) -> list[tuple[str, str, Path]]:
         if target is None:
             continue
         try:
-            relative = str(target.relative_to(root))
+            relative = target.relative_to(root).as_posix()
         except ValueError:
             continue
         if relative in seen:
@@ -654,7 +654,7 @@ def sitemap_entries(root: Path, relative: str, issues: list[Issue], depth: int =
             if target is None or not target.is_file():
                 issues.append(Issue("sitemap-missing-file", relative, loc))
                 continue
-            entries.extend(sitemap_entries(root, str(target.relative_to(root)), issues, depth + 1))
+            entries.extend(sitemap_entries(root, target.relative_to(root).as_posix(), issues, depth + 1))
         return entries
     return rootel.findall("sm:url", ns)
 
@@ -730,7 +730,7 @@ def feed_issues(root: Path, relative: str, pages_by_url: dict[str, Page]) -> tup
         if page is None:
             target = url_to_file(root, link)
             if target is not None and target.is_file():
-                page = parse_page(root, str(target.relative_to(root)))
+                page = parse_page(root, target.relative_to(root).as_posix())
                 pages_by_url[link] = page
         if page is None or page.article_chars == 0:
             continue
@@ -825,7 +825,7 @@ def audit(root: Path, sample: int | None = 200) -> dict:
     sitemap, sitemap_facts = sitemap_issues(root)
     pages_by_url = {page.url: page for page in pages}
     feeds: dict[str, dict] = {}
-    for feed in sorted(str(p.relative_to(root)) for p in root.rglob("*.xml") if p.name in FEED_NAMES and ".git" not in p.parts):
+    for feed in sorted(p.relative_to(root).as_posix() for p in root.rglob("*.xml") if p.name in FEED_NAMES and ".git" not in p.parts):
         found, facts = feed_issues(root, feed, pages_by_url)
         issues.extend(found)
         feeds[feed] = facts

@@ -75,4 +75,20 @@ python3 scripts/naver_seo_audit.py --out /tmp/leehu-seo-audit.md
 
 결과에는 변경된 동작, 통과·실패·미실행한 검사, 브랜치·커밋·PR, 배포 여부와 남은 작업을 간결하게 적습니다. 기존 문제로 검증이 실패하면 이번 변경과의 관련성을 명시합니다. 토큰·비밀번호·로그인 파일은 Git과 보고서에 넣지 않습니다.
 
-개발 도구 도입 시 확인한 검사 범위와 기존 전체 검사 문제는 [검증 결과](cloud-verification-status.md)에 기록했습니다.
+개발 도구 검증 범위와 사이트맵 불일치 수정 결과는 [검증 결과](cloud-verification-status.md)에 기록했습니다.
+
+## 사이트맵 날짜와 NUC 실행
+
+`/seo-updates/`의 `lastmod`는 색인 대상 소식 중 가장 최근 게시일입니다. 실행 날짜나 체크아웃 시각으로 갱신하지 않습니다. 소식 게시 후에는 `python scripts/build_literature.py`로 기존 정책에 맞게 사이트맵을 생성하고 전체 검사를 실행합니다. 이 생성 명령은 배포나 IndexNow 제출을 수행하지 않습니다. 생성 뒤 콘텐츠 차이가 의도한 범위인지 `git diff`로 확인합니다.
+
+동일성 검사는 모든 기존 대상 파일을 바이트 단위로 비교합니다. 불일치 시 전체 HTML 사전 대신 변경된 파일 경로만 출력하므로 날짜를 무시하거나 비교 범위를 줄이지 않고 실패를 진단할 수 있습니다.
+
+Windows NUC에 Chrome과 Python Playwright가 설치되어 있으면 PowerShell에서 다음과 같이 실행합니다. Chrome 설치 경로는 실제 환경에 맞춥니다.
+
+```powershell
+$env:PYTHONUTF8 = '1'
+$env:CHROMIUM_EXECUTABLE = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+python scripts/check_dev.py --suite full --browser --report C:\Temp\leehu-check.json
+```
+
+SEO 감사 결과에 사용하는 상대 경로는 Windows와 Linux 모두 `/`로 표시합니다. Linux unittest의 4GiB 메모리 제한과 검사별 600초 제한은 유지하며, Windows에 Linux 메모리 제한이 적용된 것으로 보고하지 않습니다.

@@ -1524,8 +1524,14 @@ class StaticLiteratureTest(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn(f"built {TARGET_COUNT} detail pages", completed.stdout)
-        after = {path: path.read_bytes() for path in tracked_outputs}
-        self.assertEqual(before, after)
+        # Keep exact byte equality for every output, but never ask unittest to
+        # format a diff of thousands of full HTML documents on failure.
+        changed = [
+            str(path.relative_to(ROOT))
+            for path, original in before.items()
+            if path.read_bytes() != original
+        ]
+        self.assertEqual(changed, [], "Generated outputs changed during rebuild")
 
 
 if __name__ == "__main__":
