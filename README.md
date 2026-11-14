@@ -10,6 +10,7 @@
 
 - [소설가 이후 공식 홈페이지](https://xn--hu5b23z.com/)
 - [소설가 이후 공식 작가 프로필](https://xn--hu5b23z.com/author/)
+- [소설가 이후 네이버 인물정보](https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&pkid=1&os=215161&query=%EC%9D%B4%ED%9B%84)
 - [소설가 이후 공식 출처 인덱스](https://xn--hu5b23z.com/official-links/)
 - [소설가 이후 작품·저서](https://xn--hu5b23z.com/works/)
 - [소설가 이후 작품 문학노트](https://xn--hu5b23z.com/literature/)
