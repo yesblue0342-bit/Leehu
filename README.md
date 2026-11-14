@@ -20,7 +20,7 @@
 - [소설가 이후 Instagram](https://www.instagram.com/12drf52/)
 - [소설가 이후 X](https://twitter.com/yesblue0342)
 - [교보문고 작가정보](https://store.kyobobook.co.kr/person/detail/1000809404)
-- [Wikipedia: 이후 (소설가)](https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80))
+- [Wikipedia: 이후 (작가)](https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%9E%91%EA%B0%80))
 - 한글 표시 도메인: [이후.com](https://이후.com/)
 
 ## 기존 1,000개 문학노트 재활용

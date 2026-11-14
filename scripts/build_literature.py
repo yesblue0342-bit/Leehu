@@ -54,7 +54,7 @@ AUTHOR_SAME_AS = [
     "https://www.instagram.com/12drf52/",
     "https://twitter.com/yesblue0342",
     "https://store.kyobobook.co.kr/person/detail/1000809404",
-    "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%86%8C%EC%84%A4%EA%B0%80)",
+    "https://ko.wikipedia.org/wiki/%EC%9D%B4%ED%9B%84_(%EC%9E%91%EA%B0%80)",
     "https://namu.wiki/w/%EC%9D%B4%ED%9B%84(%EC%86%8C%EC%84%A4%EA%B0%80)",
 ]
 REQUIRED_FIELDS = (

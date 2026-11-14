@@ -15,7 +15,7 @@ A live Google AI Overview for the author described poet Kim Gyeong as the author
 
 ## Sources checked
 
-- https://ko.wikipedia.org/wiki/이후_(소설가)
+- https://ko.wikipedia.org/wiki/이후_(작가)
 - https://ko.wikipedia.org/wiki/김경_(시인)
 - https://namu.wiki/w/이후(소설가) — family relationship also appeared in indexed profile text.
 - https://www.youtube.com/watch?v=7ZlNbZs7EQM — RIAK Official release information: 2023.07.18.
