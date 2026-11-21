@@ -1372,7 +1372,8 @@ class StaticLiteratureTest(unittest.TestCase):
         images = self.homepage_parser.images
         self.assertTrue(images, "The author portfolio includes published book covers.")
         for image in images:
-            self.assertTrue(image.get("src", "").startswith("/works/covers/"))
+            is_film_still = image.get("src", "").startswith("/author/film/")
+            self.assertTrue(is_film_still or image.get("src", "").startswith("/works/covers/"))
             self.assertTrue((ROOT / urlparse(image["src"]).path.lstrip("/")).is_file())
             self.assertGreater(int(image.get("width", 0)), 0)
             self.assertGreater(int(image.get("height", 0)), 0)
@@ -1380,7 +1381,7 @@ class StaticLiteratureTest(unittest.TestCase):
                 self.assertEqual(image.get("alt"), "")
             else:
                 self.assertTrue(image.get("alt", "").strip())
-                self.assertIn("표지", image["alt"])
+                self.assertIn("스틸컷" if is_film_still else "표지", image["alt"])
 
         hero_scene = next(
             image for image in images if image.get("class") == "hero-scene"
