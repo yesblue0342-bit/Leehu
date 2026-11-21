@@ -45,7 +45,7 @@
       "name": "소설가 이후(李後) 공식 프로필 | 이후 작가·대표 작품",
       "description": "소설가 이후(李後, Lee Hu), 이후 작가의 공식 프로필. 1982년 성남 출생, 2011년 소설 《연》으로 데뷔한 작가의 대표 작품과 공식 채널을 확인하세요.",
       "inLanguage": "ko",
-      "dateModified": "2026-10-01T13:10:08Z",
+      "dateModified": "2026-11-21",
       "isPartOf": {
         "@id": "https://xn--hu5b23z.com/#website"
       },
@@ -103,6 +103,7 @@
       "jobTitle": [
         "소설가",
         "시인",
+        "단편영화 감독",
         "가수"
       ],
       "worksFor": {
@@ -545,7 +546,12 @@
     .prose .fact-source{font-family:var(--sans);font-size:.82rem;line-height:1.8;color:var(--body)}
     .author-facts a,.fact-source a{text-underline-offset:4px}
     @media(max-width:420px){.author-facts>div{grid-template-columns:72px minmax(0,1fr);gap:12px}}
-  </style>
+  .film-still { margin: 0 0 1.5rem; }
+.film-still img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.film-still figcaption { margin-top: .6rem; font-size: .8rem; color: var(--muted, #6b645b); }
+.film-stills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+@media (max-width: 520px) { .film-stills { grid-template-columns: 1fr; } }
+</style>
 <link rel="stylesheet" href="/literature/navigation.css?v=20260908">
 <script src="/literature/navigation.js?v=20260908" defer></script>
 </head>
@@ -600,8 +606,40 @@
           <p class="fact-source">확인 출처: <a href="https://store.kyobobook.co.kr/person/detail/1000809404" rel="noopener">교보문고 작가 소개</a> · <a href="https://search.naver.com/search.naver?where=nexearch&amp;sm=tab_etc&amp;pkid=1&amp;os=215161&amp;query=%EC%9D%B4%ED%9B%84" rel="noopener">네이버 인물정보</a> · <a href="#family">가족관계</a> · <a href="#cash-only-release">음원 발매</a><br><time datetime="2026-10-01">2026년 10월 1일 확인</time></p>
           <p>문학 외에도 공학박사와 SAP 전문가로 활동합니다. 음악에서는 래퍼로, 수련의 영역에서는 무도인으로 활동하며 주식회사 소설가이후를 이끌고 있습니다.</p>
           <div class="tags" aria-label="공개 활동 분야">
-            <span>소설가</span><span>시인</span><span>공학박사</span><span>SAP 전문가</span><span>래퍼</span><span>무도인</span><span>주식회사 소설가이후 대표</span>
+            <span>소설가</span><span>시인</span><span>단편영화 감독</span><span>공학박사</span><span>SAP 전문가</span><span>래퍼</span><span>무도인</span><span>주식회사 소설가이후 대표</span>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="filmography" class="section" aria-labelledby="filmography-title">
+      <div class="section-grid">
+        <div>
+          <p class="section-label">Filmography</p>
+          <h2 id="filmography-title">영화 연출</h2>
+        </div>
+        <div class="prose">
+          <figure class="film-still">
+        <img src="/author/film/flower-on-the-bench.jpg" alt="가을 햇살 아래 벤치에 나란히 앉은 남진과 지현 — 영화 그러나 결코 시들지 않는 꽃의 한 장면" width="1920" height="1080" loading="lazy" decoding="async">
+        <figcaption>〈그러나 결코 시들지 않는 꽃〉 스틸컷</figcaption>
+      </figure>
+      <h3>그러나 결코 시들지 않는 꽃</h3>
+          <p lang="en">The Flower That Never Fades</p>
+          <dl class="author-facts">
+            <div><dt>감독</dt><dd>이후 (김경훈)</dd></div>
+            <div><dt>작품 정보</dt><dd>2026 · 한국 · 단편 극영화 · 5분 46초</dd></div>
+            <div><dt>출품 이력</dt><dd>제44회 부산국제단편영화제(BISFF2027) AI 경쟁 부문 출품</dd></div>
+          </dl>
+          <h3>시놉시스</h3>
+          <p>2004년 블랙데이, 외로운 남진은 터널을 지나 2년 뒤의 미래에서 지현을 만난다. 지현은 남진에게 시들지 않는 꽃을 건넨다. 현재로 돌아온 남진은 두 사람이 다시 만날 날을 기다리며 그 꽃의 의미를 깨닫는다.</p>
+      <div class="film-stills">
+        <figure class="film-still">
+          <img src="/author/film/flower-time-passage.jpg" alt="어두운 공간에서 손을 뻗는 남진 — 영화 그러나 결코 시들지 않는 꽃 스틸컷" width="1920" height="1080" loading="lazy" decoding="async">
+        </figure>
+        <figure class="film-still">
+          <img src="/author/film/flower-first-encounter.jpg" alt="남진을 바라보는 지현 — 영화 그러나 결코 시들지 않는 꽃 스틸컷" width="1920" height="1080" loading="lazy" decoding="async">
+        </figure>
+      </div>
         </div>
       </div>
     </section>
